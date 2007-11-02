@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-ui</symbolicName>
-    <version>4.1</version>
+    <version>4.1.1-SNAPSHOT</version>
     <name>BEAM User Interface Library</name>
     <activator>org.esa.beam.BeamUiActivator</activator>
 
@@ -9,8 +9,13 @@
     <description>This module provides user interface components used e.g. by VISAT.</description>
     <changelog>
         <![CDATA[
-        <p>From 4.0 to 4.0.1
-        <ul>
+        <p>From 4.1 to 4.1.1<ul>
+            <li>[BEAM-712] Processors produce visat.exe zombies</li>
+        </ul></p>
+        <p>From 4.0.1 to 4.1<ul>
+            <li>API adaption</li>
+        </ul></p>
+        <p>From 4.0 to 4.0.1<ul>
             <li>[BEAM-622] Use mouse wheel for zooming</li>
             <li>[BEAM-614] Not possible to re-select item in Arithmetic Expression Editor</li>
         </ul></p>
