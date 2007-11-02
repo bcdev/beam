@@ -310,7 +310,6 @@
                 <version>2.2-beta-1</version>
                 <configuration>
                     <descriptors>
-                        <!--<descriptor>src/main/assembly/src.xml</descriptor>-->
                         <descriptor>src/main/assembly/bin.xml</descriptor>
                         <descriptor>src/main/assembly/installer-files.xml</descriptor>
                     </descriptors>
@@ -355,7 +354,7 @@
             <plugin>
                 <groupId>com.bc.maven.plugins</groupId>
                 <artifactId>maven-template-plugin</artifactId>
-                <version>1.0</version>
+                <version>1.1</version>
                 <executions>
                     <execution>
                         <phase>process-sources</phase>

@@ -1,26 +1,33 @@
 <assembly>
     <id>repository</id>
 
+    <includeBaseDirectory>false</includeBaseDirectory>
+    <baseDirectory>beam-4.1.x-m2</baseDirectory>
     <formats>
-        <format>dir</format>
+        <format>zip</format>
     </formats>
 
-    <includeBaseDirectory>false</includeBaseDirectory>
-
-
-    <moduleSets>
-        <moduleSet>
-            <includes>
-                <include>org.esa.beam:beam-landsat-reader</include>
-                <include>org.esa.beam:beam-meris-ndvi</include>
-            </includes>
-            <binaries>
-                <outputDirectory>repository</outputDirectory>
-                <includeDependencies>false</includeDependencies>
-                <unpack>false</unpack>
-            </binaries>
-        </moduleSet>
-
-    </moduleSets>
+    <repositories>
+        <repository>
+            <includeMetadata>true</includeMetadata>
+            <outputDirectory>maven2</outputDirectory>
+            <!--<includeMetadata>true</includeMetadata>-->
+            <!--<groupVersionAlignments>-->
+            <!--<groupVersionAlignment>-->
+            <!--<id/>-->
+            <!--<version/>-->
+            <!--<excludes/>-->
+            <!--</groupVersionAlignment>-->
+            <!--</groupVersionAlignments>-->
+            <!--<scope/>-->
+            <!--<useStrictFiltering/>-->
+            <!--<useDefaultExcludes/>-->
+            <!--<outputDirectory/>-->
+            <!--<includes/>-->
+            <!--<excludes/>-->
+            <!--<fileMode/>-->
+            <!--<directoryMode/>-->
+        </repository>
+    </repositories>
 
 </assembly>
