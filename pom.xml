@@ -137,11 +137,6 @@
             </dependency>
             <dependency>
                 <groupId>org.esa.beam</groupId>
-                <artifactId>beam-processing-chain</artifactId>
-                <version>4.1</version>
-            </dependency>
-            <dependency>
-                <groupId>org.esa.beam</groupId>
                 <artifactId>beam-visat</artifactId>
                 <version>4.1.1-SNAPSHOT</version>
             </dependency>
