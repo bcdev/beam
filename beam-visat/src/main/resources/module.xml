@@ -12,6 +12,7 @@
     <changelog>
         <![CDATA[
         Changes in 4.1.1<br>
+        [BEAM-726] Memory not fully released after closing a product
         [BEAM-716] Module repository location from preferences overwrites location from beam.config
         Changes in 4.1<br>
         [BEAM-482] Pins shall not be selected by default<br/>

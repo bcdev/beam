@@ -214,6 +214,7 @@ public class PixelInfoToolView extends AbstractToolView {
                 view.removePixelPositionListener(unregisterPPL(view));
                 removePinSelectionChangedListener(e);
             }
+            _pixelInfoView.clearProductNodeRefs();
         }
 
         @Override
