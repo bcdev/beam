@@ -1,10 +1,14 @@
 package org.esa.beam.framework.gpf.main;
 
+import com.bc.ceres.binding.ConversionException;
+import com.bc.ceres.binding.ValidationException;
+import com.bc.ceres.binding.dom.DomConverter;
+import com.bc.ceres.binding.dom.DomElement;
 import junit.framework.TestCase;
 import org.esa.beam.framework.datamodel.Product;
-import org.esa.beam.framework.gpf.GPF;
-import org.esa.beam.framework.gpf.OperatorException;
-import org.esa.beam.framework.gpf.TestOps;
+import org.esa.beam.framework.gpf.*;
+import org.esa.beam.framework.gpf.annotations.OperatorMetadata;
+import org.esa.beam.framework.gpf.annotations.Parameter;
 import org.esa.beam.framework.gpf.graph.Graph;
 import org.esa.beam.framework.gpf.graph.GraphException;
 
@@ -99,6 +103,52 @@ public class CommandLineToolOperatorTest extends TestCase {
 
     }
 
+    @OperatorMetadata(alias = "domop")
+    static class DomTestOp extends Operator{
+
+        @Parameter (domConverter = DomTestOpConverter.class)
+        DomTestOpConfig config;
+
+        public void initialize() throws OperatorException {
+            setTargetProduct(new Product("a", "b", 10, 10));
+        }
+    }
+     static class DomTestOpSpi extends OperatorSpi{
+         DomTestOpSpi() {
+             super(DomTestOp.class);
+         }
+     }
+
+    static class DomTestOpConfig {
+        String name;
+        double value;
+        int ref;
+    }
+
+    static class DomTestOpConverter implements DomConverter {
+        public Object convertDomToValue(DomElement parentElement, Object value) throws ConversionException, ValidationException {
+            return null;
+        }
+
+        public void convertValueToDom(Object value, DomElement parentElement) {
+        }
+
+        public Class getValueType() {
+            return DomTestOpConfig.class;
+        }
+    }
+
+
+    public void testOperatorWithDomConverter() throws Exception {
+        final DomTestOpSpi spi = new DomTestOpSpi();
+        final OperatorSpiRegistry spiRegistry = GPF.getDefaultInstance().getOperatorSpiRegistry();
+        spiRegistry.addOperatorSpi(spi);
+
+        clTool.run(new String[]{"domop", "-h"});
+
+        assertNotNull(context.output);
+        assertTrue(context.output.contains(CommandLineUsage.CANNOT_GEN_XML_MESSAGE));
+    }
 
     private static class OpCommandLineContext implements CommandLineContext {
         public String logString;

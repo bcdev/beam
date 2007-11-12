@@ -2,6 +2,7 @@ package org.esa.beam.framework.gpf.main;
 
 import com.bc.ceres.binding.Converter;
 import com.bc.ceres.binding.ConverterRegistry;
+import com.bc.ceres.binding.dom.DomConverter;
 import com.bc.ceres.binding.dom.DomElement;
 import com.bc.ceres.core.ServiceRegistry;
 import org.esa.beam.framework.gpf.GPF;
@@ -25,6 +26,7 @@ import java.util.Map.Entry;
 
 class CommandLineUsage {
     private static final String COMMAND_LINE_USAGE_RESOURCE = "CommandLineUsage.txt";
+    static final String CANNOT_GEN_XML_MESSAGE = "...place operator-specific XML here...";
 
     public static String getUsageText() {
         final String usagePattern = getUsagePattern();
@@ -135,7 +137,6 @@ class CommandLineUsage {
     }
 
     private static ArrayList<DocElement> createParamDocuElementList(OperatorClassDescriptor operatorClassDescriptor) {
-        // todo - somewhere here occurs a NullPoinzerException
         ArrayList<DocElement> docElementList = new ArrayList<DocElement>(10);
         final Map<Field, Parameter> parameterMap = operatorClassDescriptor.getParameters();
         for (Entry<Field, Parameter> entry : parameterMap.entrySet()) {
@@ -285,7 +286,9 @@ class CommandLineUsage {
                 DomElement childElem = parameter.itemsInlined() ? parametersElem : parametersElem.createChild(name);
                 String itemName = parameter.itemAlias();
                 final DomElement element = childElem.createChild(itemName);
-                if (isConverterAvailable(paramField.getType(), parameter)) {
+                if (isSpecificDomConverterSet(parameter)) {
+                    element.setValue(CANNOT_GEN_XML_MESSAGE);
+                } else if (isConverterAvailable(paramField.getType(), parameter)) {
                     element.setValue(getTypeName(paramField.getType().getComponentType()));
                 } else {
                     final Field[] declaredFields = paramField.getType().getComponentType().getDeclaredFields();
@@ -293,11 +296,14 @@ class CommandLineUsage {
                         convertParameterFieldToDom(declaredField, element);
                     }
                 }
+
                 childElem.createChild("...");
             } else {
                 final DomElement childElem = parametersElem.createChild(name);
                 Class<?> type = paramField.getType();
-                if (isConverterAvailable(type, parameter)) {
+                if (isSpecificDomConverterSet(parameter)) {
+                    childElem.setValue(CANNOT_GEN_XML_MESSAGE);
+                } else if (isConverterAvailable(type, parameter)) {
                     childElem.setValue(getTypeName(type));
                 } else {
                     final Field[] declaredFields = type.getDeclaredFields();
@@ -309,9 +315,13 @@ class CommandLineUsage {
         }
     }
 
+    private static boolean isSpecificDomConverterSet(Parameter parameter) {
+        return parameter != null && parameter.domConverter() != DomConverter.class;
+    }
+
     private static boolean isConverterAvailable(Class<?> type, Parameter parameter) {
         return (parameter != null && parameter.converter() != Converter.class)
-        || ConverterRegistry.getInstance().getConverter(type) != null;
+                || ConverterRegistry.getInstance().getConverter(type) != null;
     }
 
     private static String spaces(int n) {
