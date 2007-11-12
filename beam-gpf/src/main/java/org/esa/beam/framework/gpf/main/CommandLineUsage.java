@@ -135,6 +135,7 @@ class CommandLineUsage {
     }
 
     private static ArrayList<DocElement> createParamDocuElementList(OperatorClassDescriptor operatorClassDescriptor) {
+        // todo - somewhere here occurs a NullPoinzerException
         ArrayList<DocElement> docElementList = new ArrayList<DocElement>(10);
         final Map<Field, Parameter> parameterMap = operatorClassDescriptor.getParameters();
         for (Entry<Field, Parameter> entry : parameterMap.entrySet()) {
