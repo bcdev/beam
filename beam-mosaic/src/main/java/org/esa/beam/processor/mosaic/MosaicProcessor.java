@@ -773,8 +773,7 @@ public class MosaicProcessor extends Processor {
                                                                final ProgressMonitor pm) throws ProcessorException {
         if (isIntersectingOutputProduct(subset)) {
             try {
-                _projectedInputProduct = subset.createProjectedProduct(subsetMapInfo, "temp", "temp-desc",
-                                                                       _includeTiePointGrids);
+                _projectedInputProduct = ProductProjectionBuilder.createProductProjection(subset, false, _includeTiePointGrids, subsetMapInfo, "temp", "temp-desc");
                 disableLogScalingToPreventFromNoDataProblems(_projectedInputProduct);
             } catch (IOException e) {
                 _logger.warning("Unable to project the input product according to the output product.");
