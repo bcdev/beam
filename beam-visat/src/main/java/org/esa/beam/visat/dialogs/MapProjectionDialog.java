@@ -144,9 +144,10 @@ public class MapProjectionDialog extends ModalDialog {
             protected Object doInBackground(ProgressMonitor pm) throws Exception {
                 pm.beginTask("Applying map projection...", 1);
         try {
-            _outputProduct = ProductProjectionBuilder.createProductProjection(getSourceProduct(), false,
+            _outputProduct = ProductProjectionBuilder.createProductProjection(getSourceProduct(),
+                                                                              false, includeGrids,
                                                                               _outputMapInfo,
-                                                                              prodName, prodDesc, includeGrids);
+                                                                              prodName, prodDesc);
             pm.worked(1);
                 } finally {
                     pm.done();

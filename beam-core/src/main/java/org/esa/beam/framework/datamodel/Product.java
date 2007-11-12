@@ -2212,26 +2212,7 @@ public class Product extends ProductNode {
      */
     public Product createProjectedProduct(final MapInfo mapInfo, final String name, final String desc) throws
             IOException {
-        return createProjectedProduct(mapInfo, name, desc, false);
-    }
-
-    /**
-     * Creates a map-projected version of this product.
-     *
-     * @param mapInfo              the map information
-     * @param name                 the name for the new product
-     * @param desc                 the description for the new product
-     * @param includeTiePointGrids if {@code true} the tie point grids are converted to bands
-     *                             and included in the projected product
-     *
-     * @return the product subset, or <code>null</code> if the product/subset combination is not valid
-     *
-     * @throws IOException if an I/O error occurs
-     */
-    public Product createProjectedProduct(final MapInfo mapInfo, final String name, final String desc,
-                                          boolean includeTiePointGrids) throws
-                                                                        IOException {
-        return ProductProjectionBuilder.createProductProjection(this, false, mapInfo, name, desc, includeTiePointGrids);
+        return ProductProjectionBuilder.createProductProjection(this, false, mapInfo, name, desc);
     }
 
     /**

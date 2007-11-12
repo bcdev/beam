@@ -29,11 +29,11 @@ public abstract class AbstractProductBuilder extends AbstractProductReader {
     protected int _sceneRasterHeight;
     protected String _newProductName;
     protected String _newProductDesc;
-    protected Map<Band, Band> _bandMap;
+    protected Map<Band, RasterDataNode> _bandMap;
 
     public AbstractProductBuilder(final boolean sourceProductOwner) {
         super(null);
-        _bandMap = new Hashtable<Band, Band>();
+        _bandMap = new Hashtable<Band, RasterDataNode>();
         _sourceProductOwner = sourceProductOwner;
     }
 
@@ -130,16 +130,14 @@ public abstract class AbstractProductBuilder extends AbstractProductReader {
     }
 
     private static void copyBitmaskOverlayInfo(final RasterDataNode[] sourceNodes, final Product product) {
-        for (int i = 0; i < sourceNodes.length; i++) {
-            final RasterDataNode sourceNode = sourceNodes[i];
+        for (final RasterDataNode sourceNode : sourceNodes) {
             final RasterDataNode destNode = product.getRasterDataNode(sourceNode.getName());
             if (destNode != null) {
                 final BitmaskOverlayInfo bitmaskOverlayInfo = sourceNode.getBitmaskOverlayInfo();
                 if (bitmaskOverlayInfo != null) {
                     final BitmaskOverlayInfo info = new BitmaskOverlayInfo();
                     final BitmaskDef[] bitmaskDefs = bitmaskOverlayInfo.getBitmaskDefs();
-                    for (int j = 0; j < bitmaskDefs.length; j++) {
-                        BitmaskDef bitmaskDef = bitmaskDefs[j];
+                    for (BitmaskDef bitmaskDef : bitmaskDefs) {
                         info.addBitmaskDef(product.getBitmaskDef(bitmaskDef.getName()));
                     }
                     destNode.setBitmaskOverlayInfo(info);
