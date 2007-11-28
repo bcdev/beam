@@ -20,16 +20,19 @@
         [BEAM-721] Saving a Mosaic processing request fails without error message<br>
         [BEAM-722] Do not use no-data value for "num_pixels" band<br>
         [BEAM-707] Mosaic processor fails with tie-point grids in valid-expression<br>
+        [BEAM-667] Use UTM Automatic in mapproj tool
         [BEAM-522] Map-projection and orthorectification should also transform tie-point grids<br>
         ]]>
     </changelog>
 
     <dependency>
         <module>beam-visat</module>
+        <version>4.1.1-SNAPSHOT</version>
         <optional>true</optional>
     </dependency>
     <dependency>
         <module>beam-processing</module>
+        <version>4.1.1-SNAPSHOT</version>        
     </dependency>
 
     <categories>Application,Processor,Geometry,Level-3,MERIS,AVHRR,ATSR,Envisat,ERS,ASAR,VISAT</categories>
