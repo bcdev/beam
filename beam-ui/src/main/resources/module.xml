@@ -31,6 +31,7 @@
 
     <dependency>
         <module>beam-core</module>
+        <version>4.1.1-SNAPSHOT</version>
     </dependency>
     <dependency>
         <module>ceres-ui</module>
