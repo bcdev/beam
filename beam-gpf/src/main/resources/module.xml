@@ -6,6 +6,7 @@
 
     <dependency>
         <module>ceres-binding</module>
+        <version>0.6.1-SNAPSHOT</version>
     </dependency>
     <dependency>
         <module>beam-core</module>
