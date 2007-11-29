@@ -19,38 +19,38 @@ import java.util.logging.Logger;
 
 class ModisImappAttributes implements ModisGlobalAttributes {
 
-    private final File _inFile;
-    private final Logger _logger;
-    private final int _sdId;
-    private final Dimension _productDimension;
-    private final HashMap _dimensionMap;
-    private final HashMap _subsamplingMap;
+    private final File inFile;
+    private final Logger logger;
+    private final int sdId;
+    private final Dimension productDimension;
+    private final HashMap<String, Integer> dimensionMap;
+    private final HashMap<String, IncrementOffset> subsamplingMap;
 
-    private String _productName;
-    private String _productType;
-    private Date _sensingStart;
-    private Date _sensingStop;
+    private String productName;
+    private String productType;
+    private Date sensingStart;
+    private Date sensingStop;
 
 
     public ModisImappAttributes(File inFile, int sdId) {
-        _logger = BeamLogManager.getSystemLogger();
-        _productDimension = new Dimension(0, 0);
-        _dimensionMap = new HashMap();
-        _subsamplingMap = new HashMap();
-        _inFile = inFile;
-        this._sdId = sdId;
+        logger = BeamLogManager.getSystemLogger();
+        productDimension = new Dimension(0, 0);
+        dimensionMap = new HashMap<String, Integer>(10);
+        subsamplingMap = new HashMap<String, IncrementOffset>(10);
+        this.inFile = inFile;
+        this.sdId = sdId;
     }
 
     public String getProductName() {
-        return _productName;
+        return productName;
     }
 
     public String getProductType() {
-        return _productType;
+        return productType;
     }
 
     public Dimension getProductDimensions() {
-        return _productDimension;
+        return productDimension;
     }
 
     public boolean isImappFormat() {
@@ -63,9 +63,9 @@ class ModisImappAttributes implements ModisGlobalAttributes {
         final String widthName = name + "_width";
         final String heightName = name + "_height";
         final String layersName = name + "_z";
-        Integer width = (Integer) _dimensionMap.get(widthName);
-        Integer height = (Integer) _dimensionMap.get(heightName);
-        Integer z = (Integer) _dimensionMap.get(layersName);
+        Integer width = dimensionMap.get(widthName);
+        Integer height = dimensionMap.get(heightName);
+        Integer z = dimensionMap.get(layersName);
 
         if (width != null && height != null) {
             result = new HdfDataField();
@@ -84,7 +84,7 @@ class ModisImappAttributes implements ModisGlobalAttributes {
     }
 
     public int[] getTiePointSubsAndOffset(String dimensionName) {
-        IncrementOffset incrementOffset = (IncrementOffset) _subsamplingMap.get(dimensionName);
+        IncrementOffset incrementOffset = subsamplingMap.get(dimensionName);
         if (incrementOffset != null) {
             int[] result = new int[2];
             result[0] = incrementOffset.increment;
@@ -96,11 +96,11 @@ class ModisImappAttributes implements ModisGlobalAttributes {
     }
 
     public Date getSensingStart() {
-        return _sensingStart;
+        return sensingStart;
     }
 
     public Date getSensingStop() {
-        return _sensingStop;
+        return sensingStop;
     }
 
     public void decode(final HdfGlobalAttributes hdfAttributes) throws ProductIOException {
@@ -115,13 +115,13 @@ class ModisImappAttributes implements ModisGlobalAttributes {
     ///////////////////////////////////////////////////////////////////////////
 
     private void parseFileNamendType() {
-        _productName = FileUtils.getFilenameWithoutExtension(_inFile);
-        final int index = _productName.indexOf('.');
+        productName = FileUtils.getFilenameWithoutExtension(inFile);
+        final int index = productName.indexOf('.');
         if (index > 0) {
-            _productType = _productName.substring(0, index);
+            productType = productName.substring(0, index);
         } else {
-            _logger.warning("Unable to retrieve the product type from the file name.");
-            _productType = "unknown";
+            logger.warning("Unable to retrieve the product type from the file name.");
+            productType = "unknown";
         }
     }
 
@@ -131,41 +131,41 @@ class ModisImappAttributes implements ModisGlobalAttributes {
         int[] numDatasets = new int[1];
 
         try {
-            HDFLibrary.SDfileinfo(_sdId, numDatasets);
+            HDFLibrary.SDfileinfo(sdId, numDatasets);
 
             int[] dimSize = new int[3];
             int[] dimInfo = new int[3];
             String[] dimName = {""};
             for (int n = 0; n < numDatasets[0]; n++) {
-                final int sdsId = HDFLibrary.SDselect(_sdId, n);
+                final int sdsId = HDFLibrary.SDselect(sdId, n);
 
                 if (!HDFLibrary.SDgetinfo(sdsId, dimName, dimSize, dimInfo)) {
                     final String msg = "Unable to retrieve meta information for dataset '" + dimName[0] + '\'';
-                    _logger.severe(msg);
+                    logger.severe(msg);
                     throw new HDFException(msg);
                 }
 
                 final String widthName = dimName[0] + "_width";
                 final String heightName = dimName[0] + "_height";
                 if (dimSize[2] == 0) {
-                    if (_productDimension.width < dimSize[1]) {
-                        _productDimension.width = dimSize[1];
+                    if (productDimension.width < dimSize[1]) {
+                        productDimension.width = dimSize[1];
                     }
-                    if (_productDimension.height < dimSize[0]) {
-                        _productDimension.height = dimSize[0];
+                    if (productDimension.height < dimSize[0]) {
+                        productDimension.height = dimSize[0];
                     }
-                    _dimensionMap.put(widthName, dimSize[1]);
-                    _dimensionMap.put(heightName, dimSize[0]);
+                    dimensionMap.put(widthName, dimSize[1]);
+                    dimensionMap.put(heightName, dimSize[0]);
                 } else {
-                    if (_productDimension.width < dimSize[2]) {
-                        _productDimension.width = dimSize[2];
+                    if (productDimension.width < dimSize[2]) {
+                        productDimension.width = dimSize[2];
                     }
-                    if (_productDimension.height < dimSize[1]) {
-                        _productDimension.height = dimSize[1];
+                    if (productDimension.height < dimSize[1]) {
+                        productDimension.height = dimSize[1];
                     }
-                    _dimensionMap.put(widthName, dimSize[2]);
-                    _dimensionMap.put(heightName, dimSize[1]);
-                    _dimensionMap.put(dimName[0] + "_z", dimSize[0]);
+                    dimensionMap.put(widthName, dimSize[2]);
+                    dimensionMap.put(heightName, dimSize[1]);
+                    dimensionMap.put(dimName[0] + "_z", dimSize[0]);
                 }
 
                 ModisUtils.clearDimensionArrays(dimInfo, dimSize);
@@ -183,13 +183,13 @@ class ModisImappAttributes implements ModisGlobalAttributes {
         IncrementOffset incrementOffset;
         if (StringUtils.isNotNullAndNotEmpty(lineNumbers)) {
             incrementOffset = ModisUtils.getIncrementOffset(lineNumbers);
-            _subsamplingMap.put(heightName, incrementOffset);
+            subsamplingMap.put(heightName, incrementOffset);
 
         }
         String frameNumbers = ModisUtils.getNamedStringAttribute(sdsId, "frame_numbers");
         if (StringUtils.isNotNullAndNotEmpty(frameNumbers)) {
             incrementOffset = ModisUtils.getIncrementOffset(frameNumbers);
-            _subsamplingMap.put(widthName, incrementOffset);
+            subsamplingMap.put(widthName, incrementOffset);
         }
     }
 
@@ -201,19 +201,19 @@ class ModisImappAttributes implements ModisGlobalAttributes {
             final String endTime = hdfAttributes.getStringAttributeValue(ModisConstants.RANGE_END_TIME_KEY);
 
             if (startDate == null || startTime == null) {
-                _logger.warning("Unable to retrieve sensing start time from metadata");
-                _sensingStart = null;
+                logger.warning("Unable to retrieve sensing start time from metadata");
+                sensingStart = null;
                 //throw new ProductIOException("Unable to retrieve sensing start time from metadata");
             } else {
-                _sensingStart = ModisUtils.createDateFromStrings(startDate, startTime);
+                sensingStart = ModisUtils.createDateFromStrings(startDate, startTime);
             }
 
             if (endDate == null || endTime == null) {
-                _logger.warning("Unable to retrieve sensing stop time from metadata");
-                _sensingStop = null;
+                logger.warning("Unable to retrieve sensing stop time from metadata");
+                sensingStop = null;
                 //throw new ProductIOException("Unable to retrieve sensing stop time from metadata");
             } else {
-                _sensingStop = ModisUtils.createDateFromStrings(endDate, endTime);
+                sensingStop = ModisUtils.createDateFromStrings(endDate, endTime);
             }
         } catch (ParseException e) {
             throw new ProductIOException(e.getMessage());
