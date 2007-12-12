@@ -10,7 +10,7 @@
     <changelog>
         <![CDATA[
         Changes in 4.1.1<br>
-        [BEAM-694] Bandarithmetic gives acces to to latitude and longitude using the provided geocoding<br>
+        [BEAM-694] Bandarithmetic gives acces to latitude and longitude using the provided geocoding<br>
         [BEAM-712] Processors produce visat.exe zombies<br>
         <br>Changes in 4.1<br>
         API adaption<br>
