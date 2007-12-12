@@ -16,7 +16,11 @@
  */
 package org.esa.beam.framework.ui;
 
-import com.bc.jexp.*;
+import com.bc.jexp.Function;
+import com.bc.jexp.Namespace;
+import com.bc.jexp.ParseException;
+import com.bc.jexp.Parser;
+import com.bc.jexp.Term;
 import com.bc.jexp.impl.NamespaceImpl;
 import org.esa.beam.framework.dataop.barithm.BandArithmetic;
 import org.esa.beam.framework.ui.tool.ToolButtonFactory;
@@ -26,13 +30,25 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.Stack;
 
 /**
  * The expression pane is a UI component which is used to edit mathematical expressions. There are four methods which
@@ -65,6 +81,8 @@ public class ExpressionPane extends JPanel {
             "false",
             "X",
             "Y",
+            "LAT",
+            "LON",
             "0.5",
             "0.0",
             "1.0",
