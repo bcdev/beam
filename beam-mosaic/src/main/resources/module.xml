@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-mosaic</symbolicName>
-    <version>2.2.1-SNAPSHOT</version>
+    <version>2.2.1</version>
     <name>Level-3 Mosaic Processor</name>
 
 
@@ -28,12 +28,12 @@
 
     <dependency>
         <module>beam-visat</module>
-        <version>4.1.1-SNAPSHOT</version>
+        <version>4.1.1</version>
         <optional>true</optional>
     </dependency>
     <dependency>
         <module>beam-processing</module>
-        <version>4.1.1-SNAPSHOT</version>        
+        <version>4.1.1</version>
     </dependency>
 
     <categories>Application,Processor,Geometry,Level-3,MERIS,AVHRR,ATSR,Envisat,ERS,ASAR,VISAT</categories>

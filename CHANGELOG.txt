@@ -1,11 +1,12 @@
                                  CHANGELOG
 
                          MERIS/(A)ATSR Toolbox (BEAM)
-                                Version 4.1
+                                Version 4.1.1
 
 
 This file contains all significant changes for each BEAM release.
 
+    o 13.12.2007: Version 4.1.1
     o 31.10.2007: Version 4.1
     o 20.04.2007: Version 4.0
     o 01.02.2007: Version 3.7
@@ -25,6 +26,34 @@ This file contains all significant changes for each BEAM release.
 
 _____________________________________________________________________________
 
+ Changes from 4.1 to 4.1.1
+_____________________________________________________________________________
+
+
+1) Most important new BEAM Features and Improvements
+
+o Map-Projection, Orthorectification and Mosaic Processor can now handle tie-point grids.
+o Memory leak: Allocated memory was not fully released when closing a product.
+o The VISAT system process was not terminated if a processor was used. 
+
+2) Other changes (consult BEAM issue tracker for detailed information)
+
+BEAM-735 Not able to orthorectify MERIS_FRS products
+BEAM-734 VISAT tile cache capacity cannot be changed
+BEAM-733 Albers Equal Area Conic map projection missing
+BEAM-732 Pixel position is not recalculated for GCPs imported from a placemark file
+BEAM-728 Map-projection dialog shall allow for tie-point grid inclusion
+BEAM-726 Memory not fully released after closing a product
+BEAM-724 Progress is not reported correctly for the SMAC processor
+BEAM-716 Module repository location from preferences overwrites location from beam.config
+BEAM-712 Processors produce visat.exe zombies
+BEAM-710 Not able to copy a product using new product dialog
+BEAM-694 Bandarithmetic gives acces to latitude and longitude using the provided geocoding
+BEAM-522 Map-projection and orthorectification should also transform tie-point grids
+BEAM-356 Processors do not check if output product already exists
+
+_____________________________________________________________________________
+
  Changes from 4.0 to 4.1
 _____________________________________________________________________________
 
@@ -38,7 +67,7 @@ o New geo-coding based on ground control points
 o The management and display of pins has been greatly enhanced
 o The spectrum tool view has been greatly enhanced
 o Metadata views changed from flat table to hierarchical tree views
-o Image creation is now faster 
+o Image creation is now faster
 o BEAM uses a new installer based on install4J
 
 2) Other changes (consult BEAM issue tracker for detailed information)

@@ -98,19 +98,19 @@
             <dependency>
                 <groupId>com.bc.ceres</groupId>
                 <artifactId>ceres-core</artifactId>
-                <version>0.6.1-SNAPSHOT</version>
+                <version>0.6.1</version>
             </dependency>
 
             <dependency>
                 <groupId>com.bc.ceres</groupId>
                 <artifactId>ceres-binding</artifactId>
-                <version>0.6.1-SNAPSHOT</version>
+                <version>0.6.1</version>
             </dependency>
 
             <dependency>
                 <groupId>com.bc.ceres</groupId>
                 <artifactId>ceres-ui</artifactId>
-                <version>0.6.1-SNAPSHOT</version>
+                <version>0.6.1</version>
             </dependency>
 
             <!-- BEAM System Level Modules ############################################# -->
@@ -118,27 +118,27 @@
             <dependency>
                 <groupId>org.esa.beam</groupId>
                 <artifactId>beam-core</artifactId>
-                <version>4.1.1-SNAPSHOT</version>
+                <version>4.1.1</version>
             </dependency>
             <dependency>
                 <groupId>org.esa.beam</groupId>
                 <artifactId>beam-gpf</artifactId>
-                <version>4.1.1-SNAPSHOT</version>
+                <version>4.1.1</version>
             </dependency>
             <dependency>
                 <groupId>org.esa.beam</groupId>
                 <artifactId>beam-ui</artifactId>
-                <version>4.1.1-SNAPSHOT</version>
+                <version>4.1.1</version>
             </dependency>
             <dependency>
                 <groupId>org.esa.beam</groupId>
                 <artifactId>beam-processing</artifactId>
-                <version>4.1.1-SNAPSHOT</version>
+                <version>4.1.1</version>
             </dependency>
             <dependency>
                 <groupId>org.esa.beam</groupId>
                 <artifactId>beam-visat</artifactId>
-                <version>4.1.1-SNAPSHOT</version>
+                <version>4.1.1</version>
             </dependency>
 
             <!-- BEAM Modules ############################################# -->

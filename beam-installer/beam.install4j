@@ -132,6 +132,14 @@
         <condition />
         <validation />
         <actions>
+          <action name="" id="4382" beanClass="com.install4j.runtime.beans.actions.UninstallPreviousAction" rollbackBarrier="false" multiExec="false" failureStrategy="1" errorMessage="">
+            <serializedBean>
+              <java class="java.beans.XMLDecoder">
+                <object class="com.install4j.runtime.beans.actions.UninstallPreviousAction" />
+              </java>
+            </serializedBean>
+            <condition />
+          </action>
           <action name="" id="6" beanClass="com.install4j.runtime.beans.actions.InstallFilesAction" rollbackBarrier="false" multiExec="false" failureStrategy="1" errorMessage="">
             <serializedBean>
               <java class="java.beans.XMLDecoder">
@@ -547,9 +555,8 @@
               <java class="java.beans.XMLDecoder">
                 <object class="com.install4j.runtime.beans.formcomponents.MultilineLabelComponent">
                   <void property="labelText">
-                    <string>BEAM application data such as user preferences and caches are stored in
-                                            the directory '${installer:sys.userHome}/.beam'. This directory will be
-                                            entirely removed if you select this option.</string>
+                    <string>BEAM application data such as user preferences and caches are stored in the directory '${installer:sys.userHome}/.beam'. 
+This directory will be entirely removed if you select this option.</string>
                   </void>
                 </object>
               </java>
@@ -609,7 +616,7 @@
     </uninstallerStartup>
   </installerGui>
   <mediaSets>
-    <win32 name="Windows" id="20" mediaFileName="" installDir="${compiler:sys.shortName}-${compiler:sys.version}" overridePrincipalLanguage="false" requires64bit="false" runPostProcessor="false" postProcessor="" failOnPostProcessorError="false" includedJRE="windows-x86-1.6.0_03" manualJREEntry="false" bundleType="1" jreURL="" jreFtpURL="" jreShared="false" customInstallBaseDir="" createUninstallIcon="true" contentFilesType="1" downloadURL="" runAsAdmin="true">
+    <win32 name="Windows Installer" id="20" mediaFileName="" installDir="${compiler:sys.shortName}-${compiler:sys.version}" overridePrincipalLanguage="false" requires64bit="false" runPostProcessor="false" postProcessor="" failOnPostProcessorError="false" includedJRE="windows-x86-1.6.0_03" manualJREEntry="false" bundleType="1" jreURL="" jreFtpURL="" jreShared="false" customInstallBaseDir="" createUninstallIcon="true" contentFilesType="1" downloadURL="" runAsAdmin="true">
       <excludedLaunchers />
       <excludedComponents />
       <overriddenPrincipalLanguage id="en" customLocalizationFile="" />
@@ -680,7 +687,87 @@
       <excludedInstallerScreens />
       <excludedUninstallerScreens />
     </macosFolder>
-    <unixInstaller name="Unix Installer" id="128" mediaFileName="" installDir="${compiler:sys.shortName}-${compiler:sys.version}" overridePrincipalLanguage="false" requires64bit="false" runPostProcessor="false" postProcessor="" failOnPostProcessorError="false" includedJRE="linux-x86-1.6.0_03_client_only" manualJREEntry="false" bundleType="1" jreURL="" jreFtpURL="" jreShared="false" customInstallBaseDir="" createUninstallIcon="true" contentFilesType="1" downloadURL="">
+    <unixInstaller name="Unix x86 Installer" id="128" mediaFileName="" installDir="${compiler:sys.shortName}-${compiler:sys.version}" overridePrincipalLanguage="false" requires64bit="false" runPostProcessor="false" postProcessor="" failOnPostProcessorError="false" includedJRE="linux-x86-1.6.0_03" manualJREEntry="false" bundleType="1" jreURL="" jreFtpURL="" jreShared="false" customInstallBaseDir="" createUninstallIcon="true" contentFilesType="1" downloadURL="">
+      <excludedLaunchers>
+        <launcher id="1086" />
+      </excludedLaunchers>
+      <excludedComponents />
+      <overriddenPrincipalLanguage id="en" customLocalizationFile="" />
+      <exclude>
+        <entry location="beam-website.url" launcher="false" />
+        <entry location="bin/aatsr-sst.bat" launcher="false" />
+        <entry location="bin/aatsr-sst.command" launcher="false" />
+        <entry location="bin/beam-cli.bat" launcher="false" />
+        <entry location="bin/beam-cli.command" launcher="false" />
+        <entry location="bin/binning.bat" launcher="false" />
+        <entry location="bin/binning.command" launcher="false" />
+        <entry location="bin/flhmci.bat" launcher="false" />
+        <entry location="bin/flhmci.command" launcher="false" />
+        <entry location="bin/mapproj.bat" launcher="false" />
+        <entry location="bin/mapproj.command" launcher="false" />
+        <entry location="bin/meris-cloud.bat" launcher="false" />
+        <entry location="bin/meris-cloud.command" launcher="false" />
+        <entry location="bin/meris-rad2refl.bat" launcher="false" />
+        <entry location="bin/meris-rad2refl.command" launcher="false" />
+        <entry location="bin/meris-smac.bat" launcher="false" />
+        <entry location="bin/meris-smac.command" launcher="false" />
+        <entry location="bin/meris-smile.bat" launcher="false" />
+        <entry location="bin/meris-smile.command" launcher="false" />
+        <entry location="bin/mosaic.bat" launcher="false" />
+        <entry location="bin/mosaic.command" launcher="false" />
+        <entry location="bin/pconvert.bat" launcher="false" />
+        <entry location="bin/pconvert.command" launcher="false" />
+        <entry location="bin/visat-d.bat" launcher="false" />
+        <entry location="bin/visat-d.command" launcher="false" />
+      </exclude>
+      <variables />
+      <excludedInstallerScreens />
+      <excludedUninstallerScreens />
+      <installerScript mode="1" file="">
+        <scriptLines />
+      </installerScript>
+    </unixInstaller>
+    <unixInstaller name="Solaris Sparc Installer" id="4419" mediaFileName="${compiler:sys.shortName}_solaris_${compiler:sys.version}" installDir="${compiler:sys.shortName}-${compiler:sys.version}" overridePrincipalLanguage="false" requires64bit="false" runPostProcessor="false" postProcessor="" failOnPostProcessorError="false" includedJRE="solaris-sparc-1.6.0_03" manualJREEntry="false" bundleType="1" jreURL="" jreFtpURL="" jreShared="false" customInstallBaseDir="" createUninstallIcon="true" contentFilesType="1" downloadURL="">
+      <excludedLaunchers>
+        <launcher id="1086" />
+      </excludedLaunchers>
+      <excludedComponents />
+      <overriddenPrincipalLanguage id="en" customLocalizationFile="" />
+      <exclude>
+        <entry location="beam-website.url" launcher="false" />
+        <entry location="bin/aatsr-sst.bat" launcher="false" />
+        <entry location="bin/aatsr-sst.command" launcher="false" />
+        <entry location="bin/beam-cli.bat" launcher="false" />
+        <entry location="bin/beam-cli.command" launcher="false" />
+        <entry location="bin/binning.bat" launcher="false" />
+        <entry location="bin/binning.command" launcher="false" />
+        <entry location="bin/flhmci.bat" launcher="false" />
+        <entry location="bin/flhmci.command" launcher="false" />
+        <entry location="bin/mapproj.bat" launcher="false" />
+        <entry location="bin/mapproj.command" launcher="false" />
+        <entry location="bin/meris-cloud.bat" launcher="false" />
+        <entry location="bin/meris-cloud.command" launcher="false" />
+        <entry location="bin/meris-rad2refl.bat" launcher="false" />
+        <entry location="bin/meris-rad2refl.command" launcher="false" />
+        <entry location="bin/meris-smac.bat" launcher="false" />
+        <entry location="bin/meris-smac.command" launcher="false" />
+        <entry location="bin/meris-smile.bat" launcher="false" />
+        <entry location="bin/meris-smile.command" launcher="false" />
+        <entry location="bin/mosaic.bat" launcher="false" />
+        <entry location="bin/mosaic.command" launcher="false" />
+        <entry location="bin/pconvert.bat" launcher="false" />
+        <entry location="bin/pconvert.command" launcher="false" />
+        <entry location="bin/visat-d.bat" launcher="false" />
+        <entry location="bin/visat-d.command" launcher="false" />
+      </exclude>
+      <variables />
+      <excludedInstallerScreens />
+      <excludedUninstallerScreens />
+      <installerScript mode="1" file="">
+        <scriptLines />
+      </installerScript>
+    </unixInstaller>
+    <unixInstaller name="Unix NoVM Installer" id="4425" mediaFileName="${compiler:sys.shortName}_${compiler:sys.platform}_nojre_${compiler:sys.version}" installDir="${compiler:sys.shortName}-${compiler:sys.version}" overridePrincipalLanguage="false" requires64bit="false" runPostProcessor="false" postProcessor="" failOnPostProcessorError="false" includedJRE="" manualJREEntry="false" bundleType="1" jreURL="" jreFtpURL="" jreShared="false" customInstallBaseDir="" createUninstallIcon="true" contentFilesType="1" downloadURL="">
       <excludedLaunchers>
         <launcher id="1086" />
       </excludedLaunchers>
@@ -721,6 +808,8 @@
       </installerScript>
     </unixInstaller>
   </mediaSets>
-  <buildIds buildAll="true" />
+  <buildIds buildAll="true">
+    <mediaSet refId="20" />
+  </buildIds>
 </install4j>
 

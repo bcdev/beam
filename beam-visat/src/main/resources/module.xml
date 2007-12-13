@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-visat</symbolicName>
-    <version>4.1.1-SNAPSHOT</version>
+    <version>4.1.1</version>
     <name>BEAM VISAT Application</name>
 
     <description>
@@ -49,7 +49,7 @@
 
     <dependency>
         <module>beam-core</module>
-        <version>4.1.1-SNAPSHOT</version>
+        <version>4.1.1</version>
     </dependency>
     <dependency>
         <module>beam-ui</module>
@@ -59,7 +59,7 @@
     </dependency>
     <dependency>
         <module>ceres-binding</module>
-        <version>0.6.1-SNAPSHOT</version>        
+        <version>0.6.1</version>
     </dependency>
     <dependency>
         <module>beam-help</module>

@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-ui</symbolicName>
-    <version>4.1.1-SNAPSHOT</version>
+    <version>4.1.1</version>
     <name>BEAM User Interface Library</name>
     <activator>org.esa.beam.BeamUiActivator</activator>
 
@@ -30,15 +30,15 @@
 
     <dependency>
         <module>beam-core</module>
-        <version>4.1.1-SNAPSHOT</version>
+        <version>4.1.1</version>
     </dependency>
     <dependency>
         <module>ceres-ui</module>
-        <version>0.6.1-SNAPSHOT</version>        
+        <version>0.6.1</version>
     </dependency>
     <dependency>
         <module>ceres-binding</module>
-        <version>0.6.1-SNAPSHOT</version>
+        <version>0.6.1</version>
     </dependency>
 
     <categories>System,Library</categories>
