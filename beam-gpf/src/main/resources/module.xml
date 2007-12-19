@@ -1,8 +1,14 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-gpf</symbolicName>
-    <version>4.1.1</version>
+    <version>4.1.2</version>
     <name>BEAM Graph Processing Framework (GPF)</name>
+    
+    <changelog>
+        <![CDATA[<p>From 4.1.1 to 4.1.2:<br/>
+            [BEAM-760] The target product selector throws NullPointerException<br/>
+        </p>]]>
+    </changelog>
 
     <dependency>
         <module>ceres-binding</module>
