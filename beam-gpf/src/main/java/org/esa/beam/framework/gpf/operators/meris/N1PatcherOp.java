@@ -230,49 +230,45 @@ public class N1PatcherOp extends MerisBasisOp {
                 }
             }
             if (band.getName().startsWith("radiance")) {
-            DatasetDescriptor descriptor = getDatasetDescriptorForBand(band);
-            if (descriptor != null) {
-                short[] data = (short[]) srcTile.getRawSamples().getElems();
+                DatasetDescriptor descriptor = getDatasetDescriptorForBand(band);
+                if (descriptor != null) {
+                    short[] data = (short[]) srcTile.getRawSamples().getElems();
 
-                byte[] buf = new byte[rectangle.height * descriptor.dsrSize];
-                final long dsrOffset = descriptor.dsOffset + rectangle.y * descriptor.dsrSize;
-                inputStream.seek(dsrOffset);
-                inputStream.read(buf);
-                outputStream.seek(dsrOffset);
-                for (int y = 0; y < rectangle.height; y++) {
-                    outputStream.write(buf, y * descriptor.dsrSize, DSR_HEADER_SIZE);
-                    outputStream.skipBytes((targetProduct.getSceneRasterWidth() - rectangle.width - rectangle.x) * 2);
-                    for (int x = rectangle.width - 1; x >= 0; x--) {
-                        outputStream.writeShort(data[x + y * rectangle.width]);
+                    byte[] buf = new byte[rectangle.height * descriptor.dsrSize];
+                    final long dsrOffset = descriptor.dsOffset + rectangle.y * descriptor.dsrSize;
+                    inputStream.seek(dsrOffset);
+                    inputStream.read(buf);
+                    outputStream.seek(dsrOffset);
+                    for (int y = 0; y < rectangle.height; y++) {
+                        outputStream.write(buf, y * descriptor.dsrSize, DSR_HEADER_SIZE);
+                        outputStream.skipBytes((targetProduct.getSceneRasterWidth() - rectangle.width - rectangle.x) * 2);
+                        for (int x = rectangle.width - 1; x >= 0; x--) {
+                            outputStream.writeShort(data[x + y * rectangle.width]);
+                        }
+                        outputStream.skipBytes((rectangle.x) * 2);
+                        checkForCancelation(pm);
+                        pm.worked(1);
                     }
-                    outputStream.skipBytes((rectangle.x) * 2);
-                    checkForCancelation(pm);
-                    pm.worked(1);
                 }
-            }
-            //TODO fix this mz 07.12.2007
-//            } else if (band.getName().equals("l1_flags")) {
-//                DatasetDescriptor descriptor = getDatasetDescriptorForFlagBand(band);
-//                if (descriptor != null) {
-//                    byte[] data = (byte[]) srcTile.getRawSamples().getElems();
-//
-//                    byte[] buf = new byte[rectangle.height * descriptor.dsrSize];
-//                    final long dsrOffset = descriptor.dsOffset + rectangle.y * descriptor.dsrSize;
-//                    inputStream.seek(dsrOffset);
-//                    inputStream.read(buf);
-//                    outputStream.seek(dsrOffset);
-//                    for (int y = 0; y < rectangle.height; y++) {
-//                        outputStream.write(buf, y * descriptor.dsrSize, DSR_HEADER_SIZE);
-//                        outputStream.skipBytes((targetProduct.getSceneRasterWidth() - rectangle.width - rectangle.x)*3);
-//                        for (int x = rectangle.width - 1; x >= 0; x--) {
-//                            outputStream.writeByte(data[x + y * rectangle.width]);
-//                            outputStream.skipBytes(2);
-//                        }
-//                        outputStream.skipBytes((rectangle.x)*3);
-//                        checkForCancelation(pm);
-//                        pm.worked(1);
-//                    }
-//                }
+            } else if (band.getName().equals("l1_flags")) {
+                DatasetDescriptor descriptor = getDatasetDescriptorForFlagBand();
+                if (descriptor != null) {
+                    byte[] data = (byte[]) srcTile.getRawSamples().getElems();
+
+                    final long dsrOffset = descriptor.dsOffset + rectangle.y * descriptor.dsrSize;
+                    outputStream.seek(dsrOffset);
+                    for (int y = 0; y < rectangle.height; y++) {
+                        outputStream.skipBytes(DSR_HEADER_SIZE);
+                        outputStream.skipBytes(targetProduct.getSceneRasterWidth() - rectangle.width - rectangle.x);
+                        for (int x = rectangle.width - 1; x >= 0; x--) {
+                            outputStream.writeByte(data[x + y * rectangle.width]);
+                        }
+                        outputStream.skipBytes(rectangle.x);
+                        outputStream.skipBytes(targetProduct.getSceneRasterWidth()*2);
+                        checkForCancelation(pm);
+                        pm.worked(1);
+                    }
+                }
             }
         } catch (IOException e) {
             throw new OperatorException(e);
@@ -281,7 +277,7 @@ public class N1PatcherOp extends MerisBasisOp {
         }
     }
     
-    private DatasetDescriptor getDatasetDescriptorForFlagBand(Band band) {
+    private DatasetDescriptor getDatasetDescriptorForFlagBand() {
         DatasetDescriptor descriptor;
         for (DatasetDescriptor dsDescriptor : dsDescriptors) {
             descriptor = dsDescriptor;
