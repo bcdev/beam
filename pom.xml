@@ -104,7 +104,7 @@
             <dependency>
                 <groupId>com.bc.ceres</groupId>
                 <artifactId>ceres-binding</artifactId>
-                <version>0.6.1</version>
+                <version>0.6.2-SNAPSHOT</version>
             </dependency>
 
             <dependency>
