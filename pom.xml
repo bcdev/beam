@@ -123,7 +123,7 @@
             <dependency>
                 <groupId>org.esa.beam</groupId>
                 <artifactId>beam-gpf</artifactId>
-                <version>4.1.1</version>
+                <version>4.1.2</version>
             </dependency>
             <dependency>
                 <groupId>org.esa.beam</groupId>
