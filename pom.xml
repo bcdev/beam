@@ -33,8 +33,8 @@
     </licenses>
 
     <scm>
-        <connection>scm:svn:https://www.brockmann-consult.de/svn/os/beam-4.x/trunc</connection>
-        <url>https://www.brockmann-consult.de/svn/os/beam-4.x/trunc</url>
+        <connection>scm:svn:https://www.brockmann-consult.de/svn/os/beam-4.x/branches/beam-4.1.x</connection>
+        <url>https://www.brockmann-consult.de/svn/os/beam-4.x/branches/beam-4.1.x</url>
     </scm>
 
     <repositories>
