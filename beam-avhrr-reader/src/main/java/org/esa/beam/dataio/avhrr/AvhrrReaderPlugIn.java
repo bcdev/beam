@@ -39,7 +39,7 @@ public class AvhrrReaderPlugIn implements ProductReaderPlugIn {
             String.class,
             File.class,
     };
-
+                      
     public AvhrrReaderPlugIn() {
     }
 
