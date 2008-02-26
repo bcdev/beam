@@ -10,7 +10,7 @@
  * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  *
- * Method adopted from Snyder,J.P. (1987): Map Projections - A Working 
+ * Method adopted from Snyder,J.P. (1987): Map Projections - A Working
  * Manual. USGS Professional Paper 1395.
  */
 
@@ -24,38 +24,36 @@ import java.awt.geom.Point2D;
 public class AlbersEqualAreaConicDescriptor implements MapTransformDescriptor {
 
     /**
-     * The type ID of this map descriptor
+     * The type ID of this map descriptor  
      */
-    public final static String TYPE_ID = "Albers_Equal_Area_Conic";
+    private final static String TYPE_ID = "Albers_Equal_Area_Conic";
     /**
      * The name of this map descriptor
      */
-    public final static String NAME = "Albers Equal Area Conic";
+    private final static String NAME = "Albers Equal Area Conic";
     /**
      * The map unit of this map descriptor
      */
-    public final static String MAP_UNIT = "meter";
-
+    private final static String MAP_UNIT = "meter";
     private final static int SEMI_MAJOR_INDEX = 0;
     private final static int SEMI_MINOR_INDEX = 1;
     private final static int LATITUDE_OF_ORIGIN_INDEX = 2;
     private final static int CENTRAL_MERIDIAN_INDEX = 3;
     private final static int LATITUDE_OF_INTERSECTION_1_INDEX = 4;
     private final static int LATITUDE_OF_INTERSECTION_2_INDEX = 5;
-    private final static int SCALE_FACTOR_INDEX = 6;
+    // private final static int SCALE_FACTOR_INDEX = 6;
     private final static int FALSE_EASTING_INDEX = 7;
     private final static int FALSE_NORTHING_INDEX = 8;
-
-    public final static String[] PARAMETER_NAMES = new String[]{
-        "semi_major",
-        "semi_minor",
-        "latitude_of_origin",
-        "central_meridian",
-        "latitude_of_intersection_1",
-        "latitude_of_intersection_2",
-        "scale_factor",
-        "false_easting",
-        "false_northing"
+    private final static String[] PARAMETER_NAMES = new String[]{
+            "semi_major",
+            "semi_minor",
+            "latitude_of_origin",
+            "central_meridian",
+            "latitude_of_intersection_1",
+            "latitude_of_intersection_2",
+            "scale_factor",
+            "false_easting",
+            "false_northing"
     };
 
     /**
@@ -64,45 +62,41 @@ public class AlbersEqualAreaConicDescriptor implements MapTransformDescriptor {
      * NOTE: These default values are specific to the SIBERIA-II project and
      * should be altered accordingly for other areas of interest.
      */
-    public final static double[] PARAMETER_DEFAULT_VALUES = new double[]{
-        Ellipsoid.WGS_84.getSemiMajor(),
-        Ellipsoid.WGS_84.getSemiMinor(),
-        50.0,
-        99.0,
-        56.0,
-        73.0,
-        1.0,
-        1000000.0,
-        0.0
+    private final static double[] PARAMETER_DEFAULT_VALUES = new double[]{
+            Ellipsoid.WGS_84.getSemiMajor(),
+            Ellipsoid.WGS_84.getSemiMinor(),
+            50.0,
+            99.0,
+            56.0,
+            73.0,
+            1.0,
+            1000000.0,
+            0.0
     };
 
-    public final static String[] PARAMETER_LABELS = new String[]{
-        "Semi major",
-        "Semi minor",
-        "Latitude of origin",
-        "Central meridian",
-        "Latitude of intersection 1",
-        "Latitude of intersection 2",
-        "Scale factor",
-        "False easting",
-        "False northing"
+    private final static String[] PARAMETER_LABELS = new String[]{
+            "Semi major",
+            "Semi minor",
+            "Latitude of origin",
+            "Central meridian",
+            "Latitude of intersection 1",
+            "Latitude of intersection 2",
+            "Scale factor",
+            "False easting",
+            "False northing"
     };
 
-    public final static String[] PARAMETER_UNITS = new String[]{
-        "meter",
-        "meter",
-        "degree",
-        "degree",
-        "degree",
-        "degree",
-        "",
-        "meter",
-        "meter"
+    private final static String[] PARAMETER_UNITS = new String[]{
+            "meter",
+            "meter",
+            "degree",
+            "degree",
+            "degree",
+            "degree",
+            "",
+            "meter",
+            "meter"
     };
-
-    public AlbersEqualAreaConicDescriptor() {
-    }
-
 
     /**
      * This method is called within the <code>{@link MapProjectionRegistry#registerDescriptor}</code> method after an
@@ -159,14 +153,14 @@ public class AlbersEqualAreaConicDescriptor implements MapTransformDescriptor {
      * Gets the list of parameters required to create an instance of the map transform.
      */
     public Parameter[] getParameters() {
-    	final Parameter[] parameters = new Parameter[PARAMETER_NAMES.length];
-        
-    	for (int i = 0; i < parameters.length; ++i) {
+        final Parameter[] parameters = new Parameter[PARAMETER_NAMES.length];
+
+        for (int i = 0; i < parameters.length; ++i) {
             parameters[i] = new Parameter(PARAMETER_NAMES[i], PARAMETER_DEFAULT_VALUES[i]);
             parameters[i].getProperties().setLabel(PARAMETER_LABELS[i]);
             parameters[i].getProperties().setPhysicalUnit(PARAMETER_UNITS[i]);
         }
-    	
+
         return parameters;
     }
 
@@ -174,9 +168,9 @@ public class AlbersEqualAreaConicDescriptor implements MapTransformDescriptor {
      * Gets the default parameter values for this map transform.
      */
     public double[] getParameterDefaultValues() {
-    	final double[] values = new double[PARAMETER_DEFAULT_VALUES.length];
-    	System.arraycopy(PARAMETER_DEFAULT_VALUES, 0, values, 0, values.length);
-    	
+        final double[] values = new double[PARAMETER_DEFAULT_VALUES.length];
+        System.arraycopy(PARAMETER_DEFAULT_VALUES, 0, values, 0, values.length);
+
         return values;
     }
 
@@ -195,7 +189,6 @@ public class AlbersEqualAreaConicDescriptor implements MapTransformDescriptor {
      * <code>null</code> because a user interface is available for this descriptor.
      *
      * @param transform the transformation which provides the default properties for the UI.
-     *
      * @return the transformation UI, never null
      */
     public MapTransformUI getTransformUI(MapTransform transform) {
@@ -221,8 +214,6 @@ public class AlbersEqualAreaConicDescriptor implements MapTransformDescriptor {
         private double _rho0 = 0.0;
         private double e;
         private double _c;
-        private double _q;
-        private double _x0, _y0;
         private double es;
         private double _a;
         private double _lam0;
@@ -236,28 +227,30 @@ public class AlbersEqualAreaConicDescriptor implements MapTransformDescriptor {
          * @param parameterValues
          */
         public AEAC(double[] parameterValues) {
+
+
             super(0.0,
-                  parameterValues[AlbersEqualAreaConicDescriptor.FALSE_EASTING_INDEX],
-                  parameterValues[AlbersEqualAreaConicDescriptor.FALSE_NORTHING_INDEX],
-                  1.0);
+                    parameterValues[AlbersEqualAreaConicDescriptor.FALSE_EASTING_INDEX],
+                    parameterValues[AlbersEqualAreaConicDescriptor.FALSE_NORTHING_INDEX],
+                    1.0);
 
             _parameterValues = new double[parameterValues.length];
             System.arraycopy(parameterValues, 0, _parameterValues, 0, parameterValues.length);
+            // 60 ,20
+            final double phi1 = _parameterValues[AlbersEqualAreaConicDescriptor.LATITUDE_OF_INTERSECTION_1_INDEX];
+            final double phi2 = _parameterValues[AlbersEqualAreaConicDescriptor.LATITUDE_OF_INTERSECTION_2_INDEX];
 
-            double phi0 = _parameterValues[AlbersEqualAreaConicDescriptor.LATITUDE_OF_ORIGIN_INDEX];
-            double phi1 = _parameterValues[AlbersEqualAreaConicDescriptor.LATITUDE_OF_INTERSECTION_1_INDEX];
-            double phi2 = _parameterValues[AlbersEqualAreaConicDescriptor.LATITUDE_OF_INTERSECTION_2_INDEX];
-            double lam0 = _parameterValues[AlbersEqualAreaConicDescriptor.CENTRAL_MERIDIAN_INDEX];
-
-            double _phi0 = Math.toRadians(phi0);
-            double _phi1 = Math.toRadians(phi1);
-            double _phi2 = Math.toRadians(phi2);
-            _lam0 = Math.toRadians(lam0);
-
+            final double _phi1 = Math.toRadians(phi1);
+            final double _phi2 = Math.toRadians(phi2);
 
             if (Math.abs(_phi1 + _phi2) < eps10) {
                 throw new IllegalArgumentException("Invalid parameter set.");
             }
+
+            final double phi0 = _parameterValues[AlbersEqualAreaConicDescriptor.LATITUDE_OF_ORIGIN_INDEX];
+            final double lam0 = _parameterValues[AlbersEqualAreaConicDescriptor.CENTRAL_MERIDIAN_INDEX];
+            final double _phi0 = Math.toRadians(phi0);
+            _lam0 = Math.toRadians(lam0);
 
             _a = _parameterValues[AlbersEqualAreaConicDescriptor.SEMI_MAJOR_INDEX];
             double b = _parameterValues[AlbersEqualAreaConicDescriptor.SEMI_MINOR_INDEX];
@@ -268,16 +261,17 @@ public class AlbersEqualAreaConicDescriptor implements MapTransformDescriptor {
             final double sinPhi1 = Math.sin(_phi1);
             final double sinPhi2 = Math.sin(_phi2);
 
-            double _q0 = (1.0 - es) * ((sinPhi0 / (1.0 - (es * sinPhi0 * sinPhi0))) - ((1.0 / (2 * e)) * Math.log(
-                    (1.0 - (e * sinPhi0)) / (1.0 + (e * sinPhi0)))));
-            double _q1 = (1.0 - es) * ((sinPhi1 / (1.0 - (es * sinPhi1 * sinPhi1))) - ((1.0 / (2 * e)) * Math.log(
-                    (1.0 - (e * sinPhi1)) / (1.0 + (e * sinPhi1)))));
-            double _q2 = (1.0 - es) * ((sinPhi2 / (1.0 - (es * sinPhi2 * sinPhi2))) - ((1.0 / (2 * e)) * Math.log(
-                    (1.0 - (e * sinPhi2)) / (1.0 + (e * sinPhi2)))));
-            double m1 = Math.cos(_phi1) / Math.sqrt(1.0 - (es * sinPhi1 * sinPhi1));
-            double m2 = Math.cos(_phi2) / Math.sqrt(1.0 - (es * sinPhi2 * sinPhi2));
+            final double oneDivTwoE = 1.0 / (2 * e);
+            final double oneMinusExcentricity_1 = (1.0 - (es * sinPhi1 * sinPhi1));
+            final double oneMinusExcentricity_2 = (1.0 - (es * sinPhi2 * sinPhi2));
+            final double oneMinusExcentricity = (1.0 - es);
+            final double _q0 = oneMinusExcentricity * ((sinPhi0 / (1.0 - (es * sinPhi0 * sinPhi0))) - (oneDivTwoE * Math.log((1.0 - (e * sinPhi0)) / (1.0 + (e * sinPhi0)))));
+            final double _q1 = oneMinusExcentricity * ((sinPhi1 / oneMinusExcentricity_1) - (oneDivTwoE * Math.log((1.0 - (e * sinPhi1)) / (1.0 + (e * sinPhi1)))));
+            final double _q2 = oneMinusExcentricity * ((sinPhi2 / oneMinusExcentricity_2) - (oneDivTwoE * Math.log((1.0 - (e * sinPhi2)) / (1.0 + (e * sinPhi2)))));
+            final double m1 = Math.cos(_phi1) / Math.sqrt(oneMinusExcentricity_1);
+            final double m2 = Math.cos(_phi2) / Math.sqrt(oneMinusExcentricity_2);
 
-            boolean isSecant = (Math.abs(_phi1 - _phi2) >= eps10);
+            final boolean isSecant = (Math.abs(_phi1 - _phi2) >= eps10);
             if (isSecant) {
                 _n = (Math.pow(m1, 2) - Math.pow(m2, 2)) / (_q2 - _q1);
             }
@@ -314,9 +308,9 @@ public class AlbersEqualAreaConicDescriptor implements MapTransformDescriptor {
          * MapTransformDescriptor#getParameters()}</code> method.
          */
         public double[] getParameterValues() {
-        	final double[] values = new double[_parameterValues.length];
-        	System.arraycopy(_parameterValues, 0, values, 0, values.length);
-        	
+            final double[] values = new double[_parameterValues.length];
+            System.arraycopy(_parameterValues, 0, values, 0, values.length);
+
             return values;
         }
 
@@ -328,28 +322,28 @@ public class AlbersEqualAreaConicDescriptor implements MapTransformDescriptor {
          * @param phi      latitude of source location
          * @param lam      longitude of source location
          * @param mapPoint
-         *
          * @return the map co-ordinate
          */
         protected Point2D forward_impl(float phi, float lam, Point2D mapPoint) {
             final double _phi = Math.toRadians(phi);
-            final double _lam = Math.toRadians(lam);
             double rho = 0;
 
             if (Math.abs(Math.abs(_phi) - (Math.PI / 2)) < eps10) {
+                // @todo test this exception be thrown
                 if ((_phi * _n) < 0.0) {
                     throw new IllegalArgumentException("Invalid parameter range");
                 }
             } else {
                 final double sinPhi = Math.sin(_phi);
-                double _q = (1 - es) * ((sinPhi / (1 - (es * sinPhi * sinPhi))) - ((1 / (2 * e)) * Math.log(
+                final double _q = (1 - es) * ((sinPhi / (1 - (es * sinPhi * sinPhi))) - ((1 / (2 * e)) * Math.log(
                         (1 - e * sinPhi) / (1 + e * sinPhi))));
                 rho = (_a * (Math.sqrt(_c - (_n * _q)))) / _n;
             }
 
+            final double _lam = Math.toRadians(lam);
             double theta = _n * (_lam - _lam0);
-            double x = (float) (rho * Math.sin(theta));
-            double y = (float) _rho0 - (rho * Math.cos(theta));
+            double x = rho * Math.sin(theta);
+            double y = _rho0 - (rho * Math.cos(theta));
 
             mapPoint.setLocation(x, y);
             return mapPoint;
@@ -360,14 +354,13 @@ public class AlbersEqualAreaConicDescriptor implements MapTransformDescriptor {
          * easting etc is calculated in this class.
          * <p/>
          * <p>Should be overridden in order to delegate to <code>{@link #inverse_impl(double, double,
-                * org.esa.beam.framework.datamodel.GeoPos)}</code> if transformation is performed is in 64-bit accuracy.
+         * org.esa.beam.framework.datamodel.GeoPos)}</code> if transformation is performed is in 64-bit accuracy.
          * Override <code>{@link #inverse_impl(double, double, org.esa.beam.framework.datamodel.GeoPos)}</code> instead
          * in order to perform the actual transformation.
          *
          * @param geoPoint
          * @param x        map x coordinate
          * @param y        map y coordinate
-         *
          * @return the geodetic co-ordinate
          */
         protected GeoPos inverse_impl(float x, float y, GeoPos geoPoint) {
@@ -383,6 +376,7 @@ public class AlbersEqualAreaConicDescriptor implements MapTransformDescriptor {
             rho = Math.sqrt(Math.pow(localX, 2) + Math.pow(_rho0 - localY, 2));
             if (rho != 0.0) {
                 if (_n < 0.0) {
+                    // @todo 4 tb/** test this case
                     rho = -rho;
                     localX = -localX;
                     localY = -localY;
@@ -404,6 +398,7 @@ public class AlbersEqualAreaConicDescriptor implements MapTransformDescriptor {
                         4 * beta) + (761 * e6 / 45360) * Math.sin(6 * beta);
 
             } else {
+                // @todo 4 tb/** test this case
                 _lam = 0.;
             }
 

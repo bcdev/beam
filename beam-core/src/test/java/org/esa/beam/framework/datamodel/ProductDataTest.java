@@ -18,6 +18,8 @@ package org.esa.beam.framework.datamodel;
 
 import junit.framework.TestCase;
 
+import java.text.ParseException;
+
 
 public class ProductDataTest extends TestCase {
 
@@ -103,6 +105,13 @@ public class ProductDataTest extends TestCase {
         assertEquals(ProductData.TYPE_UNDEFINED, ProductData.getType("any other string"));
     }
 
+    public void testEnviDate()throws ParseException {
+        String DATE_ENVI_FORMAT_PATTERN = "EEE MMM dd HH:mm:ss yyyy";
+        String date="Wed Feb 23 09:36:22 2005";
+         ProductData.UTC enviDate= ProductData.UTC.parse(date,DATE_ENVI_FORMAT_PATTERN);
+        System.out.println("UTC"+enviDate);
+
+    }
 
     public void testUInt16() {
         final ProductData data = ProductData.createInstance(ProductData.TYPE_UINT16, 1);

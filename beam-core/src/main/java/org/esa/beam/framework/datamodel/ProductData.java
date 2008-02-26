@@ -2496,6 +2496,7 @@ public abstract class ProductData implements Cloneable {
          * The default pattern used to format date strings.
          */
         public static final String DATE_FORMAT_PATTERN = "dd-MMM-yyyy HH:mm:ss";
+        
 
         private static final double SECONDS_PER_DAY = 86400.0;
         private static final double SECONDS_TO_DAYS = 1.0 / SECONDS_PER_DAY;
