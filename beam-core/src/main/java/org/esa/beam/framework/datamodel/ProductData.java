@@ -2496,6 +2496,7 @@ public abstract class ProductData implements Cloneable {
          * The default pattern used to format date strings.
          */
         public static final String DATE_FORMAT_PATTERN = "dd-MMM-yyyy HH:mm:ss";
+        public static final String ENVI_DATE_FORMAT_PATTERN = "EEE MMM dd HH:mm:ss yyyy";
         
 
         private static final double SECONDS_PER_DAY = 86400.0;
@@ -2620,6 +2621,9 @@ public abstract class ProductData implements Cloneable {
          * @see #createCalendar
          * @see #createDateFormat
          */
+        public static UTC enviDateParse(String text) throws ParseException{
+              return parse(text, ENVI_DATE_FORMAT_PATTERN);
+        }
         public static UTC parse(String text) throws ParseException {
             return parse(text, DATE_FORMAT_PATTERN);
         }

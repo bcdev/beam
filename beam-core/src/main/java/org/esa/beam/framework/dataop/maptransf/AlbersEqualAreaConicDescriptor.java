@@ -41,7 +41,7 @@ public class AlbersEqualAreaConicDescriptor implements MapTransformDescriptor {
     private final static int CENTRAL_MERIDIAN_INDEX = 3;
     private final static int LATITUDE_OF_INTERSECTION_1_INDEX = 4;
     private final static int LATITUDE_OF_INTERSECTION_2_INDEX = 5;
-    // private final static int SCALE_FACTOR_INDEX = 6;
+    //// private final static int SCALE_FACTOR_INDEX = 6;      
     private final static int FALSE_EASTING_INDEX = 7;
     private final static int FALSE_NORTHING_INDEX = 8;
     private final static String[] PARAMETER_NAMES = new String[]{

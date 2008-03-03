@@ -183,8 +183,7 @@ public class AlbersEqualAreaConicDescriptorTest extends TestCase {
         assertEquals(24.372718611111111111111111111111, geoPos.getLat(), 1e-6);
     }
 
-    // @todo test create deep clone
-    public void testCreateDeepClone() {
+   public void testCreateDeepClone() {
 
         double[] parameterValues = new double[]{Ellipsoid.WGS_84.getSemiMajor(),
                 Ellipsoid.WGS_84.getSemiMinor(),
