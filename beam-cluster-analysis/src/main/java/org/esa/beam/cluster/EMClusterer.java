@@ -38,7 +38,7 @@ public class EMClusterer {
     private final double[][] h;
     private final double[][] means;
     private final double[][][] covariances;
-    private final Distribution[] distributions;
+    private final MultinormalDistribution[] distributions;
 
     /**
      * Finds a collection of clusters for a given set of data points.
@@ -69,7 +69,7 @@ public class EMClusterer {
         h = new double[clusterCount][pointCount];
         means = new double[clusterCount][dimensionCount];
         covariances = new double[clusterCount][dimensionCount][dimensionCount];
-        distributions = new Distribution[clusterCount];
+        distributions = new MultinormalDistribution[clusterCount];
 
         initialize(new Random(randomSeed));
     }
