@@ -196,16 +196,16 @@ public class EMClusterer {
 //                    h[k][i] = 1.0 / (1.0 + sums[k]);
 //                }
             }
-//            // ensure non-zero probabilities
-//            sum = 0.0;
-//            for (int k = 0; k < clusterCount; ++k) {
-//                h[k][i] += 1.0E-4;
-//                sum += h[k][i];
-//            }
-//            // renormalize probabilities
-//            for (int k = 0; k < clusterCount; ++k) {
-//                h[k][i] /= sum;
-//            }
+            // ensure non-zero probabilities
+            sum = 0.0;
+            for (int k = 0; k < clusterCount; ++k) {
+                h[k][i] += 1.0E-4;
+                sum += h[k][i];
+            }
+            // renormalize probabilities
+            for (int k = 0; k < clusterCount; ++k) {
+                h[k][i] /= sum;
+            }
         }
     }
 
