@@ -149,54 +149,31 @@ public class EMClusterer {
         for (int i = 0; i < pointCount; ++i) {
             // this code is duplicated in EMClusterSet.getPosteriorProbabilities()
             double sum = 0.0;
-//            for (int k = 0; k < clusterCount; ++k) {
-//                h[k][i] = p[k] / (1.0 + distributions[k].mahalanobisSquaredDistance(points[i]));
-//                sum += h[k][i];
-//            }
-//            if (sum > 0.0) {
-//                // normalize probabilities
-//                for (int k = 0; k < clusterCount; ++k) {
-//                    h[k][i] /= sum;
-//                }
-//            }
             for (int k = 0; k < clusterCount; ++k) {
                 h[k][i] = p[k] * distributions[k].probabilityDensity(points[i]);
                 sum += h[k][i];
             }
             if (sum > 0.0) {
-                // normalize probabilities
                 for (int k = 0; k < clusterCount; ++k) {
                     h[k][i] /= sum;
                 }
             } else {
+                // numerical underflow - compute probabilities using inverse Mahalanobis distance
                 for (int k = 0; k < clusterCount; ++k) {
                     h[k][i] = p[k] / (1.0 + distributions[k].mahalanobisSquaredDistance(points[i]));
                     sum += h[k][i];
                 }
                 if (sum > 0.0) {
-                    // normalize probabilities
                     for (int k = 0; k < clusterCount; ++k) {
                         h[k][i] /= sum;
                     }
+                } else {
+                    for (int k = 0; k < clusterCount; ++k) {
+                        h[k][i] = 1.0 / clusterCount;
+                    }
                 }
-//                // numerical underflow - compute probabilities using logarithm
-//                final double[] sums = new double[clusterCount];
-//                for (int k = 0; k < clusterCount; ++k) {
-//                    h[k][i] = distributions[k].logProbabilityDensity(points[i]);
-//                }
-//                for (int k = 0; k < clusterCount; ++k) {
-//                    for (int l = 0; l < clusterCount; ++l) {
-//                        if (l != k) {
-//                            sums[k] += (p[l] / p[k]) * exp(h[l][i] - h[k][i]);
-//                        }
-//                    }
-//                }
-//                // probabilities, normalized by construction
-//                for (int k = 0; k < clusterCount; ++k) {
-//                    h[k][i] = 1.0 / (1.0 + sums[k]);
-//                }
             }
-            // ensure non-zero probabilities
+            // ensure non-zero probabilities everywhere
             sum = 0.0;
             for (int k = 0; k < clusterCount; ++k) {
                 h[k][i] += 1.0E-4;
@@ -212,7 +189,8 @@ public class EMClusterer {
     /**
      * Performs an M-step.
      */
-    private void stepM() {
+    private void stepM
+            () {
         for (int k = 0; k < clusterCount; ++k) {
             p[k] = calculateMoments(h[k], means[k], covariances[k]);
             distributions[k] = new MultinormalDistribution(means[k], covariances[k]);
