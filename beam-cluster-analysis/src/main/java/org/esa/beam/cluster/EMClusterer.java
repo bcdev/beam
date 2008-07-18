@@ -13,7 +13,6 @@
  */
 package org.esa.beam.cluster;
 
-import static java.lang.Math.exp;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Random;
@@ -150,6 +149,16 @@ public class EMClusterer {
         for (int i = 0; i < pointCount; ++i) {
             // this code is duplicated in EMClusterSet.getPosteriorProbabilities()
             double sum = 0.0;
+//            for (int k = 0; k < clusterCount; ++k) {
+//                h[k][i] = p[k] / (1.0 + distributions[k].mahalanobisSquaredDistance(points[i]));
+//                sum += h[k][i];
+//            }
+//            if (sum > 0.0) {
+//                // normalize probabilities
+//                for (int k = 0; k < clusterCount; ++k) {
+//                    h[k][i] /= sum;
+//                }
+//            }
             for (int k = 0; k < clusterCount; ++k) {
                 h[k][i] = p[k] * distributions[k].probabilityDensity(points[i]);
                 sum += h[k][i];
@@ -160,33 +169,43 @@ public class EMClusterer {
                     h[k][i] /= sum;
                 }
             } else {
-                // numerical underflow - compute probabilities using logarithm
-                final double[] sums = new double[clusterCount];
                 for (int k = 0; k < clusterCount; ++k) {
-                    h[k][i] = distributions[k].logProbabilityDensity(points[i]);
+                    h[k][i] = p[k] / (1.0 + distributions[k].mahalanobisSquaredDistance(points[i]));
+                    sum += h[k][i];
                 }
-                for (int k = 0; k < clusterCount; ++k) {
-                    for (int l = 0; l < clusterCount; ++l) {
-                        if (l != k) {
-                            sums[k] += (p[l] / p[k]) * exp(h[l][i] - h[k][i]);
-                        }
+                if (sum > 0.0) {
+                    // normalize probabilities
+                    for (int k = 0; k < clusterCount; ++k) {
+                        h[k][i] /= sum;
                     }
                 }
-                // probabilities, normalized by construction
-                for (int k = 0; k < clusterCount; ++k) {
-                    h[k][i] = 1.0 / (1.0 + sums[k]);
-                }
+//                // numerical underflow - compute probabilities using logarithm
+//                final double[] sums = new double[clusterCount];
+//                for (int k = 0; k < clusterCount; ++k) {
+//                    h[k][i] = distributions[k].logProbabilityDensity(points[i]);
+//                }
+//                for (int k = 0; k < clusterCount; ++k) {
+//                    for (int l = 0; l < clusterCount; ++l) {
+//                        if (l != k) {
+//                            sums[k] += (p[l] / p[k]) * exp(h[l][i] - h[k][i]);
+//                        }
+//                    }
+//                }
+//                // probabilities, normalized by construction
+//                for (int k = 0; k < clusterCount; ++k) {
+//                    h[k][i] = 1.0 / (1.0 + sums[k]);
+//                }
             }
-            // ensure non-zero probabilities
-            sum = 0.0;
-            for (int k = 0; k < clusterCount; ++k) {
-                h[k][i] += 1.0E-4;
-                sum += h[k][i];
-            }
-            // renormalize probabilities
-            for (int k = 0; k < clusterCount; ++k) {
-                h[k][i] /= sum;
-            }
+//            // ensure non-zero probabilities
+//            sum = 0.0;
+//            for (int k = 0; k < clusterCount; ++k) {
+//                h[k][i] += 1.0E-4;
+//                sum += h[k][i];
+//            }
+//            // renormalize probabilities
+//            for (int k = 0; k < clusterCount; ++k) {
+//                h[k][i] /= sum;
+//            }
         }
     }
 

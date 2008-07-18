@@ -14,8 +14,6 @@
  */
 package org.esa.beam.cluster;
 
-import static java.lang.Math.exp;
-
 /**
  * todo - add API doc
  *
@@ -45,23 +43,33 @@ public class EMClusterSet {
                 h[k] /= sum;
             }
         } else {
-            // numerical underflow - compute probabilities using logarithm
-            final double[] sums = new double[clusters.length];
             for (int k = 0; k < clusters.length; ++k) {
-                h[k] = clusters[k].getLogProbabilityDensity(point);
+                h[k] = clusters[k].getPriorProbability() / (1.0 + clusters[k].getMahalanobisSquaredDistance(point));
+                sum += h[k];
             }
-            for (int k = 0; k < clusters.length; ++k) {
-                for (int l = 0; l < clusters.length; ++l) {
-                    if (l != k) {
-                        sums[k] += (clusters[l].getPriorProbability() / clusters[k].getPriorProbability()) *
-                                exp(h[l] - h[k]);
-                    }
+            if (sum > 0) {
+                // normalize probabilities
+                for (int k = 0; k < clusters.length; ++k) {
+                    h[k] /= sum;
                 }
             }
-            // probabilities, normalized by construction
-            for (int k = 0; k < clusters.length; ++k) {
-                h[k] = 1.0 / (1.0 + sums[k]);
-            }
+//            // numerical underflow - compute probabilities using logarithm
+//            final double[] sums = new double[clusters.length];
+//            for (int k = 0; k < clusters.length; ++k) {
+//                h[k] = clusters[k].getLogProbabilityDensity(point);
+//            }
+//            for (int k = 0; k < clusters.length; ++k) {
+//                for (int l = 0; l < clusters.length; ++l) {
+//                    if (l != k) {
+//                        sums[k] += (clusters[l].getPriorProbability() / clusters[k].getPriorProbability()) *
+//                                Math.exp(h[l] - h[k]);
+//                    }
+//                }
+//            }
+//            // probabilities, normalized by construction
+//            for (int k = 0; k < clusters.length; ++k) {
+//                h[k] = 1.0 / (1.0 + sums[k]);
+//            }
         }
 
         return h;
