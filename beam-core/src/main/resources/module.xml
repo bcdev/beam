@@ -19,7 +19,7 @@
 
     <changelog>
         <![CDATA[<p>Changes in 4.2.1:<br/>
-        [BEAM-844] False computation of bitmask overlay colors<br/>
+        [BEAM-844] False computation of bitmask overlay colours<br/>
         </p>
 
         <p>Changes in 4.2:<br/>
