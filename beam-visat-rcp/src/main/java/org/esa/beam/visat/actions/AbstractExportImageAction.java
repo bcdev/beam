@@ -35,9 +35,15 @@ import org.esa.beam.visat.VisatApp;
 
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.media.jai.PlanarImage;
+import javax.media.jai.operator.BandSelectDescriptor;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.image.RenderedImage;
+import java.awt.image.SampleModel;
+import java.awt.image.ColorModel;
+import java.awt.image.WritableRaster;
+import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
@@ -194,6 +200,10 @@ public abstract class AbstractExportImageAction extends ExecCommand {
             }
 
             if (!geoTIFFWritten) {
+                if ("JPEG".equalsIgnoreCase(imageFormat)) {
+                    image = BandSelectDescriptor.create(image, new int[]{0,1,2}, null);
+                }
+
                 final OutputStream stream = new FileOutputStream(file);
                 try {
                     ImageEncoder encoder = ImageCodec.createImageEncoder(imageFormat, stream, null);
