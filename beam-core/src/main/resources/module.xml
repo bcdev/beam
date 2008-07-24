@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-core</symbolicName>
-    <version>4.2</version>
+    <version>4.2.1-SNAPSHOT</version>
     <name>BEAM Core Library</name>
 
 
@@ -18,7 +18,11 @@
     </dependency>
 
     <changelog>
-        <![CDATA[<p>Changes in 4.2:<br/>
+        <![CDATA[<p>Changes in 4.2.1:<br/>
+        [BEAM-844] False computation of bitmask overlay colors<br/>
+        </p>
+
+        <p>Changes in 4.2:<br/>
         [BEAM-801] TiePointGeoCoding should consider non-linear distribution of longitude values across-track<br/>
         [BEAM-796] Index coding for classification bands<br/>
         [BEAM-775] "Write" operator not invoked if last node in graph<br/>
