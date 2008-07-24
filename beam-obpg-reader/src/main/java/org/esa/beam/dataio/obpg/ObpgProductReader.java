@@ -84,6 +84,7 @@ public class ObpgProductReader extends AbstractProductReader {
                 product.setProductReader(this);
                 obpgUtils.addGeocoding(product, sdsInfos, mustFlip);
                 obpgUtils.addBitmaskDefinitions(product, defs);
+                product.setModified(false);
                 return product;
             } finally {
                 obpgUtils.closeHdfFile(fileId);
