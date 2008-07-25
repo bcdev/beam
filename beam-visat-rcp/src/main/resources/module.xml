@@ -13,6 +13,7 @@
         <![CDATA[
         Changes in 4.2.1:<br/>
         [BEAM-845] Created JPEG Images have false colours<br/>
+        [BEAM-842] Context menu is not triggered on linux<br/>
         <br/>
         
         Changes in 4.2<br/>
