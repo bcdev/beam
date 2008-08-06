@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-visat-rcp</symbolicName>
-    <version>4.2.1</version>
+    <version>4.2.2-SNAPSHOT</version>
     <name>VISAT Rich Client Platform</name>
 
     <description>
@@ -11,11 +11,15 @@
 
     <changelog>
         <![CDATA[
+        Changes in 4.2.2:<br/>
+        [BEAM-853] Context menu is not shown correctly on Mac OS X<br/>
+        <br/>
+        
         Changes in 4.2.1:<br/>
         [BEAM-845] Created JPEG Images have false colours<br/>
         [BEAM-842] Context menu is not triggered on linux<br/>
         <br/>
-        
+
         Changes in 4.2<br/>
         [BEAM-837] Search in VISAT Help does not work<br/>
         [BEAM-832] Coordinate list does not consider "No Data" correctly<br/>
