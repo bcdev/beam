@@ -1982,6 +1982,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
                 final Graphics2D graphics2D = bi2.createGraphics();
                 graphics2D.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
                 graphics2D.setRenderingHint(RenderingHints.KEY_DITHERING, RenderingHints.VALUE_DITHER_DISABLE);
+                graphics2D.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
                 graphics2D.setColor(Color.white);
                 graphics2D.setStroke(new BasicStroke(1f));
                 if (!roiShapeFigure.isOneDimensional()) {
