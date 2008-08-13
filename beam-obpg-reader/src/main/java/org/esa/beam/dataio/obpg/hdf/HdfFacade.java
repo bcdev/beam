@@ -211,10 +211,13 @@ public class HdfFacade {
         return HDF.getInstance().SDstart(path, HDFConstants.DFACC_RDONLY);
     }
 
+    public boolean closeSdInterface(int sdsId) throws HDFException {
+        return HDF.getInstance().SDend(sdsId);
+    }
+
     public boolean closeHdfFile(final int fileId) throws HDFException {
         return HDF.getInstance().Hclose(fileId);
     }
-
 
     public boolean isHdfFile(final String path) throws HDFException {
         return HDF.getInstance().Hishdf(path);

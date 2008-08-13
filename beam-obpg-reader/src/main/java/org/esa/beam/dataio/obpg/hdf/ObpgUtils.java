@@ -238,6 +238,10 @@ public class ObpgUtils {
         return hdf.openSdInterfaceReadOnly(path);
     }
 
+    public boolean closeSdInterface(int sdsId) throws HDFException {
+        return hdf.closeSdInterface(sdsId);
+    }
+
     public boolean closeHdfFile(final int fileId) throws HDFException {
         return hdf.closeHdfFile(fileId);
     }
