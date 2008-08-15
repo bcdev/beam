@@ -34,7 +34,7 @@ class MultinormalDistribution implements Distribution {
      * @param covariances the distribution covariances.
      */
     MultinormalDistribution(double[] mean, double[][] covariances) {
-        this.mean = mean;
+        this.mean = mean.clone();
 
         final Eigendecomposition decomposition = new Eigendecomposition(covariances.length, covariances);
         eigenvalues = decomposition.getEigenvalues();

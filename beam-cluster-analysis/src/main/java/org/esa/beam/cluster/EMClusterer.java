@@ -20,8 +20,8 @@ import java.util.Random;
 /**
  * Expectation maximization (EM) cluster algorithm.
  * <p/>
- * todo - logging
- * todo - make algorithm use tiles
+ * todo - make algorithm use a point acessor instead of an array
+ * todo - revise API to reduce the number of fields
  *
  * @author Ralf Quast
  * @version $Revision: 2221 $ $Date: 2008-06-16 11:19:52 +0200 (Mo, 16 Jun 2008) $
@@ -36,9 +36,6 @@ public class EMClusterer {
 
     // prior cluster probabilities
     private final double[] priors;
-    // posterior cluster probabilities
-    private final double[][] posteriors;
-
     // cluster means
     private final double[][] means;
     // cluster covariances
@@ -78,7 +75,6 @@ public class EMClusterer {
         this.clusterCount = clusterCount;
 
         priors = new double[clusterCount];
-        posteriors = new double[pointCount][clusterCount];
 
         means = new double[clusterCount][dimensionCount];
         covariances = new double[clusterCount][dimensionCount][dimensionCount];
@@ -103,14 +99,6 @@ public class EMClusterer {
         }
 
         return getClusters();
-    }
-
-    /**
-     * Carries out a single EM iteration.
-     */
-    public void iterate() {
-        stepE();
-        stepM();
     }
 
     /**
@@ -157,67 +145,63 @@ public class EMClusterer {
     }
 
     /**
-     * Performs an E-step.
-     * <p/>
-     * Calculates posterior cluster probabilities.
+     * Carries out a single EM iteration.
      */
-    private void stepE() {
-        for (int i = 0; i < pointCount; ++i) {
-            calculator.calculate(points[i], posteriors[i]);
+    public void iterate() {
+        final double[] sums = new double[clusterCount];
+        final double[] posteriors = new double[clusterCount];
 
-            // ensure non-zero probabilities everywhere to prevent the covariance
-            // matrixes from getting singular 
+        for (int i = 0; i < pointCount; ++i) {
+            calculator.calculate(points[i], posteriors);
+
+            // ensure non-zero probabilities for all clusters to prevent the
+            // covariance matrixes from becoming singular
             double sum = 0.0;
             for (int k = 0; k < clusterCount; ++k) {
-                posteriors[i][k] += 1.0E-4;
-                sum += posteriors[i][k];
+                posteriors[k] += 1.0E-4;
+                sum += posteriors[k];
             }
             for (int k = 0; k < clusterCount; ++k) {
-                posteriors[i][k] /= sum;
+                posteriors[k] /= sum;
+            }
+
+            // calculate cluster means and covariances in a single pass
+            // D. H. D. West (1979, Communications of the ACM, 22, 532)
+            if (i == 0) {
+                for (int k = 0; k < clusterCount; ++k) {
+                    for (int l = 0; l < dimensionCount; ++l) {
+                        means[k][l] = points[0][l];
+                        for (int m = l; m < dimensionCount; ++m) {
+                            covariances[k][l][m] = 0.0;
+                        }
+                    }
+                    sums[k] = posteriors[k];
+                }
+            } else {
+                for (int k = 0; k < clusterCount; ++k) {
+                    final double temp = posteriors[k] + sums[k];
+
+                    for (int l = 0; l < dimensionCount; ++l) {
+                        for (int m = l; m < dimensionCount; ++m) {
+                            covariances[k][l][m] += sums[k] * posteriors[k] * (points[i][l] - means[k][l]) * (points[i][m] - means[k][m]) / temp;
+                        }
+                        means[k][l] += posteriors[k] * (points[i][l] - means[k][l]) / temp;
+                    }
+
+                    sums[k] = temp;
+                }
             }
         }
-    }
 
-    /**
-     * Performs an M-step.
-     * <p/>
-     * Calculates statistical moments, prior cluster probabilities and cluster distributions.
-     */
-    private void stepM() {
         for (int k = 0; k < clusterCount; ++k) {
             for (int l = 0; l < dimensionCount; ++l) {
                 for (int m = l; m < dimensionCount; ++m) {
-                    covariances[k][l][m] = 0.0;
-                }
-                means[k][l] = 0.0;
-            }
-            double sum = 0.0;
-            for (int i = 0; i < pointCount; ++i) {
-                for (int l = 0; l < dimensionCount; ++l) {
-                    means[k][l] += posteriors[i][k] * points[i][l];
-                }
-                sum += posteriors[i][k];
-            }
-            for (int l = 0; l < dimensionCount; ++l) {
-                means[k][l] /= sum;
-            }
-            for (int i = 0; i < pointCount; ++i) {
-                for (int l = 0; l < dimensionCount; ++l) {
-                    for (int m = l; m < dimensionCount; ++m) {
-                        covariances[k][l][m] += posteriors[i][k] * (points[i][l] - means[k][l]) * (points[i][m] - means[k][m]);
-                    }
-                }
-            }
-            for (int l = 0; l < dimensionCount; ++l) {
-                for (int m = l; m < dimensionCount; ++m) {
-                    covariances[k][l][m] /= sum;
+                    covariances[k][l][m] /= sums[k];
                     covariances[k][m][l] = covariances[k][l][m];
                 }
             }
 
-            priors[k] = sum / pointCount;
-        }
-        for (int k = 0; k < clusterCount; ++k) {
+            priors[k] = sums[k] / pointCount;
             distributions[k] = new MultinormalDistribution(means[k], covariances[k]);
         }
     }

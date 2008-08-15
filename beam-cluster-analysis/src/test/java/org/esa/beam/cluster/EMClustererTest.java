@@ -56,9 +56,7 @@ public class EMClustererTest extends TestCase {
         assertEquals(B, clusters[1].getMean(0), 0.1);
     }
 
-    private static double[][] createRandomPoints
-            (
-                    double[] doubles) {
+    private static double[][] createRandomPoints(double[] doubles) {
         final double[][] points = new double[doubles.length][1];
 
         final Random random = new Random(5489);
