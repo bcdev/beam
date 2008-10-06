@@ -19,7 +19,7 @@
 
     <changelog>
         <![CDATA[
-        <p>Changes in 4.2.1:<br/>
+        <p>Changes in 4.2.2:<br/>
         [BEAM-854] ROI shifted by one pixel compared to shape<br/>
         </p>
         
