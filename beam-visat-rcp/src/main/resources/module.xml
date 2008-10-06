@@ -12,6 +12,7 @@
     <changelog>
         <![CDATA[
         Changes in 4.2.2:<br/>
+        [BEAM-863] Improved behaviour when windows are tiled<br/>
         [BEAM-862] Creating ASAR NRCS band leads to exception<br/>
         [BEAM-853] Context menu is not shown correctly on Mac OS X<br/>
         <br/>
