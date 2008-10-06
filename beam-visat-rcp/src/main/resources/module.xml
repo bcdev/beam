@@ -13,6 +13,7 @@
         <![CDATA[
         Changes in 4.2.2:<br/>
         [BEAM-853] Context menu is not shown correctly on Mac OS X<br/>
+        [BEAM-862] Creating ASAR NRCS band leads to exception<br/>
         <br/>
         
         Changes in 4.2.1:<br/>
