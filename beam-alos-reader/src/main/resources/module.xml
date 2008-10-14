@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-alos-reader</symbolicName>
-    <version>1.0</version>
+    <version>1.0.1-SNAPSHOT</version>
     <name>AVNIR-2/PRISM Product Reader</name>
 
     <description>
@@ -21,6 +21,14 @@
         <module>beam-visat</module>
         <optional>true</optional>
     </dependency>
+
+    <changelog>
+        <![CDATA[
+        <p>Changes in Version 1.0.1<br/>
+        [BEAM-791] Inaccuracy in geo-coding for AVNIR2<br/>
+        </p>
+        ]]>
+    </changelog>
 
     <categories>Reader,ALOS,AVNIR,PRISM</categories>
 
