@@ -26,6 +26,7 @@
         <![CDATA[
         <p>Changes in Version 1.0.1<br/>
         [BEAM-791] Inaccuracy in geo-coding for AVNIR2<br/>
+        [BEAM-849] RESTEC ALOS PRISM & AVNIR-2 Longitude Coordinates not being read correctly<br/>
         </p>
         ]]>
     </changelog>
