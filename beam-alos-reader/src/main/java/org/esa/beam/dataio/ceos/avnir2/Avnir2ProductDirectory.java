@@ -143,8 +143,7 @@ class Avnir2ProductDirectory {
         final String usedProjection = _leaderFile.getUsedProjection();
         if (Avnir2Constants.MAP_PROJECTION_RAW.equalsIgnoreCase(usedProjection)) {
             final Band[] bands = product.getBands();
-            for (int i = 0; i < bands.length; i++) {
-                final Band band = bands[i];
+            for (final Band band : bands) {
                 final Avnir2ImageFile imageFile = getImageFile(band);
                 final int bandIndex = imageFile.getBandIndex();
                 final double[][] uncorrectedCoeffs = _leaderFile.getUncorrectedTransformationCoeffs(bandIndex);
@@ -156,9 +155,9 @@ class Avnir2ProductDirectory {
                 final FXYSum.Cubic funcY = new FXYSum.Cubic(CeosHelper.sortToFXYSumOrder(uncorrectedCoeffs[3]));
 
                 final FXYGeoCoding gc = new FXYGeoCoding(0.0f, 0.0f, 1.0f, 1.0f,
-                        funcX, funcY,
-                        funcLat, funcLon,
-                        Datum.ITRF_97);
+                                                         funcX, funcY,
+                                                         funcLat, funcLon,
+                                                         Datum.ITRF_97);
                 band.setGeoCoding(gc);
             }
 
@@ -179,12 +178,11 @@ class Avnir2ProductDirectory {
                     _sceneWidth * 0.5f, _sceneHeight * 0.5f,
                     (float) easting, (float) northing,
                     (float) pixelSizeX, (float) pixelSizeY, Datum.ITRF_97);
-            mapInfo.setOrientation(orientationAngle);
+            // the BEAM convention for rotation angle uses opposite sign (rq - 16.10.2008)
+            mapInfo.setOrientation(-orientationAngle);
             mapInfo.setSceneWidth(_sceneWidth);
             mapInfo.setSceneHeight(_sceneHeight);
             product.setGeoCoding(new MapGeoCoding(mapInfo));
-
-
         } else if (Avnir2Constants.MAP_PROJECTION_PS.equalsIgnoreCase(usedProjection)) {
             final double[] parameterValues = StereographicDescriptor.PARAMETER_DEFAULT_VALUES;
             parameterValues[0] = Ellipsoid.GRS_80.getSemiMajor();

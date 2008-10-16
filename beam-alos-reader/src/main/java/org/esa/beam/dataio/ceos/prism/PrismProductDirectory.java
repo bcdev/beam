@@ -237,6 +237,7 @@ class PrismProductDirectory {
             final boolean isSouth = _leaderFile.isUTMSouthHemisphere();
             double easting = _leaderFile.getUTMEasting() * meterPerKilometer; // km -> meter
             double northing = _leaderFile.getUTMNorthing() * meterPerKilometer;    // km -> meter
+            // easting and northing already do take into account false-easting and false-northing (rq - 14.10.2008)
 
             final double pixelSizeX = _leaderFile.getNominalInterPixelDistance();
             final double pixelSizeY = _leaderFile.getNominalInterLineDistance();
@@ -246,7 +247,8 @@ class PrismProductDirectory {
                     sceneWidth * 0.5f, sceneHeight * 0.5f,
                     (float) easting, (float) northing,
                     (float) pixelSizeX, (float) pixelSizeY, Datum.ITRF_97);
-            mapInfo.setOrientation(orientationAngle);
+            // the BEAM convention for rotation angle uses opposite sign (rq - 16.10.2008)
+            mapInfo.setOrientation(-orientationAngle);
             mapInfo.setSceneWidth(sceneWidth);
             mapInfo.setSceneHeight(sceneHeight);
             product.setGeoCoding(new MapGeoCoding(mapInfo));
