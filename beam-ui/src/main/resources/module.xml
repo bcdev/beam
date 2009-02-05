@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-ui</symbolicName>
-    <version>4.5.1</version>
+    <version>4.5.2-SNAPSHOT</version>
     <name>BEAM User Interface Library</name>
     <activator>org.esa.beam.BeamUiActivator</activator>
 
@@ -9,6 +9,9 @@
     <description>This module provides user interface components used e.g. by VISAT.</description>
     <changelog>
         <![CDATA[
+        <p>Changes in 4.5.2:<br/>
+          [BEAM-954] PixelInfoView updates too often<br/>
+        </p>
         <p>Changes in 4.5.1<br/>
         [BEAM-931] Shapes are not displayed while drawing<br/>
         [BEAM-925] Events (open, shown, hidden) shall be delegated to tool view<br/>

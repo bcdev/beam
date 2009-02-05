@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-visat-rcp</symbolicName>
-    <version>4.5.1</version>
+    <version>4.5.2-SNAPSHOT</version>
     <name>VISAT Rich Client Platform</name>
 
     <description>
@@ -11,6 +11,9 @@
 
     <changelog>
         <![CDATA[
+        <p>Changes in 4.5.2:<br/>
+          [BEAM-954] PixelInfoView updates too often<br/>
+        </p>  
         <p>Changes in 4.5.1:<br/>
           [BEAM-942] VISAT sometimes hangs on startup<br/>
           [BEAM-939] No-data samples not considered in band math<br/>
