@@ -3,7 +3,7 @@
 
     <symbolicName>beam-help</symbolicName>
     <name>BEAM Help</name>
-    <version>4.5</version>
+    <version>4.5.1-SNAPSHOT</version>
     <packaging>dir</packaging>
 
 
@@ -17,6 +17,8 @@
 
     <changelog>
         <![CDATA[
+        Changes in 4.5.1:<br>
+        [BEAM-957] "Search" tab missing VISAT help<br>
         Changes in 4.2:<br>
         [BEAM-758] Provide BEAM help on website<br>
         <br>Changes in 4.1:<br>
