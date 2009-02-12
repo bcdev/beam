@@ -12,8 +12,13 @@
     <changelog>
         <![CDATA[
         <p>Changes in 4.5.2:<br/>
-          [BEAM-954] PixelInfoView updates too often<br/>
-        </p>  
+            BEAM-960 Module description misplaced in VISAT module manager<br/>
+            BEAM-958 Pixel Info View can block VISAT <br/>
+            BEAM-957 "Search" tab missing VISAT help<br/>
+            BEAM-956 Histogram color lookup tables do not work correctly with CPD files<br/>
+            BEAM-954 The pixel info view updates its display too often<br/>
+            BEAM-910 VISAT module manager does not work under Vista OS (reopened and fixed)<br/>
+        </p>
         <p>Changes in 4.5.1:<br/>
           [BEAM-942] VISAT sometimes hangs on startup<br/>
           [BEAM-939] No-data samples not considered in band math<br/>
@@ -54,9 +59,8 @@
           [BEAM-853] Context menu is not shown correctly on Mac OS X<br/>
           [BEAM-845] Created JPEG Images have false colours<br/>
           [BEAM-842] Context menu is not triggered on linux<br/>
-         </p>
-
-         <p>Changes in 4.2:<br/>
+        </p>
+        <p>Changes in 4.2:<br/>
         [BEAM-837] Search in VISAT Help does not work<br/>
         [BEAM-832] Coordinate list does not consider "No Data" correctly<br/>
         [BEAM-831] Export transect pixels does not consider no-data value<br/>
@@ -79,7 +83,8 @@
         [BEAM-710] Not able to copy a product using new product dialog<br/>
         [BEAM-709] Open dialog should use 'All Files' as default filter<br/>
         [BEAM-693] ROI not visible if converted from shape<br/>
-        <br/>Changes in 4.1<br/>
+        </p>
+        <p>Changes in 4.1<br/>
         [BEAM-482] Pins shall not be selected by default<br/>
         [BEAM-603] Select multiple pins<br/>
         [BEAM-613] Product not shown in product tree view<br/>
@@ -97,6 +102,7 @@
         [BEAM-696] Placemarks should be copied to output product<br/>
         [BEAM-698] Sortable table of pins and GCPs<br/>
         [BEAM-699] Editable cells of pin and GCP tables<br/>
+        </p>
         ]]>
     </changelog>
 

@@ -6,6 +6,7 @@
 
 This file contains all significant changes for each BEAM release.
 
+    o 29.01.2009: Version 4.5.2
     o 29.01.2009: Version 4.5.1
     o 31.10.2008: Version 4.5
     o 11.07.2008: Version 4.2
@@ -28,7 +29,16 @@ This file contains all significant changes for each BEAM release.
 
 _____________________________________________________________________________
 
+_____________________________________________________________________________
 
+ Changes from 4.5.1 to 4.5.2
+_____________________________________________________________________________
+
+BEAM-958  Pixel Info View can block VISAT
+BEAM-957  "Search" tab missing VISAT help
+BEAM-956  Histogram color lookup tables do not work correctly with CPD files
+BEAM-954  The pixel info view updates its display too often
+BEAM-910  VISAT module manager does not work under Vista OS (reopened and fixed)
 _____________________________________________________________________________
 
  Changes from 4.5 to 4.5.1
