@@ -23,6 +23,7 @@
     <changelog>
         <![CDATA[
         <p>Changes in 4.5.2:<br/>
+          [BEAM-974] NullPointerException when importing pins defined by pixel position<br/>
           [BEAM-956] Histogram color lookup tables do not work correctly with CPD files<br/>
         </p>
         <p>Changes in 4.5.1:<br/>
