@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-ui</symbolicName>
-    <version>4.5.2</version>
+    <version>4.5.3-SNAPSHOT</version>
     <name>BEAM User Interface Library</name>
     <activator>org.esa.beam.BeamUiActivator</activator>
 
@@ -9,6 +9,8 @@
     <description>This module provides user interface components used e.g. by VISAT.</description>
     <changelog>
         <![CDATA[
+        <p>Changes in 4.5.3:<br/>
+          [BEAM-976] Time Info displays wrong UTC time<br/>
         <p>Changes in 4.5.2:<br/>
           [BEAM-958] PixelInfo blocks the EDT while updating its table<br/>
           [BEAM-954] PixelInfoView updates too often<br/>
@@ -64,7 +66,8 @@
             <descriptorClass type="java.lang.Class">
                 org.esa.beam.framework.ui.application.support.DefaultApplicationDescriptor
             </descriptorClass>
-            <applicationId type="java.lang.String"/>   <!-- ID of the ceres application -->
+            <applicationId type="java.lang.String"/>
+            <!-- ID of the ceres application -->
             <displayName type="java.lang.String"/>
             <frameIcon field="iconPath" type="java.lang.String"/>
             <resourceBundle type="java.lang.String"/>
