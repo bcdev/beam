@@ -18,7 +18,7 @@ import com.thoughtworks.xstream.io.xml.xppdom.Xpp3Dom;
  * @author Maximilian Aulinger
  * @author Norman Fomferra
  * @author Ralf Quast
- * @author Marco Zühlke
+ * @author Marco ZÃ¼hlke
  * @since 4.1
  */
 public class Node {

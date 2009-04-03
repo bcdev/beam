@@ -130,9 +130,7 @@ public abstract class SmacAbstractProcessor {
         int sceneHeight = getInputProductSafe().getSceneRasterHeight();
 
         _outputProduct = new Product(productName, productType, sceneWith, sceneHeight);
-        /* @todo 3 tb/tb - der übergebene Name "ENVI" eigentlich aus dem request */
         writer = ProductIO.getProductWriter("BEAM-DIMAP");
-//        writer = ProductIO.getProductWriter("ENVI");
         _outputProduct.setProductWriter(writer);
 
         // call derived classes to add their specific bands

@@ -531,7 +531,7 @@ class ScatterPlotPanel extends PagePanel {
         if (numNonEmptyBins > warnLimit) {
             String excelNote = "";
             if (numNonEmptyBins > excelLimit - 100) {
-                excelNote = "Note that e.g., Microsoft® Excel 2002 only supports a total of "
+                excelNote = "Note that e.g., MicrosoftÂ® Excel 2002 only supports a total of "
                         + excelLimit + " rows in a sheet.\n";   /*I18N*/
             }
             final String message = MessageFormat.format(

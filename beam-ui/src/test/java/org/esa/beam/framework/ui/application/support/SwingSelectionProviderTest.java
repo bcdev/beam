@@ -13,7 +13,7 @@ import javax.swing.tree.TreePath;
 
 public class SwingSelectionProviderTest extends TestCase {
     private static final Object[] LIST_DATA = new Object[]{
-            "Sauerkraut", "Zwiebeln", "Äpfel", "Wacholderbeeren"
+            "Sauerkraut", "Zwiebeln", "Ã„pfel", "Wacholderbeeren"
     };
 
     private static final TreeNode[] TREE_DATA;
@@ -21,13 +21,13 @@ public class SwingSelectionProviderTest extends TestCase {
     private static final Object[][] TABLE_DATA = new Object[][]{
             {4, 'A', "Sauerkraut"},
             {1, 'B', "Zwiebeln"},
-            {6, 'C', "Äpfel"},
+            {6, 'C', "Ã„pfel"},
             {2, 'D', "Wacholderbeeren"}
     };
     private static final Object[][] TABLE_CNAMES = new Object[][]{
             {"C1", "C2", "C3"}
     };
-    private static final DefaultMutableTreeNode TREE_GEMUESE = new DefaultMutableTreeNode("Gemüse");
+    private static final DefaultMutableTreeNode TREE_GEMUESE = new DefaultMutableTreeNode("GemÃ¼se");
 
     private static final DefaultMutableTreeNode TREE_OBST = new DefaultMutableTreeNode("Obst");
 
@@ -35,7 +35,7 @@ public class SwingSelectionProviderTest extends TestCase {
 
     private static final DefaultMutableTreeNode LEAF_ZWIEBELN = new DefaultMutableTreeNode("Zwiebeln");
 
-    private static final DefaultMutableTreeNode LEAF_AEPFEL = new DefaultMutableTreeNode("Äpfel");
+    private static final DefaultMutableTreeNode LEAF_AEPFEL = new DefaultMutableTreeNode("Ã„pfel");
 
     private static final DefaultMutableTreeNode LEAF_BEEREN = new DefaultMutableTreeNode("Wacholderbeeren");
 
@@ -64,7 +64,7 @@ public class SwingSelectionProviderTest extends TestCase {
         otherList.setSelectedIndices(new int[]{2, 0, 3});
         selectionProvider.setList(otherList);
         assertSame(otherList, selectionProvider.getList());
-        assertEquals(new DefaultSelection(new Object[]{"Sauerkraut", "Äpfel", "Wacholderbeeren"}),
+        assertEquals(new DefaultSelection(new Object[]{"Sauerkraut", "Ã„pfel", "Wacholderbeeren"}),
                      selectionProvider.getSelection());
         testListSelectionProvider(selectionProvider);
     }
@@ -84,7 +84,7 @@ public class SwingSelectionProviderTest extends TestCase {
         });
         selectionProvider.setTree(otherTree);
         assertSame(otherTree, selectionProvider.getTree());
-//        assertEquals(new DefaultSelection(new Object[]{"Sauerkraut", "Äpfel", "Wacholderbeeren"}),
+//        assertEquals(new DefaultSelection(new Object[]{"Sauerkraut", "Ã„pfel", "Wacholderbeeren"}),
 //                     selectionProvider.getSelection());
         testTreeSelectionProvider(selectionProvider);
     }
@@ -117,7 +117,7 @@ public class SwingSelectionProviderTest extends TestCase {
         assertEquals(selection, selectionProvider.getSelection());
         assertEquals("1;", listener.callSeq);
 
-        selection = new DefaultSelection(new Object[]{"Zwiebeln", "Äpfel"});
+        selection = new DefaultSelection(new Object[]{"Zwiebeln", "Ã„pfel"});
         selectionProvider.setSelection(selection);
         assertNotSame(selection, selectionProvider.getSelection());
         assertEquals(selection, selectionProvider.getSelection());

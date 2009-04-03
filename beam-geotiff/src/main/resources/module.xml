@@ -23,7 +23,7 @@
 
     <dependency>
         <module>beam-core</module>
-        <version>4.5.1</version>
+        <version>4.5.2</version>
     </dependency>
     <dependency>
         <module>beam-visat</module>

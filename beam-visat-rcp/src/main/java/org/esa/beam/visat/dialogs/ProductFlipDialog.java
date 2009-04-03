@@ -56,7 +56,7 @@ public class ProductFlipDialog extends ModalDialog {
     private JLabel _labelCenterLatInfo;
     private JLabel _labelCenterLonInfo;
     private static final String _defaultNumberText = "####";
-    private static final String _defaultLatLonText = "##°/##°";
+    private static final String _defaultLatLonText = "##Â°/##Â°";
 
     private JRadioButton _buttonHorizontal;
     private JRadioButton _buttonVertical;

@@ -53,7 +53,7 @@ import java.io.IOException;
 public class NewProductDialog extends ModalDialog {
 
     private static final String DEFAULT_NUMBER_TEXT = "####";
-    private static final String DEFAULT_LATLON_TEXT = "##°";
+    private static final String DEFAULT_LATLON_TEXT = "##Â°";
 
     private static final String COPY_ALL_COMMAND = "all";
     private static final String COPY_GEOCODING_COMMAND = "geo";

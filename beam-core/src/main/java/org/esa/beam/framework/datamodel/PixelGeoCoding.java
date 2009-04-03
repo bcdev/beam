@@ -479,7 +479,7 @@ public class PixelGeoCoding extends AbstractGeoCoding {
         final float lat2 = latArray[x2 + lineOffset1];
         final float lat3 = latArray[x2 + lineOffset2];
 
-        // todo - solve 180° longitude problem here
+        // todo - solve 180Â° longitude problem here
         final float lon0 = lonArray[x1 + lineOffset1];
         final float lon1 = lonArray[x1 + lineOffset2];
         final float lon2 = lonArray[x2 + lineOffset1];

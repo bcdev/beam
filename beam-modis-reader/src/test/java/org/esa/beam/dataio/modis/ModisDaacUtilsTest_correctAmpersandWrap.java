@@ -29,18 +29,14 @@ public class ModisDaacUtilsTest_correctAmpersandWrap extends TestCase {
                 "   FistPartAnd&\n" +
                 "   SecondPart");
 
-        assertEquals(
-                "   FistPartAndSecondPart",
-                corrected);
+        assertEquals("   FistPartAndSecondPart", corrected);
     }
 
     public void testLeaveSpecialCharactersUnchanged() {
         final String corrected = ModisDaacUtils.correctAmpersandWrap(
-                "ßÄÖÜ?#~@|<>€µ}][{");
+                "Ã„Ã–Ãœâ‚¬#~@|<>ÃŸÂµ][{");
 
-        assertEquals(
-                "ßÄÖÜ?#~@|<>€µ}][{",
-                corrected);
+        assertEquals("Ã„Ã–Ãœâ‚¬#~@|<>ÃŸÂµ][{", corrected);
     }
 
     public void testConcrete() {

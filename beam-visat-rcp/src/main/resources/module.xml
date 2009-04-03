@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-visat-rcp</symbolicName>
-    <version>4.5.3-SNAPSHOT</version>
+    <version>4.5.3</version>
     <name>VISAT Rich Client Platform</name>
 
     <description>
@@ -118,11 +118,11 @@
 
     <dependency>
         <module>beam-core</module>
-        <version>4.5.1</version>
+        <version>4.5.2</version>
     </dependency>
     <dependency>
         <module>beam-ui</module>
-        <version>4.5.1</version>
+        <version>4.5.3</version>
     </dependency>
     <dependency>
         <module>beam-processing</module>

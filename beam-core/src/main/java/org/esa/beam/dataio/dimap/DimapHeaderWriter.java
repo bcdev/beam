@@ -245,7 +245,7 @@ public final class DimapHeaderWriter extends XmlWriter {
         }
     }
 
-    protected void writeBitmaskDefinitions(int indent) { //übernommen
+    protected void writeBitmaskDefinitions(int indent) {
         final BitmaskDef[] bitmaskDefs = _product.getBitmaskDefs();
         if (bitmaskDefs.length > 0) {
             final String[] bdTags = createTags(indent, DimapProductConstants.TAG_BITMASK_DEFINITIONS);
@@ -497,7 +497,7 @@ public final class DimapHeaderWriter extends XmlWriter {
         }
     }
 
-    protected void writeTiePointGridElements(int indent) { //übernommen
+    protected void writeTiePointGridElements(int indent) { 
         final int numTiePointGrids = _product.getNumTiePointGrids();
         if (numTiePointGrids > 0) {
             final String[] tpgTags = createTags(indent, DimapProductConstants.TAG_TIE_POINT_GRIDS);

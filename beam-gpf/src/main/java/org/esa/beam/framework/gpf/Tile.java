@@ -71,7 +71,7 @@ import java.util.Iterator;
  *
  * @author Norman Fomferra
  * @author Marco Peters
- * @author Marco Zühlke
+ * @author Marco ZÃ¼hlke
  * @since 4.1
  */
 public interface Tile extends Iterable<Tile.Pos> {

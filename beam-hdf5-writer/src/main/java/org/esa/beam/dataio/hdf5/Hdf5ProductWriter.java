@@ -85,6 +85,7 @@ public class Hdf5ProductWriter extends AbstractProductWriter {
      * @param node the product node
      * @return <code>true</code> if so
      */
+    @Override
     public boolean shouldWrite(ProductNode node) {
         if (node instanceof VirtualBand) {
             return false;
@@ -99,6 +100,7 @@ public class Hdf5ProductWriter extends AbstractProductWriter {
      * @throws IllegalArgumentException if <code>output</code> type is not one of the supported output sources.
      * @throws IOException              if an I/O error occurs
      */
+    @Override
     protected void writeProductNodesImpl() throws IOException {
 
         if (!_hdf5LibInit) {
@@ -191,6 +193,7 @@ public class Hdf5ProductWriter extends AbstractProductWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeBandRasterData(Band sourceBand,
                                     int sourceOffsetX,
                                     int sourceOffsetY,
@@ -256,8 +259,9 @@ public class Hdf5ProductWriter extends AbstractProductWriter {
     }
 
     /**
-     * Deletes the physically representation of the given product from the hard disk. (oder anderem datenträger???)
+     * Deletes the physically representation of the given product from the hard disk.
      */
+    @Override
     public void deleteOutput() {
         if (_outputFile != null) {
             _outputFile.delete();
@@ -269,6 +273,7 @@ public class Hdf5ProductWriter extends AbstractProductWriter {
      *
      * @throws IOException on failure
      */
+    @Override
     public void flush() throws IOException {
         if (_fileID == -1) {
             return;
@@ -299,6 +304,7 @@ public class Hdf5ProductWriter extends AbstractProductWriter {
      *
      * @throws IOException on failure
      */
+    @Override
     public void close() throws IOException {
         if (_fileID == -1) {
             return;

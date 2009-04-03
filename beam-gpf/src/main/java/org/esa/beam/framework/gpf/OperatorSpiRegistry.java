@@ -6,7 +6,7 @@ import com.bc.ceres.core.ServiceRegistry;
  * A registry for operator SPI instances.
  *
  * @author Norman Fomferra
- * @author Marco Zühlke
+ * @author Marco ZÃ¼hlke
  * @since 4.1
  */
 public interface OperatorSpiRegistry {

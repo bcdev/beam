@@ -81,17 +81,9 @@ public class ProductProjectionBuilderTest extends TestCase {
         final Pin pin2 = product2.getPinGroup().get(0);
         final Pin gcp2 = product2.getGcpGroup().get(0);
 
-        assertEquals("P1", pin2.getName());
-        assertEquals("G1", gcp2.getName());
-
         assertEquals(pin.getGeoPos(), pin2.getGeoPos());
         assertEquals(gcp.getGeoPos(), gcp2.getGeoPos());
-
-        final GeoCoding geoCoding = product2.getGeoCoding();
-        final PixelPos pinPixelPos = geoCoding.getPixelPos(pin2.getGeoPos(), null);
-        final PixelPos gcpPixelPos = geoCoding.getPixelPos(gcp2.getGeoPos(), null);
-
-        assertEquals(pinPixelPos, pin2.getPixelPos());
-        assertEquals(gcpPixelPos, gcp2.getPixelPos());
+        assertNull(pin2.getPixelPos());
+        assertNull(gcp2.getPixelPos());
     }
 }

@@ -180,7 +180,7 @@
             <dependency>
                 <groupId>org.esa.beam</groupId>
                 <artifactId>beam-core</artifactId>
-                <version>4.5.2-SNAPSHOT</version>
+                <version>4.5.2</version>
             </dependency>
             <dependency>
                 <groupId>org.esa.beam</groupId>
@@ -190,7 +190,7 @@
             <dependency>
                 <groupId>org.esa.beam</groupId>
                 <artifactId>beam-ui</artifactId>
-                <version>4.5.2</version>
+                <version>4.5.3</version>
             </dependency>
             <dependency>
                 <groupId>org.esa.beam</groupId>
@@ -372,6 +372,16 @@
         </dependency>
     </dependencies>
 
+    <!--
+       In version 3.0 of Maven the sourceEncoding property will be embedded in the
+       build tag. For now the convention is to that it as property.
+       TODO: Move the sourceEncoding property to the build tag if version 3.0 is released
+       -->
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+
     <build>
         <outputDirectory>../modules/${artifactId}-${version}</outputDirectory>
 
@@ -382,7 +392,7 @@
                     <source>1.6</source>
                     <target>1.6</target>
                     <debug>true</debug>
-                    <encoding>ISO-8859-1</encoding>
+                    <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
 

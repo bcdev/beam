@@ -70,7 +70,7 @@ public class MapProjectionDialog extends ModalDialog {
     private static final String RESAMPLING_CUBIC_CONVOLUTION = "Cubic Convolution";
 
     private static final String _defaultNumberText = "####";
-    private static final String _defaultLatLonText = "##°";
+    private static final String _defaultLatLonText = "##Â°";
 
     private static final String _orthoHelpId = "orthorectification";
     private static final String _projectionHelpId = "mapProjection";
