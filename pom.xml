@@ -180,7 +180,7 @@
             <dependency>
                 <groupId>org.esa.beam</groupId>
                 <artifactId>beam-core</artifactId>
-                <version>4.5.1</version>
+                <version>4.5.2-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.esa.beam</groupId>
@@ -205,7 +205,7 @@
             <dependency>
                 <groupId>org.esa.beam</groupId>
                 <artifactId>beam-visat</artifactId>
-                <version>4.5.1</version>
+                <version>4.5.2</version>
             </dependency>
 
             <!-- BEAM Modules ############################################# -->
