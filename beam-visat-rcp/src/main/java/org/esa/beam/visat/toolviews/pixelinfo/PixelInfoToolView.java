@@ -12,21 +12,31 @@ import org.esa.beam.framework.datamodel.RasterDataNode;
 import org.esa.beam.framework.ui.PixelInfoView;
 import org.esa.beam.framework.ui.PixelPositionListener;
 import org.esa.beam.framework.ui.TableLayout;
-import org.esa.beam.framework.ui.tool.ToolButtonFactory;
 import org.esa.beam.framework.ui.application.support.AbstractToolView;
 import org.esa.beam.framework.ui.product.ProductSceneView;
+import org.esa.beam.framework.ui.tool.ToolButtonFactory;
 import org.esa.beam.util.PropertyMap;
 import org.esa.beam.util.math.MathUtils;
 import org.esa.beam.visat.VisatApp;
 
-import javax.swing.*;
+import javax.swing.AbstractAction;
+import javax.swing.AbstractButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComponent;
+import javax.swing.JInternalFrame;
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Insets;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
+import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.HashMap;
@@ -35,6 +45,7 @@ import java.util.HashMap;
  * The tool window which displays the pixel info view.
  */
 public class PixelInfoToolView extends AbstractToolView {
+
     public static final String ID = PixelInfoToolView.class.getName();
 
     private PixelInfoView pixelInfoView;
@@ -42,14 +53,6 @@ public class PixelInfoToolView extends AbstractToolView {
     private PinSelectionChangedListener pinSelectionChangedListener;
     private ProductSceneView currentView;
     private HashMap<ProductSceneView, PixelInfoPPL> pixelPosListeners;
-    private AbstractButton coordToggleButton;
-    private AbstractButton timeToggleButton;
-    private AbstractButton bandsToggleButton;
-    private AbstractButton tpgsToggleButton;
-    private AbstractButton flagsToggleButton;
-
-    public PixelInfoToolView() {
-    }
 
     @Override
     public JComponent createControl() {
@@ -61,6 +64,7 @@ public class PixelInfoToolView extends AbstractToolView {
         pixelInfoView.setDisplayFilter(bandDisplayValidator);
         final PropertyMap preferences = visatApp.getPreferences();
         preferences.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
             public void propertyChange(PropertyChangeEvent evt) {
                 final String propertyName = evt.getPropertyName();
                 if (PixelInfoView.PROPERTY_KEY_SHOW_ONLY_DISPLAYED_BAND_PIXEL_VALUES.equals(propertyName)) {
@@ -86,6 +90,7 @@ public class PixelInfoToolView extends AbstractToolView {
         pinCheckbox.setName("pinCheckbox");
         pinCheckbox.setSelected(false);
         pinCheckbox.addActionListener(new ActionListener() {
+            @Override
             public void actionPerformed(ActionEvent e) {
                 if (pinCheckbox.isSelected()) {
                     currentView = visatApp.getSelectedProductSceneView();
@@ -99,15 +104,19 @@ public class PixelInfoToolView extends AbstractToolView {
         layout.setTableFill(TableLayout.Fill.HORIZONTAL);
         layout.setTablePadding(new Insets(2, 2, 2, 2));
         layout.setTableWeightX(1.0);
-        layout.setCellColspan(1,0, 5);
+        layout.setCellColspan(1, 0, 5);
         final JPanel optionPanel = new JPanel(layout);
 
 
-        coordToggleButton = createToggleButton(pixelInfoView, PixelInfoView.DockablePaneKey.GEOLOCATION, true);
-        timeToggleButton = createToggleButton(pixelInfoView, PixelInfoView.DockablePaneKey.SCANLINE, true);
-        tpgsToggleButton = createToggleButton(pixelInfoView, PixelInfoView.DockablePaneKey.TIEPOINTS, true);
-        bandsToggleButton = createToggleButton(pixelInfoView, PixelInfoView.DockablePaneKey.BANDS, true);
-        flagsToggleButton = createToggleButton(pixelInfoView, PixelInfoView.DockablePaneKey.FLAGS, false);
+        AbstractButton coordToggleButton = createToggleButton(pixelInfoView, PixelInfoView.DockablePaneKey.GEOLOCATION,
+                                                              true);
+        AbstractButton timeToggleButton = createToggleButton(pixelInfoView, PixelInfoView.DockablePaneKey.SCANLINE,
+                                                             true);
+        AbstractButton tpgsToggleButton = createToggleButton(pixelInfoView, PixelInfoView.DockablePaneKey.TIEPOINTS,
+                                                             true);
+        AbstractButton bandsToggleButton = createToggleButton(pixelInfoView, PixelInfoView.DockablePaneKey.BANDS, true);
+        AbstractButton flagsToggleButton = createToggleButton(pixelInfoView, PixelInfoView.DockablePaneKey.FLAGS,
+                                                              false);
 
         optionPanel.add(coordToggleButton);
         optionPanel.add(timeToggleButton);
@@ -139,14 +148,20 @@ public class PixelInfoToolView extends AbstractToolView {
 
         dockablePane.addComponentListener(new ComponentListener() {
 
-            public void componentResized(ComponentEvent e) { }
+            @Override
+            public void componentResized(ComponentEvent e) {
+            }
 
-            public void componentMoved(ComponentEvent e) { }
+            @Override
+            public void componentMoved(ComponentEvent e) {
+            }
 
+            @Override
             public void componentShown(ComponentEvent e) {
                 button.setSelected(dockablePane.isContentShown());
             }
 
+            @Override
             public void componentHidden(ComponentEvent e) {
                 button.setSelected(dockablePane.isContentShown());
             }
@@ -312,12 +327,15 @@ public class PixelInfoToolView extends AbstractToolView {
             this.view = view;
         }
 
-        public void pixelPosChanged(ImageLayer imageLayer, int pixelX, int pixelY, int currentLevel, boolean pixelPosValid, MouseEvent e) {
+        @Override
+        public void pixelPosChanged(ImageLayer imageLayer, int pixelX, int pixelY, int currentLevel,
+                                    boolean pixelPosValid, MouseEvent e) {
             if (isActive()) {
                 pixelInfoView.updatePixelValues(view, pixelX, pixelY, currentLevel, pixelPosValid);
             }
         }
 
+        @Override
         public void pixelPosNotAvailable() {
             if (isActive()) {
                 pixelInfoView.updatePixelValues(view, -1, -1, 0, false);
@@ -325,46 +343,52 @@ public class PixelInfoToolView extends AbstractToolView {
         }
 
         private boolean isActive() {
-            return  isVisible() && !isSnapToPin();
+            return isVisible() && !isSnapToPin();
         }
     }
 
     private class PinSelectionChangedListener implements ProductNodeListener {
 
+        @Override
         public void nodeChanged(ProductNodeEvent event) {
             if (isActive()) {
-                if (!Pin.PROPERTY_NAME_SELECTED.equals(event.getPropertyName())) {
-                    return;
+                if (Pin.PROPERTY_NAME_SELECTED.equals(event.getPropertyName()) ||
+                    Pin.PROPERTY_NAME_PIXELPOS.equals(event.getPropertyName())) {
+                    updatePin(event);
                 }
-                updatePin(event);
             }
         }
 
+        @Override
         public void nodeDataChanged(ProductNodeEvent event) {
             if (isActive()) {
                 updatePin(event);
             }
         }
 
+        @Override
         public void nodeAdded(ProductNodeEvent event) {
             if (isActive()) {
                 updatePin(event);
             }
         }
 
+        @Override
         public void nodeRemoved(ProductNodeEvent event) {
             if (isActive()) {
-                ProductNode sourceNode = event.getSourceNode();
-                if (sourceNode instanceof Pin && sourceNode.isSelected()) {
-                    setToSelectedPin(currentView);
-                }
+                updatePin(event);
             }
         }
 
         private void updatePin(ProductNodeEvent event) {
             final ProductNode sourceNode = event.getSourceNode();
             if (sourceNode instanceof Pin && sourceNode.isSelected()) {
-                setToSelectedPin(currentView);
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        setToSelectedPin(currentView);
+                    }
+                });
             }
         }
 
@@ -373,7 +397,7 @@ public class PixelInfoToolView extends AbstractToolView {
         }
     }
 
-    private class DisplayFilter extends PixelInfoView.DisplayFilter {
+    private static class DisplayFilter extends PixelInfoView.DisplayFilter {
 
         private final VisatApp app;
         private boolean showOnlyLoadedOrDisplayedBands;
@@ -406,7 +430,7 @@ public class PixelInfoToolView extends AbstractToolView {
         }
     }
 
-    private class DockablePanelToggleAction extends AbstractAction {
+    private static class DockablePanelToggleAction extends AbstractAction {
 
         private final PixelInfoView piv;
         private final PixelInfoView.DockablePaneKey panelKey;
@@ -416,6 +440,7 @@ public class PixelInfoToolView extends AbstractToolView {
             panelKey = dockablePanelKey;
         }
 
+        @Override
         public void actionPerformed(ActionEvent e) {
             final DockablePane dockablePane = piv.getDockablePane(panelKey);
             final boolean isShown = dockablePane.isContentShown();

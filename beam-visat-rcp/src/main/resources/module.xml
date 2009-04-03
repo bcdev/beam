@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-visat-rcp</symbolicName>
-    <version>4.5.2</version>
+    <version>4.5.3-SNAPSHOT</version>
     <name>VISAT Rich Client Platform</name>
 
     <description>
@@ -11,13 +11,15 @@
 
     <changelog>
         <![CDATA[
+        <p>Changes in 4.5.3:<br/>
+          [BEAM-967] PixelInfoView disregards pin movements if "Snap to selected pin" is selected<br/>
         <p>Changes in 4.5.2:<br/>
-            BEAM-960 Module description misplaced in VISAT module manager<br/>
-            BEAM-958 Pixel Info View can block VISAT <br/>
-            BEAM-957 "Search" tab missing VISAT help<br/>
-            BEAM-956 Histogram color lookup tables do not work correctly with CPD files<br/>
-            BEAM-954 The pixel info view updates its display too often<br/>
-            BEAM-910 VISAT module manager does not work under Vista OS (reopened and fixed)<br/>
+          [BEAM-960] Module description misplaced in VISAT module manager<br/>
+          [BEAM-958] Pixel Info View can block VISAT <br/>
+          [BEAM-957] "Search" tab missing VISAT help<br/>
+          [BEAM-956] Histogram color lookup tables do not work correctly with CPD files<br/>
+          [BEAM-954] The pixel info view updates its display too often<br/>
+          [BEAM-910] VISAT module manager does not work under Vista OS (reopened and fixed)<br/>
         </p>
         <p>Changes in 4.5.1:<br/>
           [BEAM-942] VISAT sometimes hangs on startup<br/>
@@ -211,7 +213,8 @@
             <description>Manage view layer visibility and transparency.</description>
             <smallIcon>/org/esa/beam/resources/images/icons/LayerManager16.png</smallIcon>
             <largeIcon>/org/esa/beam/resources/images/icons/LayerManager24.png</largeIcon>
-            <helpId>showLayerManagerWnd</helpId><!-- todo provide help -->
+            <helpId>showLayerManagerWnd</helpId>
+            <!-- todo provide help -->
             <initState>HIDDEN</initState>
             <initSide>SOUTH</initSide>
             <initIndex>0</initIndex>
