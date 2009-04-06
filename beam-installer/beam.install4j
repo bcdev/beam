@@ -1598,7 +1598,7 @@ if (wizardContext != null) {
       </exclude>
       <variables />
     </macosFolder>
-    <unixInstaller name="Linux JRE" id="128" mediaFileName="beam_${compiler:sys.version}_linux_installer" installDir="${compiler:sys.shortName}-${compiler:sys.version}" overridePrincipalLanguage="false" requires64bit="false" runPostProcessor="false" postProcessor="" failOnPostProcessorError="false" includedJRE="solaris-sparc-1.6.0_13" manualJREEntry="false" bundleType="1" jreURL="" jreFtpURL="" jreShared="false" customInstallBaseDir="" createUninstallIcon="true" contentFilesType="1" downloadURL="">
+    <unixInstaller name="Linux JRE" id="128" mediaFileName="beam_${compiler:sys.version}_linux_installer" installDir="${compiler:sys.shortName}-${compiler:sys.version}" overridePrincipalLanguage="false" requires64bit="false" runPostProcessor="false" postProcessor="" failOnPostProcessorError="false" includedJRE="linux-x86-1.6.0_13" manualJREEntry="false" bundleType="1" jreURL="" jreFtpURL="" jreShared="false" customInstallBaseDir="" createUninstallIcon="true" contentFilesType="1" downloadURL="">
       <excludedLaunchers>
         <launcher id="1086" />
       </excludedLaunchers>
