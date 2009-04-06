@@ -26,4 +26,9 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <outputDirectory>${basedir}/target/classes</outputDirectory>
+        <testOutputDirectory>${basedir}/target/test-classes</testOutputDirectory>
+    </build>
+	
 </project>
