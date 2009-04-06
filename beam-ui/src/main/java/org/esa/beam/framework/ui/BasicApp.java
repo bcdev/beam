@@ -19,7 +19,11 @@ package org.esa.beam.framework.ui;
 import com.bc.ceres.core.Assert;
 import com.bc.ceres.core.ProgressMonitor;
 import com.bc.ceres.core.SubProgressMonitor;
-import com.jidesoft.action.*;
+import com.jidesoft.action.CommandBar;
+import com.jidesoft.action.DefaultDockableBarDockableHolder;
+import com.jidesoft.action.DockableBar;
+import com.jidesoft.action.DockableBarContext;
+import com.jidesoft.action.DockableBarManager;
 import com.jidesoft.action.event.DockableBarAdapter;
 import com.jidesoft.action.event.DockableBarEvent;
 import com.jidesoft.docking.DefaultDockingManager;
@@ -32,8 +36,19 @@ import com.jidesoft.swing.LayoutPersistence;
 import org.esa.beam.framework.help.HelpSys;
 import org.esa.beam.framework.ui.application.ApplicationDescriptor;
 import org.esa.beam.framework.ui.application.support.DefaultApplicationDescriptor;
-import org.esa.beam.framework.ui.command.*;
-import org.esa.beam.util.*;
+import org.esa.beam.framework.ui.command.Command;
+import org.esa.beam.framework.ui.command.CommandGroup;
+import org.esa.beam.framework.ui.command.CommandManager;
+import org.esa.beam.framework.ui.command.CommandMenuUtils;
+import org.esa.beam.framework.ui.command.CommandUIFactory;
+import org.esa.beam.framework.ui.command.DefaultCommandManager;
+import org.esa.beam.framework.ui.command.DefaultCommandUIFactory;
+import org.esa.beam.framework.ui.command.ExecCommand;
+import org.esa.beam.util.Debug;
+import org.esa.beam.util.Guardian;
+import org.esa.beam.util.PropertyMap;
+import org.esa.beam.util.StringUtils;
+import org.esa.beam.util.SystemUtils;
 import org.esa.beam.util.io.BeamFileChooser;
 import org.esa.beam.util.io.FileChooserFactory;
 import org.esa.beam.util.io.FileUtils;
@@ -42,18 +57,59 @@ import org.esa.beam.util.logging.CacheHandler;
 
 import javax.help.HelpSet;
 import javax.help.HelpSetException;
-import javax.swing.*;
+import javax.swing.AbstractButton;
+import javax.swing.Action;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JToolBar;
+import javax.swing.RepaintManager;
+import javax.swing.SwingUtilities;
 import javax.swing.UIDefaults;
+import javax.swing.UIManager;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.plaf.FontUIResource;
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.HeadlessException;
+import java.awt.Rectangle;
+import java.awt.Window;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ContainerEvent;
+import java.awt.event.ContainerListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.*;
-import java.util.logging.*;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.FileHandler;
 import java.util.logging.Formatter;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * The <code>BasicApp</code> can be used as a base class for applications which use a single main frame as user
@@ -164,6 +220,7 @@ public class BasicApp {
      *                         application does not use resource bundles
      * @param appLoggerName    the logger name for the application logging, can be <code>null</code> if the application
      *                         does not use logging
+     *
      * @see java.util.ResourceBundle
      */
     protected BasicApp(String appName,
@@ -247,6 +304,7 @@ public class BasicApp {
      * (if any) is closed.</li> </ol>
      *
      * @param pm a progress monitor, e.g. for splash-screen
+     *
      * @throws Exception if an error occurs
      */
     public void startUp(ProgressMonitor pm) throws Exception {
@@ -312,7 +370,8 @@ public class BasicApp {
     private void logStartUpInfo() {
         _logger.info("BEAM user directory is '" + _beamUserDir + "'");    /*I18N*/
         if (_resourceBundle != null) {
-            _logger.info("Resource bundle loaded from '" + applicationDescriptor.getResourceBundleName() + "'"); /*I18N*/
+            _logger.info(
+                    "Resource bundle loaded from '" + applicationDescriptor.getResourceBundleName() + "'"); /*I18N*/
         }
         if (_preferencesFile != null) {
             _logger.info("User preferences loaded from '" + _preferencesFile.getPath() + "'");/*I18N*/
@@ -539,6 +598,7 @@ public class BasicApp {
      * <p/>The default implementation does nothing.
      *
      * @param pm a progress monitor, can be used to signal progress
+     *
      * @throws Exception if an error occures
      */
     protected void initClient(ProgressMonitor pm) throws Exception {
@@ -552,6 +612,7 @@ public class BasicApp {
      * <p/>The default implementation does nothing.
      *
      * @param pm a progress monitor, can be used to signal progress
+     *
      * @throws Exception if an error occures
      */
     protected void initClientUI(ProgressMonitor pm) throws Exception {
@@ -757,8 +818,8 @@ public class BasicApp {
                 if (command instanceof ExecCommand && command.getLargeIcon() != null) {
                     String rootParent = findRootParent(command);
                     if ((rootParent == null
-                            && toolBarGroup == null)
-                            || (rootParent != null
+                         && toolBarGroup == null)
+                        || (rootParent != null
                             && rootParent.equalsIgnoreCase(toolBarGroup))) {
                         AbstractButton button = command.createToolBarButton();
                         if (button != null) {
@@ -771,7 +832,7 @@ public class BasicApp {
         }
     }
 
-     // The 'root' parent name of the given command.
+    // The 'root' parent name of the given command.
     private String findRootParent(Command command) {
         String parent = command.getParent();
         if (parent != null) {
@@ -1145,6 +1206,7 @@ public class BasicApp {
      * @param title      a dialog-box title
      * @param dirsOnly   whether or not to select only directories
      * @param fileFilter the file filter to be used, can be <code>null</code>
+     *
      * @return the file selected by the user or <code>null</code> if the user canceled file selection
      */
     public final File showFileOpenDialog(String title, boolean dirsOnly, FileFilter fileFilter) {
@@ -1158,6 +1220,7 @@ public class BasicApp {
      * @param dirsOnly           whether or not to select only directories
      * @param fileFilter         the file filter to be used, can be <code>null</code>
      * @param lastDirPropertyKey the key under which the last directory the user visited is stored
+     *
      * @return the file selected by the user or <code>null</code> if the user canceled file selection
      */
     public final File showFileOpenDialog(String title, boolean dirsOnly, FileFilter fileFilter,
@@ -1190,7 +1253,6 @@ public class BasicApp {
             }
             // to replace getAbsolutPath() replaced by getPath()?
             file = file.getAbsoluteFile();
-            historyPush(file);
             return file;
         }
         return null;
@@ -1204,6 +1266,7 @@ public class BasicApp {
      * @param fileFilter       the file filter to be used, can be <code>null</code>
      * @param defaultExtension the extension used as default
      * @param fileName         the initial filename
+     *
      * @return the file selected by the user or <code>null</code> if the user canceled file selection
      */
     public final File showFileSaveDialog(String title,
@@ -1228,6 +1291,7 @@ public class BasicApp {
      * @param defaultExtension   the extension used as default
      * @param fileName           the initial filename
      * @param lastDirPropertyKey the key under which the last directory the user visited is stored
+     *
      * @return the file selected by the user or <code>null</code> if the user canceled file selection
      */
     public final File showFileSaveDialog(String title,
@@ -1273,7 +1337,6 @@ public class BasicApp {
                 }
             }
             file = new File(absolutePath);
-            historyPush(file);
             return file;
         }
         return null;
@@ -1292,6 +1355,7 @@ public class BasicApp {
      * deregistered using the <code>{@link #unregisterJob}</code> method.
      *
      * @param job any job-like object
+     *
      * @deprecated No longer used
      */
     public final synchronized void registerJob(Object job) {
@@ -1303,6 +1367,7 @@ public class BasicApp {
      * <code>{@link #registerJob}</code> method have been deregistered.
      *
      * @param job any job-like object
+     *
      * @deprecated No longer used
      */
     public final synchronized void unregisterJob(Object job) {
@@ -1319,12 +1384,12 @@ public class BasicApp {
             message = "An unknown error occured."; /*I18N*/
         } else if (e.getMessage() == null) {
             message = "An exception occured:\n"
-                    + "   Type: " + e.getClass().getName() + "\n"
-                    + "   No message text available."; /*I18N*/
+                      + "   Type: " + e.getClass().getName() + "\n"
+                      + "   No message text available."; /*I18N*/
         } else {
             message = "An exception occured:\n"
-                    + "   Type: " + e.getClass().getName() + "\n"
-                    + "   Message: " + e.getMessage(); /*I18N*/
+                      + "   Type: " + e.getClass().getName() + "\n"
+                      + "   Message: " + e.getMessage(); /*I18N*/
         }
 
         getMainFrame().setCursor(Cursor.getDefaultCursor());
@@ -1368,11 +1433,11 @@ public class BasicApp {
     public final void showOutOfMemoryErrorDialog(String message) {
         showErrorDialog("Out of Memory",
                         getAppName() + " is out of memory.\n" +
-                                message + "\n\n" +
-                                "You can try to release memory by closing products or image views which\n" +
-                                "you currently not really need.\n" +
-                                "If this does not help, you can increase the amount of virtual memory\n" +
-                                "as described on the BEAM website at http://envisat.esa.int/services/beam/.");
+                        message + "\n\n" +
+                        "You can try to release memory by closing products or image views which\n" +
+                        "you currently not really need.\n" +
+                        "If this does not help, you can increase the amount of virtual memory\n" +
+                        "as described on the BEAM website at http://envisat.esa.int/services/beam/.");
     }
 
     public final void showMessageDialog(String title, String message, int messageType, String preferencesKey) {
@@ -1404,16 +1469,16 @@ public class BasicApp {
                                                              message,
                                                              getAppName() + " - " + title,
                                                              allowCancel
-                                                                     ? JOptionPane.YES_NO_CANCEL_OPTION
-                                                                     : JOptionPane.YES_NO_OPTION,
+                                                             ? JOptionPane.YES_NO_CANCEL_OPTION
+                                                             : JOptionPane.YES_NO_OPTION,
                                                              JOptionPane.QUESTION_MESSAGE);
         } else {
             return JOptionPane.showConfirmDialog(getMainFrame(),
                                                  message,
                                                  getAppName() + " - " + title,
                                                  allowCancel
-                                                         ? JOptionPane.YES_NO_CANCEL_OPTION
-                                                         : JOptionPane.YES_NO_OPTION,
+                                                 ? JOptionPane.YES_NO_CANCEL_OPTION
+                                                 : JOptionPane.YES_NO_OPTION,
                                                  JOptionPane.QUESTION_MESSAGE);
         }
     }
@@ -1516,15 +1581,15 @@ public class BasicApp {
                 }
                 _logger.addHandler(handler);
                 _logger.setLevel(logLevel == SystemUtils.LL_DEBUG ? Level.FINEST :
-                        logLevel == SystemUtils.LL_INFO ? Level.INFO :
-                                logLevel == SystemUtils.LL_WARNING ? Level.WARNING :
-                                        logLevel == SystemUtils.LL_ERROR ? Level.SEVERE :
-                                                Level.INFO);
+                                 logLevel == SystemUtils.LL_INFO ? Level.INFO :
+                                 logLevel == SystemUtils.LL_WARNING ? Level.WARNING :
+                                 logLevel == SystemUtils.LL_ERROR ? Level.SEVERE :
+                                 Level.INFO);
                 getPreferences().setPropertyString(PROPERTY_KEY_APP_LOG_PREFIX, logPrefix);
                 getPreferences().setPropertyString(PROPERTY_KEY_APP_LOG_LEVEL,
                                                    logLevel == SystemUtils.LL_DEBUG ? SystemUtils.LLS_DEBUG :
-                                                           logLevel == SystemUtils.LL_ERROR ? SystemUtils.LLS_ERROR :
-                                                                   logLevel == SystemUtils.LL_WARNING ? SystemUtils.LLS_WARNING : SystemUtils.LLS_INFO);
+                                                   logLevel == SystemUtils.LL_ERROR ? SystemUtils.LLS_ERROR :
+                                                   logLevel == SystemUtils.LL_WARNING ? SystemUtils.LLS_WARNING : SystemUtils.LLS_INFO);
                 getPreferences().setPropertyBool(PROPERTY_KEY_APP_DEBUG_ENABLED, Debug.isEnabled());
                 getPreferences().setPropertyBool(PROPERTY_KEY_APP_LOG_ECHO, echoOn);
             } catch (SecurityException e) {
@@ -1553,7 +1618,9 @@ public class BasicApp {
      * file does not exists, the question dialog does not comes up.
      *
      * @param file the file to check for existance
+     *
      * @return <code>true</code> if the user confirmes the dialog with 'yes' or the given file does not exist.
+     *
      * @throws IllegalArgumentException if <code>file</code> is <code>null</code>
      */
     public final boolean promptForOverwrite(File file) {
@@ -1563,9 +1630,9 @@ public class BasicApp {
         }
         int answer = showQuestionDialog("File Exists",
                                         "The file\n"
-                                                + "'" + file.getPath() + "'\n"
-                                                + "already exists.\n\n"
-                                                + "Do you really want to overwrite it?\n", null);
+                                        + "'" + file.getPath() + "'\n"
+                                        + "already exists.\n\n"
+                                        + "Do you really want to overwrite it?\n", null);
         return answer == JOptionPane.YES_OPTION;
     }
 
@@ -1655,7 +1722,8 @@ public class BasicApp {
     // Loads locale-specific resources: strings, images, et cetera
     private void initResources() throws MissingResourceException {
         if (applicationDescriptor.getResourceBundleName() != null) {
-            _resourceBundle = ResourceBundle.getBundle(applicationDescriptor.getResourceBundleName(), Locale.getDefault(), getClass().getClassLoader());
+            _resourceBundle = ResourceBundle.getBundle(applicationDescriptor.getResourceBundleName(),
+                                                       Locale.getDefault(), getClass().getClassLoader());
         } else {
             _resourceBundle = null;
         }
@@ -1731,6 +1799,7 @@ public class BasicApp {
     }
 
     public static class MainFrame extends DefaultDockableBarDockableHolder {
+
         public MainFrame() throws HeadlessException {
         }
     }
