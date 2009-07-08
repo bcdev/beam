@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-core</symbolicName>
-    <version>4.6.1</version>
+    <version>4.6.2</version>
     <name>BEAM Core Library</name>
 
 
@@ -22,6 +22,10 @@
 
     <changelog>
         <![CDATA[
+        <p>
+        <p>Changes in 4.6.2:<br/>
+          [BEAM-1030] UTM projected products have wrong CRS<br/>
+        </p>
         <p>Changes in 4.6.1:<br/>
           [BEAM-1023] Can not overlay compatible products"<br/>
           [BEAM-1021] File chooser boxes shall support "component documents"<br/>
