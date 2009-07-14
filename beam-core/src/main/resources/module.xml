@@ -24,6 +24,7 @@
         <![CDATA[
         <p>
         <p>Changes in 4.6.2:<br/>
+          [BEAM-1031] Filtered bands are not available when opening a saved product in VISAT<br/>
           [BEAM-1030] UTM projected products have wrong CRS<br/>
         </p>
         <p>Changes in 4.6.1:<br/>
