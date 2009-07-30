@@ -871,7 +871,7 @@ public class DimapHeaderWriterTest extends TestCase {
         b2.setDataElems(bandData);
 
         final String pixelPosEstimator = setFXYGeoCodingAndGetCore().replace(LS, LS + "        ");
-        final PixelGeoCoding pixelGeoCoding = new PixelGeoCoding(b1, b2, "NOT NaN", 4, ProgressMonitor.NULL);
+        final PixelGeoCoding pixelGeoCoding = new PixelGeoCoding(b1, b2, "NOT NaN", 4);
         product.setGeoCoding(pixelGeoCoding);
         return header +
                "    <Geoposition>" + LS +
