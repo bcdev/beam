@@ -507,7 +507,6 @@ public class BitmaskOverlayToolView extends AbstractToolView {
         if (rebuild) {
             rebuildDisplayList();
         }
-
     }
 
     private int getNumActions() {
