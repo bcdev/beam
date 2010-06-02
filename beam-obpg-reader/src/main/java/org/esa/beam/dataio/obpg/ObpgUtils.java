@@ -27,6 +27,7 @@ import org.esa.beam.framework.datamodel.PixelGeoCoding;
 import org.esa.beam.framework.datamodel.Product;
 import org.esa.beam.framework.datamodel.ProductData;
 
+import org.esa.beam.jai.BandOpImage;
 import ucar.ma2.Array;
 import ucar.ma2.DataType;
 import ucar.nc2.Attribute;
@@ -392,6 +393,8 @@ public class ObpgUtils {
 
         latBand.setSynthetic(true);
         lonBand.setSynthetic(true);
+        latBand.getSourceImage();
+        lonBand.getSourceImage();
     }
 
     private float computePixel(final float a, final float b, final double weight) {

@@ -126,8 +126,7 @@ public class ObpgProductReader extends AbstractProductReader {
     
     private void readBandData(Variable variable, int sourceOffsetX, int sourceOffsetY, int sourceWidth,
                               int sourceHeight, ProductData destBuffer, ProgressMonitor pm) throws IOException,
-                                                                                           ProductIOException,
-                                                                                           InvalidRangeException {
+                                                                                                   InvalidRangeException {
 
         final int[] start = new int[] {sourceOffsetY, sourceOffsetX};
         final int[] stride = new int[] {1, 1};
