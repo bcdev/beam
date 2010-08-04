@@ -15,6 +15,7 @@
     <groupId>org.esa.beam</groupId>
     <artifactId>beam-gpf</artifactId>
     <packaging>jar</packaging>
+    <version>4.8.1-SNAPSHOT</version>
 
     <dependencies>
         <dependency>
