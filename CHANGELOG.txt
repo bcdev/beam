@@ -33,6 +33,7 @@ _____________________________________________________________________________
 1) Complete list of BEAM 4.8.1 bug fixes and improvements
 
 Bugs
+[BEAM-1186] The Landsat GeoTIFF reader should handle invalid input gracefully
 [BEAM-1179] - Slightly wrong listing of files in VirtualDir$Zip in beam-spot-vgt-reader
 [BEAM-1174] - DIMAP stores the band grouping only if a product has a description
 [BEAM-1172] -  Boolean parameter values are overridden by default values
