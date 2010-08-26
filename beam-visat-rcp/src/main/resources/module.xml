@@ -177,6 +177,7 @@
     </dependency>
     <dependency>
         <module>beam-ui</module>
+        <version>4.8.1</version>
     </dependency>
     <dependency>
         <module>beam-processing</module>
