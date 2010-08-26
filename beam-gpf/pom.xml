@@ -8,14 +8,13 @@
     <parent>
         <artifactId>beam</artifactId>
         <groupId>org.esa.beam</groupId>
-        <version>4.8</version>
+        <version>4.8.1-SNAPSHOT</version>
     </parent>
 
     <name>BEAM Graph Processing Framework (GPF)</name>
     <groupId>org.esa.beam</groupId>
     <artifactId>beam-gpf</artifactId>
     <packaging>jar</packaging>
-    <version>4.8.1-SNAPSHOT</version>
 
     <dependencies>
         <dependency>

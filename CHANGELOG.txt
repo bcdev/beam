@@ -32,9 +32,13 @@ _____________________________________________________________________________
 
 1) Complete list of BEAM 4.8.1 bug fixes and improvements
 
+Improvements
+[BEAM-1183] - Improve reprojection UI usability
+
 Bugs
 [BEAM-1187] - Libraries of SLF4J are included in lib directory
 [BEAM-1186] - The Landsat GeoTIFF reader should handle invalid input gracefully
+[BEAM-1184] - Reprojection dialog does not remember values ("Output Parameters")
 [BEAM-1182] - Libraries of JAI are included twice
 [BEAM-1179] - Slightly wrong listing of files in VirtualDir$Zip in beam-spot-vgt-reader
 [BEAM-1174] - DIMAP stores the band grouping only if a product has a description

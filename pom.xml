@@ -8,7 +8,7 @@
     <url>http://www.brockmann-consult.de/beam-wiki</url>
     <groupId>org.esa.beam</groupId>
     <artifactId>beam</artifactId>
-    <version>4.8</version>
+    <version>4.8.1-SNAPSHOT</version>
 
     <packaging>pom</packaging>
 
@@ -173,7 +173,7 @@
            -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <beam.version>4.8</beam.version>
+        <beam.version>4.8.1-SNAPSHOT</beam.version>
         <ceres.version>0.11</ceres.version>
         <geotools.version>2.6.1</geotools.version>
     </properties>
@@ -245,7 +245,7 @@
             <dependency>
                 <groupId>org.esa.beam</groupId>
                 <artifactId>beam-processing</artifactId>
-                <version>${beam.version}</version>
+                <version>4.8</version>
             </dependency>
             <dependency>
                 <groupId>org.esa.beam</groupId>

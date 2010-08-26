@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-ui</symbolicName>
-    <version>4.8</version>
+    <version>4.8.1</version>
     <name>BEAM User Interface Library</name>
     <activator>org.esa.beam.BeamUiActivator</activator>
 
@@ -9,6 +9,9 @@
     <description>This module provides user interface components used e.g. by VISAT.</description>
     <changelog>
         <![CDATA[
+        <p>Changes in 4.8.1<br/>
+        [BEAM-1184] Reprojection dialog does not remember values ("Output Parameters")<br/>
+        [BEAM-1183] Improve reprojection UI usability<br/>
         <p>Changes in 4.8<br/>
         [BEAM-1159] Auto-group bands according to their names<br/>
         [BEAM-1147] Signed byte data type interpreted as unsigned byte<br/>
