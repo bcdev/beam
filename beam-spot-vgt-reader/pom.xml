@@ -6,7 +6,7 @@
     <parent>
         <artifactId>beam</artifactId>
         <groupId>org.esa.beam</groupId>
-        <version>4.8</version>
+        <version>4.8.1</version>
     </parent>
 
     <packaging>jar</packaging>
@@ -14,7 +14,7 @@
     <groupId>org.esa.beam</groupId>
     <artifactId>beam-spot-vgt-reader</artifactId>
     <name>BEAM SPOT VGT Product Reader</name>
-    <version>1.0.1-SNAPSHOTdi</version>
+    <version>1.0.1</version>
     <url>http://envisat.esa.int/beam/</url>
 
     <dependencies>
