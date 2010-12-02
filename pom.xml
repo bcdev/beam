@@ -231,12 +231,12 @@
             <dependency>
                 <groupId>org.esa.beam</groupId>
                 <artifactId>beam-core</artifactId>
-                <version>4.8.2-SNAPSHOT</version>
+                <version>4.8.2</version>
             </dependency>
             <dependency>
                 <groupId>org.esa.beam</groupId>
                 <artifactId>beam-gpf</artifactId>
-                <version>4.8.2-SNAPSHOT</version>
+                <version>4.8.2</version>
             </dependency>
             <dependency>
                 <groupId>org.esa.beam</groupId>
