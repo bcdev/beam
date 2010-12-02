@@ -18,7 +18,14 @@ package org.esa.beam.collocation;
 
 import com.bc.ceres.core.ProgressMonitor;
 import com.bc.ceres.core.SubProgressMonitor;
-import org.esa.beam.framework.datamodel.*;
+import org.esa.beam.framework.datamodel.Band;
+import org.esa.beam.framework.datamodel.BitmaskDef;
+import org.esa.beam.framework.datamodel.FlagCoding;
+import org.esa.beam.framework.datamodel.PixelPos;
+import org.esa.beam.framework.datamodel.Product;
+import org.esa.beam.framework.datamodel.ProductData;
+import org.esa.beam.framework.datamodel.RasterDataNode;
+import org.esa.beam.framework.datamodel.TiePointGrid;
 import org.esa.beam.framework.dataop.barithm.BandArithmetic;
 import org.esa.beam.framework.dataop.resamp.Resampling;
 import org.esa.beam.framework.gpf.Operator;
@@ -203,7 +210,6 @@ public class CollocateOp extends Operator {
 
         ProductUtils.copyMetadata(masterProduct, targetProduct);
         ProductUtils.copyTiePointGrids(masterProduct, targetProduct);
-        ProductUtils.copyGeoCoding(masterProduct, targetProduct);
 
         for (final Band sourceBand : masterProduct.getBands()) {
             final Band targetBand = ProductUtils.copyBand(sourceBand.getName(), masterProduct, targetProduct);
@@ -251,6 +257,7 @@ public class CollocateOp extends Operator {
             }
         }
 
+        ProductUtils.copyGeoCoding(masterProduct, targetProduct);
         copyBitmaskDefs(slaveProduct, renameSlaveComponents, slaveComponentPattern);
 
         // todo - slave metadata!?
