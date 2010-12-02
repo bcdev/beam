@@ -63,7 +63,6 @@ public class SubsetOp extends Operator {
     private ProductSubsetDef subsetDef;
 
     public SubsetOp() {
-        super();
         subSamplingX = 1;
         subSamplingY = 1;
     }
@@ -122,7 +121,9 @@ public class SubsetOp extends Operator {
             subsetDef.setRegion(region);
         }
         subsetDef.setSubSampling(subSamplingX, subSamplingY);
-        subsetDef.setIgnoreMetadata(!copyMetadata);
+        if (copyMetadata) {
+            subsetDef.setIgnoreMetadata(false);
+        }
 
         try {
             targetProduct = subsetReader.readProductNodes(sourceProduct, subsetDef);
@@ -147,7 +148,6 @@ public class SubsetOp extends Operator {
             throw new OperatorException(e);
         }
     }
-
 
     public static class Spi extends OperatorSpi {
 
