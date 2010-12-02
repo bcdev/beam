@@ -26,6 +26,7 @@
     <changelog>
         <![CDATA[
         <p>Changes in 4.8.2:<br/>
+        [BEAM-1208] ProductUtils.copyFlagBands doesn't copy masks<br/>
         [BEAM-1125] Outer scene region is not invalid for certain reprojected products<br/>
         <p>Changes in 4.8.1:<br/>
         [BEAM-1196] Latitude shift for non-WGS84 datums<br/>
