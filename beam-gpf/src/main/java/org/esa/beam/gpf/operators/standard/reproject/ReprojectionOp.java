@@ -182,7 +182,7 @@ public class ReprojectionOp extends Operator {
         */
         Rectangle targetRect = targetImageGeometry.getImageRect();
         targetProduct = new Product("projected_" + sourceProduct.getName(),
-                                    "projection of: " + sourceProduct.getDescription(),
+                                    sourceProduct.getProductType(),
                                     targetRect.width,
                                     targetRect.height);
         Dimension tileSize = ImageManager.getPreferredTileSize(targetProduct);
