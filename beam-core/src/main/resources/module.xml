@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-core</symbolicName>
-    <version>4.8.1</version>
+    <version>4.8.2</version>
     <name>BEAM Core Library</name>
 
 
@@ -25,9 +25,11 @@
 
     <changelog>
         <![CDATA[
+        <p>Changes in 4.8.2:<br/>
+        [BEAM-1125] Outer scene region is not invalid for certain reprojected products<br/>
         <p>Changes in 4.8.1:<br/>
         [BEAM-1196] Latitude shift for non-WGS84 datums<br/>
-        [BEAM-1174] DIMAP stores the band grouping only if a product has a description<br/>        
+        [BEAM-1174] DIMAP stores the band grouping only if a product has a description<br/>
         <p>Changes in 4.8:<br/>
         [BEAM-1168] Add Sinusoidal and Mollweide map projection<br/>
         [BEAM-1160] Auto-grouping of bands shall be controlled by data model<br/>

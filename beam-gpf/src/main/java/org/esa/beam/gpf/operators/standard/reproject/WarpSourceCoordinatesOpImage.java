@@ -78,7 +78,7 @@ class WarpSourceCoordinatesOpImage extends SourcelessOpImage {
      * @param configuration
      */
     WarpSourceCoordinatesOpImage(Warp warp, int width, int height, Dimension tileSize,
-                                        Map configuration) {
+                                 Map configuration) {
         this(warp, createTwoBandedImageLayout(width, height, tileSize), configuration);
     }
 
@@ -92,7 +92,7 @@ class WarpSourceCoordinatesOpImage extends SourcelessOpImage {
     }
 
     @Override
-    protected void computeRect(PlanarImage sources[], WritableRaster dest, Rectangle destRect) {
+    protected void computeRect(PlanarImage[] sources, WritableRaster dest, Rectangle destRect) {
 //        System.out.println("WarpSourceCoordinatesOpImage "+destRect);
 //        long t1 = System.currentTimeMillis();
         RasterAccessor dst = new RasterAccessor(dest, destRect, rasterFormatTag, getColorModel());
@@ -110,9 +110,9 @@ class WarpSourceCoordinatesOpImage extends SourcelessOpImage {
         int dstHeight = dst.getHeight();
         int lineStride = dst.getScanlineStride();
         int pixelStride = dst.getPixelStride();
-        int bandOffsets[] = dst.getBandOffsets();
-        float data[][] = dst.getFloatDataArrays();
-        float warpData[] = new float[2 * dstWidth * dstHeight];
+        int[] bandOffsets = dst.getBandOffsets();
+        float[][] data = dst.getFloatDataArrays();
+        float[] warpData = new float[2 * dstWidth * dstHeight];
         int lineOffset = 0;
 
         warp.warpRect(dst.getX(), dst.getY(), dstWidth, dstHeight, warpData);
@@ -121,8 +121,17 @@ class WarpSourceCoordinatesOpImage extends SourcelessOpImage {
             int pixelOffset = lineOffset;
             lineOffset += lineStride;
             for (int w = 0; w < dstWidth; w++) {
-                data[0][pixelOffset + bandOffsets[0]] = warpData[count++];
-                data[1][pixelOffset + bandOffsets[1]] = warpData[count++];
+                float x = warpData[count++];
+                float y = warpData[count++];
+                // if x or y is NaN set them to values outside image bounds
+                // if NaN is forwarded it gets casted to an integer pixel index and
+                // the result would be zero and therefore a valid pixel.
+                if ((Float.isNaN(x) || Float.isNaN(y))) {
+                    x = (float) (getBounds().getMinX() - 1);
+                    y = (float) (getBounds().getMinY() - 1);
+                }
+                data[0][pixelOffset + bandOffsets[0]] = x;
+                data[1][pixelOffset + bandOffsets[1]] = y;
                 pixelOffset += pixelStride;
             }
         }

@@ -16,6 +16,7 @@
         <![CDATA[
         <p>From 4.8.1 to 4.8.2:<br/>
             [BEAM-1201] GPT does use the user LOCAL instead of ENGLISH<br/>
+            [BEAM-1125] Outer scene region is not invalid for certain reprojected products<br/>
         <p>From 4.8 to 4.8.1:<br/>
             [BEAM-1197] GPF N1 patcher is not thread safe<br/>
             [BEAM-1172] Boolean parameter values are overridden by default values<br/>
