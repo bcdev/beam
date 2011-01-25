@@ -57,12 +57,19 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -77,6 +84,9 @@ import java.util.regex.Pattern;
  * @since 4.1
  */
 public class OperatorContext {
+
+    static final String SYS_PROP_PERFORMANCE_FILE = "beam.gpf.performance.file";
+    static final String SYS_PROP_PERFORMANCE_TRACE = "beam.gpf.performance.trace";
 
     private static final String OPERATION_CANCELED_MESSAGE = "Operation canceled.";
     private String id;
@@ -93,13 +103,13 @@ public class OperatorContext {
     private Map<Band, OperatorImage> targetImageMap;
     private OperatorConfiguration configuration;
     private Logger logger;
+    private boolean cancelled;
     private boolean disposed;
     private PropertyContainer propertyContainer;
     private RenderingHints renderingHints;
-    private PerformanceMetric performanceMetric;
     private boolean initialising;
     private boolean requiresAllBands;
-
+    private final boolean tracePerformance;
 
     public OperatorContext(Operator operator) {
         this.operator = operator;
@@ -109,9 +119,8 @@ public class OperatorContext {
         this.sourceProductMap = new HashMap<String, Product>(3);
         this.targetPropertyMap = new HashMap<String, Object>(3);
         this.logger = BeamLogManager.getSystemLogger();
-        // Note: All OperatorImages in this context share the same TILE_CACHE_METRIC instance!
-        this.performanceMetric = new PerformanceMetric();
-        this.renderingHints = new RenderingHints(JAI.KEY_TILE_CACHE_METRIC, performanceMetric);
+        this.renderingHints = new RenderingHints(JAI.KEY_TILE_CACHE_METRIC, this);
+        this.tracePerformance = Boolean.getBoolean(OperatorContext.SYS_PROP_PERFORMANCE_TRACE);
     }
 
     public String getId() {
@@ -133,10 +142,6 @@ public class OperatorContext {
     public void setLogger(Logger logger) {
         Assert.notNull(logger, "logger");
         this.logger = logger;
-    }
-
-    public PerformanceMetric getPerformanceMetric() {
-        return performanceMetric;
     }
 
     public Product getSourceProduct(String id) {
@@ -161,7 +166,11 @@ public class OperatorContext {
         sourceProductMap.clear();
         for (int i = 0; i < products.length; i++) {
             Product product = products[i];
-            setSourceProduct(GPF.SOURCE_PRODUCT_FIELD_NAME + (i + 1), product);
+            final int productIndex = i + 1;
+            setSourceProduct(GPF.SOURCE_PRODUCT_FIELD_NAME + "." + productIndex, product);
+            // kept for backward compatibility
+            // since BEAM 4.9 the pattern above is preferred
+            setSourceProduct(GPF.SOURCE_PRODUCT_FIELD_NAME + productIndex, product);
         }
     }
 
@@ -176,12 +185,22 @@ public class OperatorContext {
 
     public String getSourceProductId(Product product) {
         Set<Map.Entry<String, Product>> entrySet = sourceProductMap.entrySet();
+        List<String> mappedIds = new ArrayList<String>();
         for (Map.Entry<String, Product> entry : entrySet) {
             if (entry.getValue() == product) {
-                return entry.getKey();
+                mappedIds.add(entry.getKey());
             }
         }
-        return null;
+        if (mappedIds.isEmpty()) {
+            return null;
+        }
+        String id = mappedIds.get(0);
+        for (String mappedId : mappedIds) {
+            if (mappedId.contains(".")) {
+                id = mappedId;
+            }
+        }
+        return id;
     }
 
     public Product getTargetProduct() throws OperatorException {
@@ -206,8 +225,20 @@ public class OperatorContext {
         return passThrough;
     }
 
-    public void checkForCancellation(ProgressMonitor pm) throws OperatorException {
-        if (pm.isCanceled()) {
+    public boolean isTracePerformance() {
+        return tracePerformance;
+    }
+
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    public void setCancelled(boolean cancelled) {
+        this.cancelled = cancelled;
+    }
+
+    public void checkForCancellation() throws OperatorException {
+        if (isCancelled()) {
             throw new OperatorException(OPERATION_CANCELED_MESSAGE);
         }
     }
@@ -290,30 +321,36 @@ public class OperatorContext {
         this.computeTileStackMethodUsable = computeTileStackMethodUsable;
     }
 
+    @Deprecated
     public Tile getSourceTile(RasterDataNode rasterDataNode, Rectangle region, ProgressMonitor pm) {
-        return getSourceTile(rasterDataNode, region, null, pm);
+        return getSourceTile(rasterDataNode, region);
     }
 
-    public Tile getSourceTile(RasterDataNode rasterDataNode, Rectangle region, BorderExtender borderExtender, ProgressMonitor pm) {
+    public Tile getSourceTile(RasterDataNode rasterDataNode, Rectangle region) {
+        return getSourceTile(rasterDataNode, region, (BorderExtender) null);
+    }
+
+    @Deprecated
+    public Tile getSourceTile(RasterDataNode rasterDataNode, Rectangle region, BorderExtender borderExtender,
+                              ProgressMonitor pm) {
+        return getSourceTile(rasterDataNode, region, borderExtender);
+    }
+
+    public Tile getSourceTile(RasterDataNode rasterDataNode, Rectangle region, BorderExtender borderExtender) {
         MultiLevelImage image = rasterDataNode.getSourceImage();
-        ProgressMonitor oldPm = OperatorImage.setProgressMonitor(image, pm);
-        try {
-            /////////////////////////////////////////////////////////////////////
-            //
-            // Note: GPF pull-processing is triggered here!
-            //
-            Raster awtRaster;
-            if (borderExtender != null) {
-                awtRaster = image.getExtendedData(region, borderExtender);
-            } else {
-                awtRaster = image.getData(region); // Note: copyData is NOT faster!
-            }
-            //
-            /////////////////////////////////////////////////////////////////////
-            return new TileImpl(rasterDataNode, awtRaster);
-        } finally {
-            OperatorImage.setProgressMonitor(image, oldPm);
+        /////////////////////////////////////////////////////////////////////
+        //
+        // Note: GPF pull-processing is triggered here!
+        //
+        Raster awtRaster;
+        if (borderExtender != null) {
+            awtRaster = image.getExtendedData(region, borderExtender);
+        } else {
+            awtRaster = image.getData(region); // Note: copyData is NOT faster!
         }
+        //
+        /////////////////////////////////////////////////////////////////////
+        return new TileImpl(rasterDataNode, awtRaster);
     }
 
     public OperatorImage getTargetImage(Band band) {
@@ -456,8 +493,9 @@ public class OperatorContext {
         targetNodeME.addAttribute(new MetadataAttribute("id", ProductData.createInstance(opId), false));
         targetNodeME.addAttribute(new MetadataAttribute("operator", ProductData.createInstance(opName), false));
         final MetadataElement targetSourcesME = new MetadataElement("sources");
-        for (String sourceId : context.sourceProductMap.keySet()) {
-            final Product sourceProduct = context.sourceProductMap.get(sourceId);
+
+        for (Product sourceProduct : context.sourceProductList) {
+            final String sourceId = context.getSourceProductId(sourceProduct);
             final String sourceNodeId;
             if (sourceProduct.getFileLocation() != null) {
                 sourceNodeId = sourceProduct.getFileLocation().toURI().toASCIIString();
@@ -733,11 +771,14 @@ public class OperatorContext {
         }
     }
 
-    private void processSourceProductField(Field declaredField, SourceProduct sourceProductAnnotation) throws OperatorException {
+    private void processSourceProductField(Field declaredField, SourceProduct sourceProductAnnotation) throws
+            OperatorException {
         if (declaredField.getType().equals(Product.class)) {
-            Product sourceProduct = getSourceProduct(declaredField.getName());
+            String productMapName = declaredField.getName();
+            Product sourceProduct = getSourceProduct(productMapName);
             if (sourceProduct == null) {
-                sourceProduct = getSourceProduct(sourceProductAnnotation.alias());
+                productMapName = sourceProductAnnotation.alias();
+                sourceProduct = getSourceProduct(productMapName);
             }
             if (sourceProduct != null) {
                 validateSourceProduct(declaredField.getName(),
@@ -745,6 +786,7 @@ public class OperatorContext {
                                       sourceProductAnnotation.type(),
                                       sourceProductAnnotation.bands());
                 setSourceProductFieldValue(declaredField, sourceProduct);
+                setSourceProduct(productMapName, sourceProduct);
             } else {
                 sourceProduct = getSourceProductFieldValue(declaredField);
                 if (sourceProduct != null) {
@@ -765,18 +807,19 @@ public class OperatorContext {
     private void processSourceProductsField(Field declaredField, SourceProducts sourceProductsAnnotation) throws
             OperatorException {
         if (declaredField.getType().equals(Product[].class)) {
-            Product[] sourceProducts = getSourceProducts();
+            Product[] sourceProducts = getSourceProductsFieldValue(declaredField);
+            if (sourceProducts != null) {
+                for (int i = 0; i < sourceProducts.length; i++) {
+                    Product sourceProduct = sourceProducts[i];
+                    setSourceProduct(GPF.SOURCE_PRODUCT_FIELD_NAME + "." + (i + 1), sourceProduct);
+                    // kept for backward compatibility
+                    // since BEAM 4.9 the pattern above is preferred
+                    setSourceProduct(GPF.SOURCE_PRODUCT_FIELD_NAME + (i + 1), sourceProduct);
+                }
+            }
+            sourceProducts = getSourceProducts();
             if (sourceProducts.length > 0) {
                 setSourceProductsFieldValue(declaredField, getUnnamedProducts());
-            } else {
-                sourceProducts = getSourceProductsFieldValue(declaredField);
-                if (sourceProducts != null) {
-                    for (int i = 0; i < sourceProducts.length; i++) {
-                        Product sourceProduct = sourceProducts[i];
-                        setSourceProduct(GPF.SOURCE_PRODUCT_FIELD_NAME + i, sourceProduct);
-                    }
-                }
-                sourceProducts = getSourceProducts();
             }
             if (sourceProductsAnnotation.count() < 0) {
                 if (sourceProducts.length == 0) {
@@ -811,8 +854,8 @@ public class OperatorContext {
             map.remove(sourceProductField.getName());
             map.remove(annotation.alias());
         }
-        final Collection<Product> unnamedProductList = map.values();
-        return unnamedProductList.toArray(new Product[unnamedProductList.size()]);
+        Set<Product> productSet = new HashSet<Product>(map.values());
+        return productSet.toArray(new Product[productSet.size()]);
     }
 
     private Field[] getAnnotatedSourceProductFields(Operator operator1) {
@@ -917,7 +960,8 @@ public class OperatorContext {
         ParameterDescriptorFactory parameterDescriptorFactory = new ParameterDescriptorFactory(sourceProductMap);
         DefaultDomConverter domConverter = new DefaultDomConverter(operator.getClass(), parameterDescriptorFactory);
         domConverter.convertDomToValue(operatorConfiguration.getConfiguration(), operator);
-        PropertyContainer propertyContainer = PropertyContainer.createObjectBacked(operator, parameterDescriptorFactory);
+        PropertyContainer propertyContainer = PropertyContainer.createObjectBacked(operator,
+                                                                                   parameterDescriptorFactory);
         Set<Reference> referenceSet = operatorConfiguration.getReferenceSet();
         for (Reference reference : referenceSet) {
             Property property = propertyContainer.getProperty(reference.getParameterName());
@@ -945,7 +989,7 @@ public class OperatorContext {
                     if (descriptor.getAttribute(RasterDataNodeValues.ATTRIBUTE_NAME) != null) {
                         Product sourceProduct = sourceProductList.get(0);
                         if (sourceProduct == null) {
-                            throw new OperatorException(formatExceptionMessage("No source produt."));
+                            throw new OperatorException(formatExceptionMessage("No source product."));
                         }
                         Object object = descriptor.getAttribute(RasterDataNodeValues.ATTRIBUTE_NAME);
                         Class<? extends RasterDataNode> rasterDataNodeType = (Class<? extends RasterDataNode>) object;
@@ -953,7 +997,12 @@ public class OperatorContext {
                         ValueSet valueSet = new ValueSet(names);
                         descriptor.setValueSet(valueSet);
                     }
-                    property.setValue(parameters.get(parameterName));
+                    Object paramValue = parameters.get(parameterName);
+                    if (paramValue instanceof String && !String.class.isAssignableFrom(property.getType())) {
+                        property.setValueFromText((String) paramValue);
+                    } else {
+                        property.setValue(paramValue);
+                    }
                 } catch (ValidationException e) {
                     throw new OperatorException(formatExceptionMessage("%s", e.getMessage()), e);
                 }
@@ -966,22 +1015,6 @@ public class OperatorContext {
         allArgs[0] = operator.getClass().getSimpleName();
         System.arraycopy(args, 0, allArgs, 1, allArgs.length - 1);
         return String.format("Operator '%s': " + format, allArgs);
-    }
-
-    /**
-     * Sums the target nanos/pixel of all source images.
-     *
-     * @return the nanos/pixel spend in the sources of this operator.
-     */
-    double getSourceNanosPerPixel() {
-        double sourceNanosPerPixel = 0;
-        for (Product product : sourceProductList) {
-            OperatorContext operatorContext = getOperatorContext(product);
-            if (operatorContext != null) {
-                sourceNanosPerPixel += operatorContext.getPerformanceMetric().getTargetNanosPerPixel();
-            }
-        }
-        return sourceNanosPerPixel;
     }
 
     /**
@@ -998,19 +1031,68 @@ public class OperatorContext {
     }
 
     public void logPerformanceAnalysis() {
-        logPerformanceAnalysis("");
+        if (Boolean.getBoolean(SYS_PROP_PERFORMANCE_TRACE)) {
+            File file = new File(System.getProperty(SYS_PROP_PERFORMANCE_FILE, "gpf-performance.txt"));
+            try {
+                FileWriter fileWriter = new FileWriter(file);
+                try {
+                    logPerformanceAnalysis(new PrintWriter(fileWriter));
+                    getLogger().info("GPF performance analysis has been written to " + file);
+                } finally {
+                    fileWriter.close();
+                }
+            } catch (IOException e) {
+                getLogger().severe("Failed to write GPF performance analysis to " + file);
+            }
+        }
     }
 
-    private void logPerformanceAnalysis(String indent) {
-        logger.info(indent + "Performance analysis for operator " + getOperatorSpi().getOperatorAlias() + ":");
-        logger.info(indent + "  Net: " + getPerformanceMetric().getNanosPerPixel() + " ns/pixel");
-        logger.info(indent + "  Target: " + getPerformanceMetric().getTargetNanosPerPixel() + " ns/pixel");
-        logger.info(
-                indent + "  Sources (" + sourceProductList.size() + "): " + getPerformanceMetric().getSourceNanosPerPixel() + " ns/pixel");
+    public void logPerformanceAnalysis(PrintWriter writer) {
+        writer.printf("Depth\tBand\tTile\tCalls\tMin(s)\tMax(s)\n");
+        logPerformanceAnalysis(writer, 0);
+    }
+
+    private void logPerformanceAnalysis(PrintWriter writer, int depth) {
+
+        String operatorName = getOperatorSpi().getOperatorAlias();
+        String productName = getTargetProduct().getName();
+
+        ArrayList<OperatorImage> operatorImages = new ArrayList<OperatorImage>(new HashSet<OperatorImage>(targetImageMap.values()));
+        Collections.sort(operatorImages, new Comparator<OperatorImage>() {
+            @Override
+            public int compare(OperatorImage o1, OperatorImage o2) {
+                return o1.getTargetBand().getName().compareTo(o2.getTargetBand().getName());
+            }
+        });
+
+        for (OperatorImage operatorImage : operatorImages) {
+            Band targetBand = operatorImage.getTargetBand();
+            String imageType = String.format("%s@%s",
+                                             Integer.toHexString(System.identityHashCode(operatorImage)),
+                                             operatorImage instanceof OperatorImageTileStack ? "Stack" : "Single");
+            TileComputationStatistic[] tileComputationStatistics = operatorImage.getTileComputationStatistics();
+            for (int i = 0, tileComputationStatisticsLength = tileComputationStatistics.length; i < tileComputationStatisticsLength; i++) {
+                TileComputationStatistic tileComputationStatistic = tileComputationStatistics[i];
+                if (tileComputationStatistic != null) {
+                    writer.printf("%d\t%s.%s\t%s.%s.%d.%d\t%d\t%f\t%f\n",
+                                  depth,
+                                  productName,
+                                  targetBand.getName(),
+                                  operatorName,
+                                  imageType,
+                                  tileComputationStatistic.getTileX(),
+                                  tileComputationStatistic.getTileY(),
+                                  tileComputationStatistic.getCount(),
+                                  tileComputationStatistic.getNanosMin() / 1.0E9,
+                                  tileComputationStatistic.getNanosMax() / 1.0E9);
+                }
+            }
+        }
+
         for (Product product : sourceProductList) {
             OperatorContext operatorContext = getOperatorContext(product);
             if (operatorContext != null) {
-                operatorContext.logPerformanceAnalysis(indent + "  ");
+                operatorContext.logPerformanceAnalysis(writer, depth + 1);
             }
         }
     }

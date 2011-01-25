@@ -16,6 +16,7 @@
 package org.esa.beam.framework.gpf.internal;
 
 import com.bc.ceres.core.Assert;
+import com.bc.ceres.core.ProgressMonitor;
 import org.esa.beam.framework.datamodel.Band;
 import org.esa.beam.framework.gpf.Tile;
 import org.esa.beam.jai.ImageManager;
@@ -32,21 +33,43 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+/**
+ * This class overrides computeTile in order to synchronise it for a given tile index.
+ * This is required, in order to avoid parallel computation of tiles belonging to the same tile stack.
+ */
+public class OperatorImageTileStack extends OperatorImage {
 
-class OperatorImageTileStack extends OperatorImage {
-
+    /**
+     * The array of locks is the same for all images contributing to a given tile stack.
+     */
     private final Object[][] locks;
 
-    OperatorImageTileStack(Band targetBand, OperatorContext operatorContext, Object[][] locks) {
+    public OperatorImageTileStack(Band targetBand, OperatorContext operatorContext, Object[][] locks) {
         super(targetBand, operatorContext);
         this.locks = locks;
     }
+
+
+    // CHECK: Check whether this is an option to avoid removing single tiles from a previously computed tile stack
+    /*
+    @Override
+    public Raster getTile(int tileX, int tileY) {
+        Raster tile = getOperatorContext().getTileFromLocalCache(getTargetBand(), tileX, tileY);
+        if (tile != null) {
+            return tile;
+        }
+        return super.getTile(tileX, tileY);
+    }
+    */
 
     @Override
     public Raster computeTile(int tileX, int tileY) {
         Object tileLock = locks[tileX][tileY];
 
-        // lock to prevent multiple simultaneous computations.
+        // Lock to prevent multiple simultaneous computations.
+        // Q: Why should multiple threads want to compute the same tile index?
+        // A:
+        // todo - check: can we avoid waiting here?
         synchronized (tileLock) {
             Raster tileFromCache = getTileFromCache(tileX, tileY);
             if (tileFromCache != null) {
@@ -70,7 +93,7 @@ class OperatorImageTileStack extends OperatorImage {
     @Override
     protected void computeRect(PlanarImage[] ignored, WritableRaster tile, Rectangle destRect) {
 
-        long nanos1 = System.nanoTime();
+        long startNanos = System.nanoTime();
 
         Band[] targetBands = getOperatorContext().getTargetProduct().getBands();
         Map<Band, Tile> targetTiles = new HashMap<Band, Tile>(targetBands.length * 2);
@@ -83,12 +106,12 @@ class OperatorImageTileStack extends OperatorImage {
                 Tile targetTile = createTargetTile(band, tileRaster, destRect);
                 targetTiles.put(band, targetTile);
             } else if (requiresAllBands()) {
-                Tile targetTile = getOperatorContext().getSourceTile(band, destRect, getProgressMonitor());
+                Tile targetTile = getOperatorContext().getSourceTile(band, destRect);
                 targetTiles.put(band, targetTile);
             }
         }
 
-        getOperatorContext().getOperator().computeTileStack(targetTiles, destRect, getProgressMonitor());
+        getOperatorContext().getOperator().computeTileStack(targetTiles, destRect, ProgressMonitor.NULL);
 
         for (Entry<Band, WritableRaster> entry : writableRasters.entrySet()) {
             Band band = entry.getKey();
@@ -99,11 +122,15 @@ class OperatorImageTileStack extends OperatorImage {
             final int tileY = YToTileY(destRect.y);
             //put raster into cache after computing them.
             operatorImage.addTileToCache(tileX, tileY, writableRaster);
+
+            // CHECK: Check whether this is an option to avoid removing single tiles from a previously computed tile stack
+            /*
+            getOperatorContext().addTileToLocalCache(band, tileX, tileY, writableRaster);
+            */
+
         }
 
-
-        long nanos2 = System.nanoTime();
-        updatePerformanceMetrics(nanos1, nanos2, destRect);
+        updateMetrics(destRect, startNanos);
     }
 
     private WritableRaster getWritableRaster(Band band, WritableRaster targetTileRaster) {

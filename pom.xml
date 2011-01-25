@@ -236,7 +236,7 @@
             <dependency>
                 <groupId>org.esa.beam</groupId>
                 <artifactId>beam-gpf</artifactId>
-                <version>4.8.2</version>
+                <version>4.8.3</version>
             </dependency>
             <dependency>
                 <groupId>org.esa.beam</groupId>
