@@ -17,7 +17,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-gpf</symbolicName>
-    <version>4.9</version>
+    <version>4.9.1</version>
     <name>BEAM Graph Processing Framework (GPF)</name>
 
     <description>The basic framework for processing using Operators and the GPT.</description>
@@ -30,6 +30,8 @@
 
     <changelog>
         <![CDATA[
+        <p>From 4.9 to 4.9.1:<br/>
+            [BEAM-1307] Problem with GPT tile computation observer<br/>
         <p>From 4.8 to 4.9:<br/>
             [BEAM-1301] gpt should be able to load the configuration saved from the UI<br/>
             [BEAM-1288] Add plausibility check for reprojection and orthorectification<br/>
