@@ -68,8 +68,8 @@ public class TiePointGrid extends RasterDataNode {
     private final float _subSamplingY;
 
     private int _discontinuity;
-    private TiePointGrid _sinGrid;
-    private TiePointGrid _cosGrid;
+    private volatile TiePointGrid _sinGrid;
+    private volatile TiePointGrid _cosGrid;
 
     /**
      * Constructs a new <code>TiePointGrid</code> with the given tie point grid properties.
@@ -814,7 +814,7 @@ public class TiePointGrid extends RasterDataNode {
     }
 
     private boolean isDiscontNotInit() {
-        return _sinGrid == null;
+        return _sinGrid == null || _cosGrid == null;
     }
 
     private void initDiscont() {
