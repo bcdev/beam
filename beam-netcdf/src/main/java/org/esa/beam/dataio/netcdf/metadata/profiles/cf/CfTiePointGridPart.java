@@ -21,6 +21,7 @@ import org.esa.beam.dataio.netcdf.ProfileWriteContext;
 import org.esa.beam.dataio.netcdf.metadata.ProfilePartIO;
 import org.esa.beam.dataio.netcdf.util.ReaderUtils;
 import org.esa.beam.framework.dataio.ProductIOException;
+import org.esa.beam.framework.datamodel.GeoCoding;
 import org.esa.beam.framework.datamodel.GeoPos;
 import org.esa.beam.framework.datamodel.PixelPos;
 import org.esa.beam.framework.datamodel.Product;
@@ -46,12 +47,7 @@ public class CfTiePointGridPart extends ProfilePartIO {
 
     @Override
     public void encode(ProfileWriteContext ctx, Product p) throws IOException {
-        final GeoPos gp0 = p.getGeoCoding().getGeoPos(new PixelPos(0.5f, 0.5f), null);
-        final GeoPos gp1 = p.getGeoCoding().getGeoPos(new PixelPos(0.5f, 1.5f), null);
-        boolean doFlip = false;
-        if (gp1.lat - gp0.lat < 0) {
-            doFlip = true;
-        }
+        boolean doFlip = mustFlip(p.getGeoCoding());
         for (TiePointGrid tiePointGrid : p.getTiePointGrids()) {
             try {
                 final int h = tiePointGrid.getSceneRasterHeight();
@@ -68,5 +64,16 @@ public class CfTiePointGridPart extends ProfilePartIO {
                 throw new ProductIOException("TiePointData not in the expected range");
             }
         }
+    }
+
+    private boolean mustFlip(GeoCoding geoCoding) {
+        if (geoCoding != null) {
+            final GeoPos gp0 = geoCoding.getGeoPos(new PixelPos(0.5f, 0.5f), null);
+            final GeoPos gp1 = geoCoding.getGeoPos(new PixelPos(0.5f, 1.5f), null);
+            if (gp1.lat - gp0.lat < 0) {
+                return true;
+            }
+        }
+        return false;
     }
 }
