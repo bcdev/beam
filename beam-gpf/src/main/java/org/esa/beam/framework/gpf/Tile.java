@@ -456,8 +456,9 @@ public interface Tile extends Iterable<Tile.Pos> {
     /**
      * Gets the (geo-)physically scaled sample at the given pixel coordinate as {@code boolean} value.
      * <p>If the underlying data buffer is of a different sample data type, an appropriate type conversion is performed.</p>
-     * <p>Note that in most cases it is more performant to directly access the tile's {@link #getDataBuffer() dataBuffer} in conjunction
-     * with the {@link #getScanlineOffset() scanlineOffset} and {@link #getScanlineStride() scanlineStride} properties.</p>
+     * <p>Note that in most cases, accessing the tile's {@link #getDataBuffer() dataBuffer} directly in conjunction
+      * with the {@link #getScanlineOffset() scanlineOffset} and {@link #getScanlineStride() scanlineStride} properties
+      * gives a better performance.</p>
      *
      * @param x The absolute pixel x-coordinate, must be greater or equal {@link #getMinX()} and less or equal {@link #getMaxX()}.
      * @param y The absolute pixel y-coordinate, must be greater or equal {@link #getMinY()} and less or equal {@link #getMaxY()}.
@@ -468,8 +469,9 @@ public interface Tile extends Iterable<Tile.Pos> {
     /**
      * Sets the (geo-)physically scaled sample at the given pixel coordinate from a {@code boolean} value.
      * <p>If the underlying data buffer is of a different sample data type, an appropriate type conversion is performed.</p>
-     * <p>Note that in most cases it is more performant to directly access the tile's {@link #getDataBuffer() dataBuffer} in conjunction
-     * with the {@link #getScanlineOffset() scanlineOffset} and {@link #getScanlineStride() scanlineStride} properties.</p>
+     * <p>Note that in most cases, accessing the tile's {@link #getDataBuffer() dataBuffer} directly in conjunction
+      * with the {@link #getScanlineOffset() scanlineOffset} and {@link #getScanlineStride() scanlineStride} properties
+      * gives a better performance.</p>
      *
      * @param x      The absolute pixel x-coordinate, must be greater or equal {@link #getMinX()} and less or equal {@link #getMaxX()}.
      * @param y      The absolute pixel y-coordinate, must be greater or equal {@link #getMinY()} and less or equal {@link #getMaxY()}.
@@ -480,8 +482,9 @@ public interface Tile extends Iterable<Tile.Pos> {
     /**
      * Gets the (geo-)physically scaled sample at the given pixel coordinate as {@code int} value.
      * <p>If the underlying data buffer is of a different sample data type, an appropriate type conversion is performed.</p>
-     * <p>Note that in most cases it is more performant to directly access the tile's {@link #getDataBuffer() dataBuffer} in conjunction
-     * with the {@link #getScanlineOffset() scanlineOffset} and {@link #getScanlineStride() scanlineStride} properties.</p>
+     * <p>Note that in most cases, accessing the tile's {@link #getDataBuffer() dataBuffer} directly in conjunction
+      * with the {@link #getScanlineOffset() scanlineOffset} and {@link #getScanlineStride() scanlineStride} properties
+      * gives a better performance.</p>
      *
      * @param x The absolute pixel x-coordinate, must be greater or equal {@link #getMinX()} and less or equal {@link #getMaxX()}.
      * @param y The absolute pixel y-coordinate, must be greater or equal {@link #getMinY()} and less or equal {@link #getMaxY()}.
@@ -491,9 +494,11 @@ public interface Tile extends Iterable<Tile.Pos> {
 
     /**
      * Sets the (geo-)physically scaled sample at the given pixel coordinate from a {@code int} value.
-     * <p>If the underlying data buffer is of a different sample data type, an appropriate type conversion is performed.</p>
-     * <p>Note that in most cases it is more performant to directly access the tile's {@link #getDataBuffer() dataBuffer} in conjunction
-     * with the {@link #getScanlineOffset() scanlineOffset} and {@link #getScanlineStride() scanlineStride} properties.</p>
+     * <p>If the underlying data buffer is of a different sample data type, an appropriate type conversion is performed.
+     * The conversion ensures that no overflow happens. If necessary the value is cropped to the value range.</p>
+     * <p>Note that in most cases, accessing the tile's {@link #getDataBuffer() dataBuffer} directly in conjunction
+      * with the {@link #getScanlineOffset() scanlineOffset} and {@link #getScanlineStride() scanlineStride} properties
+      * gives a better performance.</p>
      *
      * @param x      The absolute pixel x-coordinate, must be greater or equal {@link #getMinX()} and less or equal {@link #getMaxX()}.
      * @param y      The absolute pixel y-coordinate, must be greater or equal {@link #getMinY()} and less or equal {@link #getMaxY()}.
@@ -515,9 +520,11 @@ public interface Tile extends Iterable<Tile.Pos> {
 
     /**
      * Sets the (geo-)physically scaled sample at the given pixel coordinate from a {@code float} value.
-     * <p>If the underlying data buffer is of a different sample data type, an appropriate type conversion is performed.</p>
-     * <p>Note that in most cases it is more performant to directly access the tile's {@link #getDataBuffer() dataBuffer} in conjunction
-     * with the {@link #getScanlineOffset() scanlineOffset} and {@link #getScanlineStride() scanlineStride} properties.</p>
+     * <p>If the underlying data buffer is of a different sample data type, an appropriate type conversion is performed.
+     * The conversion ensures that no overflow happens. If necessary the value is cropped to the value range.</p>
+     * <p>Note that in most cases, accessing the tile's {@link #getDataBuffer() dataBuffer} directly in conjunction
+      * with the {@link #getScanlineOffset() scanlineOffset} and {@link #getScanlineStride() scanlineStride} properties
+      * gives a better performance.</p>
      *
      * @param x      The absolute pixel x-coordinate, must be greater or equal {@link #getMinX()} and less or equal {@link #getMaxX()}.
      * @param y      The absolute pixel y-coordinate, must be greater or equal {@link #getMinY()} and less or equal {@link #getMaxY()}.
@@ -528,8 +535,9 @@ public interface Tile extends Iterable<Tile.Pos> {
     /**
      * Gets the (geo-)physically scaled sample value for the given pixel coordinate as {@code double}.
      * <p>If the underlying data buffer is of a different sample data type, an appropriate type conversion is performed.</p>
-     * <p>Note that in most cases it is more performant to directly access the tile's {@link #getDataBuffer() dataBuffer} in conjunction
-     * with the {@link #getScanlineOffset() scanlineOffset} and {@link #getScanlineStride() scanlineStride} properties.</p>
+     * <p>Note that in most cases, accessing the tile's {@link #getDataBuffer() dataBuffer} directly in conjunction
+      * with the {@link #getScanlineOffset() scanlineOffset} and {@link #getScanlineStride() scanlineStride} properties
+      * gives a better performance.</p>
      *
      * @param x The absolute pixel x-coordinate, must be greater or equal {@link #getMinX()} and less or equal {@link #getMaxX()}.
      * @param y The absolute pixel y-coordinate, must be greater or equal {@link #getMinY()} and less or equal {@link #getMaxY()}.
@@ -539,9 +547,11 @@ public interface Tile extends Iterable<Tile.Pos> {
 
     /**
      * Sets the (geo-)physically scaled sample at the given pixel coordinate from a {@code double} value.
-     * <p>If the underlying data buffer is of a different sample data type, an appropriate type conversion is performed.</p>
-     * <p>Note that in most cases it is more performant to directly access the tile's {@link #getDataBuffer() dataBuffer} in conjunction
-     * with the {@link #getScanlineOffset() scanlineOffset} and {@link #getScanlineStride() scanlineStride} properties.</p>
+     * <p>If the underlying data buffer is of a different sample data type, an appropriate type conversion is performed.
+     * The conversion ensures that no overflow happens. If necessary the value is cropped to the value range.</p>
+     * <p>Note that in most cases, accessing the tile's {@link #getDataBuffer() dataBuffer} directly in conjunction
+     * with the {@link #getScanlineOffset() scanlineOffset} and {@link #getScanlineStride() scanlineStride} properties
+     * gives a better performance.</p>
      *
      * @param x      The absolute pixel x-coordinate, must be greater or equal {@link #getMinX()} and less or equal {@link #getMaxX()}.
      * @param y      The absolute pixel y-coordinate, must be greater or equal {@link #getMinY()} and less or equal {@link #getMaxY()}.
