@@ -31,8 +31,9 @@
 
     <changelog>
         <![CDATA[
-        Changes in 1.102:<br/>
+        Changes in 1.103:<br/>
         [BEAM-1322] - NetCDF/CF writer does not write coordinates<br/>
+        Changes in 1.102:<br/>
         [BEAM-1320] - BEAM-NetCDF reader/writer does not preserve solar flux information<br/>
         Changes in 1.101:<br/>
         [BEAM-1302] - Products read from NetCDF files should have a 'Global_Attributes' element in metadata<br/>
