@@ -16,6 +16,9 @@ class CfCompliantUnitMapper {
         unitMap.put("deg", "degree");
     }
 
+    private CfCompliantUnitMapper() {
+
+    }
     /**
      * Tries to find a CF compliant unit string for the given one. If none is found the original unit string is returned.
      *
