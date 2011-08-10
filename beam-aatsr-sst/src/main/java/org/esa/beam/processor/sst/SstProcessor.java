@@ -50,7 +50,7 @@ public class SstProcessor extends Processor {
     private static final String PROCESSOR_SYMBOLIC_NAME = "beam-aatsr-sst";
     private static final String _nadirSstBandName = "nadir_sst";
     private static final String _dualSstBandName = "dual_sst";
-    private static final String _version = "1.4.100";
+    private static final String _version = "1.4.203";
     private static final String _copyright = "Copyright (C) 2002-2004 by Brockmann Consult (info@brockmann-consult.de)";
     // coeffs are given for unscaled temperatures
     // thats why we do not need to scale the <x>.0 coeff
@@ -641,7 +641,7 @@ public class SstProcessor extends Processor {
             coeffs = _nadirCoeffs.getCoefficientsAt(n);
 
             // fill index map
-            for (int m = coeffs.getStart(); m < coeffs.getEnd(); m++) {
+            for (int m = coeffs.getStart(); m <= coeffs.getEnd(); m++) {
                 _nadirCoeffMap[m] = n;
             }
 
@@ -706,7 +706,7 @@ public class SstProcessor extends Processor {
             coeffs = _dualCoeffs.getCoefficientsAt(n);
 
             // fill index map
-            for (int m = coeffs.getStart(); m < coeffs.getEnd(); m++) {
+            for (int m = coeffs.getStart(); m <= coeffs.getEnd(); m++) {
                 _dualCoeffMap[m] = n;
             }
 

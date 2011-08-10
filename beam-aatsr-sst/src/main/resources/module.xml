@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-aatsr-sst</symbolicName>
-    <version>1.4.202</version>
+    <version>1.4.203</version>
     <name>AATSR SST Processor</name>
 
     <description>
@@ -29,6 +29,8 @@
 
     <changelog>
         <![CDATA[
+        Changes in 1.4.203:<br>
+        [BEAM-1337] SST processor produces stripes when using multiple coefficient maps<br>
         Changes in 1.4.202:<br>
         [BEAM-1036] Ensure temporarily loaded products are disposed in processors<br>
         Changes in 1.4.101:<br>
