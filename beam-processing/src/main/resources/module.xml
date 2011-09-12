@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-processing</symbolicName>
-    <version>4.9</version>
+    <version>4.9.1</version>
     <name>BEAM Processing Library</name>
 
     <description>A basic library used by all processors.</description>
@@ -15,6 +15,8 @@
 
     <changelog>
         <![CDATA[
+        <p>Changes in 4.9.1<br>
+        [BEAM-1342] Processing fails if PixelGeoCoding has no validMask<br/>
         <p>Changes in 4.7<br>
         [BEAM-1006] MER_FSG pixel geocoding not used<br/>
         <p>Changes in 4.2<br>

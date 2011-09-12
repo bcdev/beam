@@ -706,12 +706,14 @@ public abstract class Processor {
             bandsToCopy.add(pixelGeoCoding.getLonBand().getName());
             bandsToCopy.add(pixelGeoCoding.getLatBand().getName());
             String validMask = pixelGeoCoding.getValidMask();
-            try {
-                RasterDataNode[] refRasters = BandArithmetic.getRefRasters(validMask, new Product[]{inputProduct});
-                for (RasterDataNode rasterDataNode : refRasters) {
-                    bandsToCopy.add(rasterDataNode.getName());
+            if (validMask != null) {
+                try {
+                    RasterDataNode[] refRasters = BandArithmetic.getRefRasters(validMask, new Product[]{inputProduct});
+                    for (RasterDataNode rasterDataNode : refRasters) {
+                        bandsToCopy.add(rasterDataNode.getName());
+                    }
+                } catch (ParseException ignore) {
                 }
-            } catch (ParseException ignore) {
             }
         }
         return bandsToCopy;
