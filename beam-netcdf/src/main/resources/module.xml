@@ -17,7 +17,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-netcdf</symbolicName>
-    <version>1.0.103</version>
+    <version>1.0.104</version>
     <name>NetCDF Product Reader and Writer</name>
     <description>
         A product reader and writer for NetCDF files. It supports metadata profiles for CF, BEAM, HDF-EOS, ODESA.
@@ -31,6 +31,8 @@
 
     <changelog>
         <![CDATA[
+        Changes in 1.104:<br/>
+        [BEAM-1348] - Unsigned flag values are not correctly handled if read from NetCDF<br/>
         Changes in 1.103:<br/>
         [BEAM-1333] - NetCDF files are not CF compliant<br/>
         [BEAM-1332] - NetCDF/CF writer does not write coordinates<br/>
