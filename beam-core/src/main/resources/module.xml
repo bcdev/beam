@@ -42,6 +42,7 @@
     <changelog>
         <![CDATA[
         <p>Changes in 4.9.1:<br/>
+        [BEAM-1356] Scene view of a band can not be opened if all values are NaN<br/>
         <p>Changes in 4.9:<br/>
         [BEAM-1291] Virtual bands may compute wrong results for non-zero levels of image pyramids<br/>
         [BEAM-1281] Orthorectification can not be used if tie-points are selected as elevation model<br/>
