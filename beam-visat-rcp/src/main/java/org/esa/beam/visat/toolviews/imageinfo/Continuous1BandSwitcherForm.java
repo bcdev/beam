@@ -32,23 +32,29 @@ class Continuous1BandSwitcherForm implements ColorManipulationChildForm {
     private JPanel contentPanel;
     private JRadioButton graphicalButton;
     private JRadioButton tabularButton;
+    //the following radio button is added for the Basic Color Manipulation
+    private JRadioButton basicButton;
     private JCheckBox discreteColorsCheckBox;
     private ColorManipulationChildForm childForm;
     private Continuous1BandTabularForm tabularPaletteEditorForm;
     private Continuous1BandGraphicalForm graphicalPaletteEditorForm;
+    private Continuous1BandBasicForm basicPaletteEditorForm;
 
     protected Continuous1BandSwitcherForm(final ColorManipulationForm parentForm) {
         this.parentForm = parentForm;
         childForm = EmptyImageInfoForm.INSTANCE;
         graphicalButton = new JRadioButton("Sliders");
         tabularButton = new JRadioButton("Table");
+        basicButton = new JRadioButton("Basic");
         final ButtonGroup editorGroup = new ButtonGroup();
         editorGroup.add(graphicalButton);
         editorGroup.add(tabularButton);
+        editorGroup.add(basicButton);
         graphicalButton.setSelected(true);
         final SwitcherActionListener switcherActionListener = new SwitcherActionListener();
         graphicalButton.addActionListener(switcherActionListener);
         tabularButton.addActionListener(switcherActionListener);
+        basicButton.addActionListener(switcherActionListener);
         discreteColorsCheckBox = new JCheckBox("Discrete colors");
         discreteColorsCheckBox.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -60,6 +66,7 @@ class Continuous1BandSwitcherForm implements ColorManipulationChildForm {
         editorSwitcherPanel.add(new JLabel("Editor:"));
         editorSwitcherPanel.add(graphicalButton);
         editorSwitcherPanel.add(tabularButton);
+        editorSwitcherPanel.add(basicButton);
 
         final JPanel northPanel = new JPanel(new BorderLayout(2,2));
         northPanel.add(editorSwitcherPanel, BorderLayout.WEST);
@@ -119,7 +126,13 @@ class Continuous1BandSwitcherForm implements ColorManipulationChildForm {
     private void switchForm(ProductSceneView productSceneView) {
         final ColorManipulationChildForm oldForm = childForm;
         final ColorManipulationChildForm newForm;
-        if (tabularButton.isSelected()) {
+        if (basicButton.isSelected())  {
+            if (basicPaletteEditorForm == null) {
+                basicPaletteEditorForm = new Continuous1BandBasicForm(parentForm);
+            }
+            newForm = basicPaletteEditorForm;
+        }
+        else if (tabularButton.isSelected()) {
             if (tabularPaletteEditorForm == null) {
                 tabularPaletteEditorForm = new Continuous1BandTabularForm(parentForm);
             }

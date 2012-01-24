@@ -18,17 +18,7 @@ package org.esa.beam.visat.toolviews.imageinfo;
 import com.bc.ceres.core.ProgressMonitor;
 import com.bc.ceres.swing.progress.ProgressMonitorSwingWorker;
 import org.esa.beam.BeamUiActivator;
-import org.esa.beam.framework.datamodel.Band;
-import org.esa.beam.framework.datamodel.ColorPaletteDef;
-import org.esa.beam.framework.datamodel.ImageInfo;
-import org.esa.beam.framework.datamodel.Product;
-import org.esa.beam.framework.datamodel.ProductManager;
-import org.esa.beam.framework.datamodel.ProductNode;
-import org.esa.beam.framework.datamodel.ProductNodeEvent;
-import org.esa.beam.framework.datamodel.ProductNodeListener;
-import org.esa.beam.framework.datamodel.ProductNodeListenerAdapter;
-import org.esa.beam.framework.datamodel.RasterDataNode;
-import org.esa.beam.framework.datamodel.Stx;
+import org.esa.beam.framework.datamodel.*;
 import org.esa.beam.framework.help.HelpSys;
 import org.esa.beam.framework.ui.GridBagUtils;
 import org.esa.beam.framework.ui.SuppressibleOptionPane;
@@ -46,25 +36,9 @@ import org.esa.beam.util.io.BeamFileFilter;
 import org.esa.beam.util.io.FileUtils;
 import org.esa.beam.visat.VisatApp;
 
-import javax.swing.AbstractButton;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JFileChooser;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.InternalFrameAdapter;
-import javax.swing.event.InternalFrameEvent;
-import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
+import javax.swing.*;
+import javax.swing.event.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
@@ -114,6 +88,10 @@ class ColorManipulationForm {
     private SceneViewImageInfoChangeListener sceneViewChangeListener;
     private final String titlePrefix;
 
+    //The following variables are added to aid SimpleColorManipulation functions
+    private double minValueData, minValueFile, maxValueData, maxValueFile;
+    private boolean colorPaletteFileLoaded;
+
     public ColorManipulationForm(ColorManipulationToolView colorManipulationToolView) {
         this.toolView = colorManipulationToolView;
         visatApp = VisatApp.getApp();
@@ -121,6 +99,7 @@ class ColorManipulationForm {
         productNodeListener = new ColorManipulationPNL();
         sceneViewChangeListener = new SceneViewImageInfoChangeListener();
         titlePrefix = getToolViewDescriptor().getTitle();
+        colorPaletteFileLoaded = false;
     }
 
     public ProductSceneView getProductSceneView() {
@@ -184,12 +163,11 @@ class ColorManipulationForm {
         if (this.productSceneView != null) {
             setImageInfoCopy(this.productSceneView.getImageInfo());
         }
-
         installChildForm(productSceneViewOld);
 
         updateTitle();
         updateToolButtons();
-
+        setDataFileMinMax();
         setApplyEnabled(false);
     }
 
@@ -310,6 +288,7 @@ class ColorManipulationForm {
         applyButton.addActionListener(new ActionListener() {
 
             public void actionPerformed(final ActionEvent e) {
+
                 applyChanges();
             }
         });
@@ -371,14 +350,68 @@ class ColorManipulationForm {
 
         installHelp();
         suppressibleOptionPane = visatApp.getSuppressibleOptionPane();
-
         setProductSceneView(visatApp.getSelectedProductSceneView());
+
 
         // Add an internal frame listsner to VISAT so that we can update our
         // contrast stretch dialog with the information of the currently activated
         // product scene view.
         //
         visatApp.addInternalFrameListener(new ColorManipulationIFL());
+    }
+
+    private void setDataFileMinMax() {
+        if ( productSceneView != null) {
+            RasterDataNode rasterDataNode = productSceneView.getRaster();
+            Stx stx = rasterDataNode.getStx();
+            minValueData = stx.getMin();
+            maxValueData = stx.getMax();
+         } else {
+            minValueData = 0;
+            maxValueData = 0;
+         }
+
+    }
+
+    /**
+     * Returns the max sample value of a product. This value is used in the Basic Color Manipulation.
+     * @return   the max data value
+     */
+    public double getMaxValueData() {
+        return maxValueData;
+    }
+
+    /**
+     * Returns the min sample value of a product. This value is used in the Basic Color Manipulation.
+     * @return   the min data value
+     */
+    public double getMinValueData() {
+        return minValueData;
+    }
+
+    /**
+     * Returns the max sample value of a loaded color palette. This value is used in the Basic Color Manipulation.
+     * @return   the max file value
+     */
+    public double getMaxValueFile() {
+        return maxValueFile;
+    }
+
+    /**
+     * Returns the min sample value of a loaded color palette. This value is used in the Basic Color Manipulation.
+     * @return   the min file value
+     */
+    public double getMinValueFile() {
+        return minValueFile;
+    }
+
+    /**
+     * Returns color palette application status. The default is black and white. It returns true if a color palette is loaded.
+     * This method is called from Basic Color Manipulation.
+     * @return   color palette file loaded status.
+     */
+    public boolean isColorPaletteFileLoaded() {
+        return colorPaletteFileLoaded;
     }
 
     private void setShowExtraInfo(boolean selected) {
@@ -598,9 +631,14 @@ class ColorManipulationForm {
             if (file != null && file.canRead()) {
                 try {
                     final ColorPaletteDef colorPaletteDef = ColorPaletteDef.loadColorPaletteDef(file);
+                    minValueFile = colorPaletteDef.getMinDisplaySample();
+                    maxValueFile = colorPaletteDef.getMaxDisplaySample();
                     applyColorPaletteDef(colorPaletteDef, getProductSceneView().getRaster(), targetImageInfo);
                     setImageInfoCopy(targetImageInfo);
                     childForm.updateFormModel(getProductSceneView());
+                    if ( !colorPaletteFileLoaded ) {
+                        colorPaletteFileLoaded = true;
+                    }
                     setApplyEnabled(true);
                 } catch (IOException e) {
                     showErrorDialog("Failed to import colour palette:\n" + e.getMessage());

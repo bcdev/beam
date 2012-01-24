@@ -127,10 +127,12 @@ public class ColorPaletteDef implements Cloneable {
     }
 
     public double getMinDisplaySample() {
+        //System.out.println("original min: "  + getFirstPoint().getSample());
         return getFirstPoint().getSample();
     }
 
     public double getMaxDisplaySample() {
+        //System.out.println("original max: "  + getLastPoint().getSample());
         return getLastPoint().getSample();
     }
 
@@ -253,7 +255,7 @@ public class ColorPaletteDef implements Cloneable {
      *
      * @return the color palette definition, never null
      *
-     * @throws IOException if an I/O error occurs
+     * @throws java.io.IOException if an I/O error occurs
      */
     public static ColorPaletteDef loadColorPaletteDef(File file) throws IOException {
         final PropertyMap propertyMap = new PropertyMap();
@@ -263,10 +265,10 @@ public class ColorPaletteDef implements Cloneable {
             throw new IOException("The selected file contains less than\n" +
                                   "two colour points.");
         }
-        final ColorPaletteDef.Point[] points = new ColorPaletteDef.Point[numPoints];
+        final Point[] points = new Point[numPoints];
         double lastSample = 0;
         for (int i = 0; i < points.length; i++) {
-            final ColorPaletteDef.Point point = new ColorPaletteDef.Point();
+            final Point point = new Point();
             final Color color = propertyMap.getPropertyColor(_PROPERTY_KEY_COLOR + i);
             double sample = propertyMap.getPropertyDouble(_PROPERTY_KEY_SAMPLE + i);
             if (i > 0 && sample < lastSample) {
@@ -283,15 +285,58 @@ public class ColorPaletteDef implements Cloneable {
     }
 
     /**
+     * Recomputes sample values for a color palette
+     *
+     * @param minSample, maxSample, log10Scaled
+     *
+     * This method is added to compute sample points for given min, max samples and scaling mode, such as log 10 or linear.
+     * It reads the <code>numberOfPoints</code> from the existing Points vector and only modifies the sample value of each
+     * point. The colors are remained unchanged.
+     */
+    public void computeSamplePoints(double minSample, double maxSample, boolean log10Scaled) {
+
+        double min, max, range;
+
+        final int numberOfPoints = getNumPoints();
+
+        final Point[] points = getPoints();
+
+        double inc;
+
+        if (log10Scaled ){
+            min =  Math.log10(minSample);
+            max =  Math.log10(maxSample);
+            range = max - min;
+            inc = range/(numberOfPoints - 1 );
+            for (int i = 0; i < numberOfPoints; i++) {
+                points[i].setSample(Math.pow(10, min + i *inc));
+                System.out.println(Math.pow(10, min + i *inc));
+            }
+        } else {
+            min = minSample;
+            max = maxSample;
+            range = max - min;
+            inc = range/(numberOfPoints - 1 );
+            for (int i = 0; i < numberOfPoints; i++) {
+                points[i].setSample(min + i *inc);
+                System.out.println(min + i *inc);
+            }
+
+        }
+
+        setPoints(points);
+    }
+
+    /**
      * Stores this color palette definition in the given file
      *
      * @param colorPaletteDef thje color palette definition
      * @param file            the file
      *
-     * @throws IOException if an I/O error occurs
+     * @throws java.io.IOException if an I/O error occurs
      */
     public static void storeColorPaletteDef(ColorPaletteDef colorPaletteDef, File file) throws IOException {
-        final ColorPaletteDef.Point[] points = colorPaletteDef.getPoints();
+        final Point[] points = colorPaletteDef.getPoints();
         final PropertyMap propertyMap = new PropertyMap();
         final int numPoints = points.length;
         propertyMap.setPropertyInt(_PROPERTY_KEY_NUM_POINTS, numPoints);
@@ -338,10 +383,13 @@ public class ColorPaletteDef implements Cloneable {
         final int numColors = getNumColors();
         final Color[] colorPalette = new Color[numColors];
         final double minDisplay = scaling.scaleInverse(getMinDisplaySample());
+        System.out.println("minDisplay" + minDisplay );
         final double maxDisplay = scaling.scaleInverse(getMaxDisplaySample());
+        System.out.println("maxDisplay" + maxDisplay );
         for (int i = 0; i < numColors; i++) {
             final double w = i / (numColors - 1.0);
             final double sample = minDisplay + w * (maxDisplay - minDisplay);
+            //System.out.println("sample" + sample );
             colorPalette[i] = computeColorRaw(scaling, sample, minDisplay, maxDisplay);
         }
         return colorPalette;
