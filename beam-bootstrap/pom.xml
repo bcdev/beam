@@ -168,6 +168,12 @@
             <artifactId>jython</artifactId>
         </dependency>
 
+		<dependency>
+            <groupId>org.esa.nest</groupId>
+            <artifactId>nest-core</artifactId>
+			<version>4C-0.1</version>
+        </dependency>
+		
     </dependencies>
     <profiles>
         <profile>

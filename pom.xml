@@ -83,6 +83,17 @@
                 <checksumPolicy>warn</checksumPolicy>
             </snapshots>
         </repository>
+		<repository>
+            <id>array-mvn-repo</id>
+            <name>Public Maven Repository at Array Systems Computing Inc</name>
+            <url>http://www.array.ca/nest-web/maven</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
         <repository>
             <id>maven2-repository.dev.java.net</id>
             <name>Java.net repository</name>
@@ -194,7 +205,7 @@
         <module>blue-marble-worldmap</module>
         <module>globcover-worldmap</module>
         <module>beam-examples</module>
-
+		<module>beam-nest-common</module>
     </modules>
 
     <dependencyManagement>
