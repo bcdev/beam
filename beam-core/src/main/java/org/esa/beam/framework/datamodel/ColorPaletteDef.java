@@ -378,8 +378,7 @@ public class ColorPaletteDef implements Cloneable {
         return colors;
     }
 
-    //The following is the original implementation of createColorPalette method
-    //corrected the value computation for sample - scaled it before sending to computeColorRaw
+
 
      public Color[] createColorPalette(Scaling scaling) {
         Debug.assertTrue(getNumPoints() >= 2);
@@ -395,28 +394,6 @@ public class ColorPaletteDef implements Cloneable {
         return colorPalette;
     }
 
-/*    //Aynur's code
-    public Color[] createColorPalette(Scaling scaling) {
-        Debug.assertTrue(getNumPoints() >= 2);
-        final int numColors = getNumColors();
-        final Color[] colorPalette = new Color[numColors];
-        final double minDisplay = scaling.scaleInverse(getMinDisplaySample());
-        double logMin = Math.log10(minDisplay);
-        System.out.println("minDisplay" + minDisplay );
-        final double maxDisplay = scaling.scaleInverse(getMaxDisplaySample());
-        double logMax = Math.log10(maxDisplay);
-        System.out.println("maxDisplay" + maxDisplay );
-        System.out.println("numColors " + numColors );
-        double range = logMax - logMin;
-        for (int i = 0; i < numColors; i++) {
-            final double w = i / (numColors - 1.0);
-            final double sample = Math.pow(10, logMin + w * (logMax - logMin));
-                 //??? could this be the problem? talk to norman!
-            System.out.println("sample " + i + ": " + sample + "  index: " +  (int)((Math.log10(sample)-logMin)/range*255+0.5));
-            colorPalette[i] = computeColorRaw(scaling, sample, minDisplay, maxDisplay);
-        }
-        return colorPalette;
-    }*/
 
     private Color computeColorRaw(Scaling scaling, double sample, double minDisplay, double maxDisplay) {
         final Color c;
