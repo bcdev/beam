@@ -69,9 +69,26 @@ class Continuous1BandBasicForm implements ColorManipulationChildForm {
 
     @Override
     public void updateFormModel(ProductSceneView productSceneView) {
+
+        productSceneView.getRaster().setLog10ScaledDisplay(basicColorEditor.isLog10Scaled())  ;
+        //productSceneView.getRaster().getSceneRasterData();
         basicColorEditor.recomputeSamplePoints();
+        //parentForm.applyColorPaletteDef(productSceneView.getImageInfo().getColorPaletteDef(), productSceneView.getRaster(), productSceneView.getImageInfo());
+//        if (basicColorEditor.isLog10Scaled()) {
+//            final double newMin = parentForm.getImageInfo().getColorPaletteDef().getMinDisplaySample();
+//            final double newMax = parentForm.getImageInfo().getColorPaletteDef().getMaxDisplaySample();
+//            try {
+//                productSceneView.getRaster().quantizeRasterData(newMin, newMax,1, ProgressMonitor.NULL);
+//            } catch (IOException ioe) {
+//
+//            }
+//        }
+
+
+        //basicColorEditor.recomputeSamplePoints();
         ImageInfoEditorModel1B model = new ImageInfoEditorModel1B(parentForm.getImageInfo());
         model.addChangeListener(applyEnablerCL);
+
         //ImageInfoEditorModel oldModel = basicColorEditor.getModel();
        // setDisplayProperties(model, productSceneView.getRaster());
         //basicColorEditor.setModel(model);

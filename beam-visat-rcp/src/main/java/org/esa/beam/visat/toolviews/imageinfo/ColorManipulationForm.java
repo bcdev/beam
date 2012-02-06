@@ -647,7 +647,7 @@ class ColorManipulationForm {
         }
     }
 
-    private void applyColorPaletteDef(ColorPaletteDef colorPaletteDef,
+    protected void applyColorPaletteDef(ColorPaletteDef colorPaletteDef,
                                       RasterDataNode targetRaster,
                                       ImageInfo targetImageInfo) {
         if (isIndexCoded(targetRaster)) {

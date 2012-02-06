@@ -294,13 +294,47 @@ public class ImageManager {
     private RenderedImage createColored1BandImage(RasterDataNode raster, ImageInfo imageInfo, int level) {
         Assert.notNull(raster, "raster");
         Assert.notNull(imageInfo, "imageInfo");
+
         RenderedImage sourceImage = getSourceImage(raster, level);
+
+        //aynur's code
+           if (raster.isLog10ScaledDisplay()) {
+            sourceImage = logScalePixels(sourceImage);
+        }
+        //aynur's code ends here
+
         RenderedImage validMaskImage = getValidMaskImage(raster, level);
         PlanarImage image = createByteIndexedImage(raster, sourceImage, imageInfo);
         image = createMatchCdfImage(image, imageInfo.getHistogramMatching(), new Stx[]{raster.getStx()});
         image = createLookupRgbImage(raster, image, validMaskImage, imageInfo);
         return image;
     }
+    //aynur's code
+    private TiledImage logScalePixels(RenderedImage sourceImage){
+        int width = sourceImage.getWidth();
+        int height = sourceImage.getHeight();
+        SampleModel sm = sourceImage.getSampleModel();
+        int nbands = sm.getNumBands();
+        Raster inputRaster = sourceImage.getData();
+        WritableRaster outputRaster = inputRaster.createCompatibleWritableRaster();
+        double[] pixels = new double[nbands*width*height];
+        inputRaster.getPixels(0,0,width,height, pixels);
+
+        int offset;
+        for (int h=0; h<height; h++) {
+            for (int w=0; w<width; w++ ){
+                offset = h*width*nbands + w*nbands;
+                for (int band=0; band<nbands; band++) {
+                    pixels[offset+band] = pixels[offset+band] > 0 ? Math.log10(pixels[offset+band])  : pixels[offset+band];
+                }
+            }
+        }
+        outputRaster.setPixels(0,0,width,height,pixels);
+
+        TiledImage ti = new TiledImage(sourceImage, true);
+        ti.setData(outputRaster);
+        return ti;
+    } //aynur's code ends here
 
     private PlanarImage createColored3BandImage(RasterDataNode[] rasters, ImageInfo rgbImageInfo, int level) {
         RenderedImage[] images = new RenderedImage[rasters.length];
@@ -347,13 +381,16 @@ public class ImageManager {
                                                       double minSample,
                                                       double maxSample,
                                                       double gamma) {
+
         double newMin = raster.scaleInverse(minSample);
         double newMax = raster.scaleInverse(maxSample);
+
         PlanarImage image = createRescaleOp(sourceImage,
                                             255.0 / (newMax - newMin),
                                             255.0 * newMin / (newMin - newMax));
         // todo - make sure this is not needed, e.g. does "format" auto-clamp?? (nf, 10.2008)
         // image = createClampOp(image, 0, 255);
+
         image = createByteFormatOp(image);
         if (gamma != 0.0 && gamma != 1.0) {
             byte[] gammaCurve = MathUtils.createGammaCurve(gamma, new byte[256]);
@@ -495,10 +532,12 @@ public class ImageManager {
         return alpha;
     }
 
+    //check this method
     private static PlanarImage createLookupRgbImage(RasterDataNode rasterDataNode,
                                                     RenderedImage sourceImage,
                                                     RenderedImage maskImage,
                                                     ImageInfo imageInfo) {
+
         Color[] palette;
         ColorPaletteDef colorPaletteDef = imageInfo.getColorPaletteDef();
         if (rasterDataNode instanceof Band && ((Band) rasterDataNode).getIndexCoding() != null) {
@@ -785,6 +824,7 @@ public class ImageManager {
         if (factor == 1.0 && offset == 0.0) {
             return PlanarImage.wrapRenderedImage(src);
         }
+
         return RescaleDescriptor.create(src,
                                         new double[]{factor},
                                         new double[]{offset},

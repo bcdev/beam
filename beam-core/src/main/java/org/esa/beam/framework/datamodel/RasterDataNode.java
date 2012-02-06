@@ -117,6 +117,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
     private double scalingFactor;
     private double scalingOffset;
     private boolean log10Scaled;
+    private boolean log10ScaledDisplay;
     private boolean scalingApplied;
 
     private boolean noDataValueUsed;
@@ -181,6 +182,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
         scalingFactor = 1.0;
         scalingOffset = 0.0;
         log10Scaled = false;
+        log10ScaledDisplay = false;
         scalingApplied = false;
 
         noData = null;
@@ -409,6 +411,23 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
     }
 
     /**
+     *
+     * @return whether the log10 scale option is chosen in the "basic color manipulation" tab
+     *
+     * */
+
+    public final boolean isLog10ScaledDisplay() {
+        return log10ScaledDisplay;
+    }
+
+    /**
+     * log10ScaledDisplay is set to true when the "log" option is selected in "Basic Color Manipulation"
+
+     */
+    public void setLog10ScaledDisplay( boolean log10ScaledDisplay ) {
+        this.log10ScaledDisplay = log10ScaledDisplay ;
+    }
+    /**
      * Gets whether or not the {@link <code>ProductData</code>} of this band has a negative binominal distribution and
      * thus the common logarithm (base 10) of the values is stored in the raw data. The default value is
      * <code>false</code>.
@@ -416,9 +435,12 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
      * @return whether or not the data is logging-10 scaled
      * @see #isScalingApplied()
      */
+
     public final boolean isLog10Scaled() {
         return log10Scaled;
     }
+
+
 
     /**
      * Sets whether or not the {@link <code>ProductData</code>} of this band has a negative binominal distribution and
@@ -1775,8 +1797,8 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
      */
     @Override
     public final double scaleInverse(double v) {
-        if (log10Scaled) {
-            v = Math.log10(v);
+        if (log10Scaled || log10ScaledDisplay ) {
+            v = (v>0)?Math.log10(v):v;
         }
         return (v - scalingOffset) / scalingFactor;
     }

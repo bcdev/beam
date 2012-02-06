@@ -23,6 +23,7 @@ package org.esa.beam.visat.toolviews.imageinfo;
  * with this program; if not, see http://www.gnu.org/licenses/
  */
 
+import org.esa.beam.framework.ui.ImageInfoEditor;
 import org.esa.beam.util.math.MathUtils;
 
 import javax.swing.*;
@@ -40,7 +41,7 @@ import java.text.NumberFormat;
 /**
  * This class implements the Basic Color Manipulation GUI. It's design concept is similar to the ImageInfoEditor2 class that implements the "Sliders" option in BEAM.
  */
-class BasicColorEditor extends JPanel  {
+class BasicColorEditor extends ImageInfoEditor {
 
     private final ColorManipulationForm parentForm;
     private boolean showExtraInfo;
@@ -262,11 +263,22 @@ class BasicColorEditor extends JPanel  {
 
         final JPanel minMaxPanel = new JPanel();
 
-        minMaxPanel.setLayout(new GridLayout(2,0));
+        minMaxPanel.setLayout(new GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
         minMaxPanel.setBorder(new TitledBorder(new EtchedBorder(), ""));
 
-        minMaxPanel.add(minPanel);
-        minMaxPanel.add(maxPanel);
+        //c.fill = GridBagConstraints.HORIZONTAL;
+	    c.weightx = 0;
+        c.gridx = 0;
+	    c.gridy = 0;
+        c.gridwidth = 2;
+        c.anchor = GridBagConstraints.CENTER;
+
+        minMaxPanel.add(minPanel,c);
+
+        c.gridy = 1;
+
+        minMaxPanel.add(maxPanel,c);
 
 
 
@@ -302,8 +314,8 @@ class BasicColorEditor extends JPanel  {
             }
         });
 
-        final JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
+        //final JPanel buttonPanel = new JPanel();
+        //buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
 
         fileDefaultButton = new JButton("File Default");
         fileDefaultButton.addActionListener(new ActionListener() {
@@ -325,7 +337,11 @@ class BasicColorEditor extends JPanel  {
                 maxValField.setValue(maxVal);
                 }
         });
-        buttonPanel.add(fileDefaultButton);
+        c.weightx = 1.0;
+        c.gridx = 0;
+        c.gridy = 2;
+        c.gridwidth =1;
+        minMaxPanel.add(fileDefaultButton,c);
 
         dataDefaultButton = new JButton("Data Default");
         dataDefaultButton.addActionListener(new ActionListener() {
@@ -343,11 +359,14 @@ class BasicColorEditor extends JPanel  {
                 maxValField.setValue(maxVal);
             }
         });
-        buttonPanel.add(dataDefaultButton);
+        c.gridx = 1;
+        c.gridy = 2;
+        c.gridwidth = 1;
+        minMaxPanel.add(dataDefaultButton,c);
 
         JPanel simpleColorManipulationPanel = new JPanel();
         simpleColorManipulationPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 10, 1 ));
-        simpleColorManipulationPanel.add(buttonPanel);
+        //simpleColorManipulationPanel.add(buttonPanel);
         simpleColorManipulationPanel.add(minMaxPanel);
         simpleColorManipulationPanel.add(scalePanel);
 
@@ -388,9 +407,13 @@ class BasicColorEditor extends JPanel  {
         JOptionPane.showMessageDialog(this, errorMessage );
 
     }
+    protected boolean isLog10Scaled() {
+        return log10Scaled;
+    }
     private boolean validateMinMax(double min, double max){
 
         //log scale cannot be applied to negative min or max for sample points
+        //System.out.println("min: " + min + "    max:  " + max);
         String errorMessage = new String();
         boolean valid = true;
 
@@ -409,7 +432,6 @@ class BasicColorEditor extends JPanel  {
                 valid = false;
             }
             if (!valid) {
-                log10Scaled = false;
                 logButton.setSelected(false);
                 linearButton.setSelected(true);
                 log10Scaled = false;

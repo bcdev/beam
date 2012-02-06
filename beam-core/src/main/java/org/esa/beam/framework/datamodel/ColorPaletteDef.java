@@ -127,7 +127,7 @@ public class ColorPaletteDef implements Cloneable {
     }
 
     public double getMinDisplaySample() {
-        //System.out.println("original min: "  + getFirstPoint().getSample());
+        ///System.out.println("original min: "  + getFirstPoint().getSample());
         return getFirstPoint().getSample();
     }
 
@@ -265,10 +265,10 @@ public class ColorPaletteDef implements Cloneable {
             throw new IOException("The selected file contains less than\n" +
                                   "two colour points.");
         }
-        final Point[] points = new Point[numPoints];
+        final ColorPaletteDef.Point[] points = new ColorPaletteDef.Point[numPoints];
         double lastSample = 0;
         for (int i = 0; i < points.length; i++) {
-            final Point point = new Point();
+            final ColorPaletteDef.Point point = new ColorPaletteDef.Point();
             final Color color = propertyMap.getPropertyColor(_PROPERTY_KEY_COLOR + i);
             double sample = propertyMap.getPropertyDouble(_PROPERTY_KEY_SAMPLE + i);
             if (i > 0 && sample < lastSample) {
@@ -299,7 +299,7 @@ public class ColorPaletteDef implements Cloneable {
 
         final int numberOfPoints = getNumPoints();
 
-        final Point[] points = getPoints();
+        final ColorPaletteDef.Point[] points = getPoints();
 
         double inc;
 
@@ -310,7 +310,7 @@ public class ColorPaletteDef implements Cloneable {
             inc = range/(numberOfPoints - 1 );
             for (int i = 0; i < numberOfPoints; i++) {
                 points[i].setSample(Math.pow(10, min + i *inc));
-                System.out.println(Math.pow(10, min + i *inc));
+                //System.out.println(Math.pow(10, min + i *inc));
             }
         } else {
             min = minSample;
@@ -319,7 +319,7 @@ public class ColorPaletteDef implements Cloneable {
             inc = range/(numberOfPoints - 1 );
             for (int i = 0; i < numberOfPoints; i++) {
                 points[i].setSample(min + i *inc);
-                System.out.println(min + i *inc);
+                //System.out.println(min + i *inc);
             }
 
         }
@@ -333,10 +333,10 @@ public class ColorPaletteDef implements Cloneable {
      * @param colorPaletteDef thje color palette definition
      * @param file            the file
      *
-     * @throws java.io.IOException if an I/O error occurs
+     * @throws IOException if an I/O error occurs
      */
     public static void storeColorPaletteDef(ColorPaletteDef colorPaletteDef, File file) throws IOException {
-        final Point[] points = colorPaletteDef.getPoints();
+        final ColorPaletteDef.Point[] points = colorPaletteDef.getPoints();
         final PropertyMap propertyMap = new PropertyMap();
         final int numPoints = points.length;
         propertyMap.setPropertyInt(_PROPERTY_KEY_NUM_POINTS, numPoints);
@@ -378,22 +378,45 @@ public class ColorPaletteDef implements Cloneable {
         return colors;
     }
 
+    //The following is the original implementation of createColorPalette method
+    //corrected the value computation for sample - scaled it before sending to computeColorRaw
+
+     public Color[] createColorPalette(Scaling scaling) {
+        Debug.assertTrue(getNumPoints() >= 2);
+        final int numColors = getNumColors();
+        final Color[] colorPalette = new Color[numColors];
+        final double minDisplay = scaling.scaleInverse(getMinDisplaySample());
+        final double maxDisplay = scaling.scaleInverse(getMaxDisplaySample());
+        for (int i = 0; i < numColors; i++) {
+            final double w = i / (numColors - 1.0);
+            final double sample = minDisplay + w * (maxDisplay - minDisplay);
+            colorPalette[i] = computeColorRaw(scaling, sample, minDisplay, maxDisplay);
+        }
+        return colorPalette;
+    }
+
+/*    //Aynur's code
     public Color[] createColorPalette(Scaling scaling) {
         Debug.assertTrue(getNumPoints() >= 2);
         final int numColors = getNumColors();
         final Color[] colorPalette = new Color[numColors];
         final double minDisplay = scaling.scaleInverse(getMinDisplaySample());
+        double logMin = Math.log10(minDisplay);
         System.out.println("minDisplay" + minDisplay );
         final double maxDisplay = scaling.scaleInverse(getMaxDisplaySample());
+        double logMax = Math.log10(maxDisplay);
         System.out.println("maxDisplay" + maxDisplay );
+        System.out.println("numColors " + numColors );
+        double range = logMax - logMin;
         for (int i = 0; i < numColors; i++) {
             final double w = i / (numColors - 1.0);
-            final double sample = minDisplay + w * (maxDisplay - minDisplay);
-            //System.out.println("sample" + sample );
+            final double sample = Math.pow(10, logMin + w * (logMax - logMin));
+                 //??? could this be the problem? talk to norman!
+            System.out.println("sample " + i + ": " + sample + "  index: " +  (int)((Math.log10(sample)-logMin)/range*255+0.5));
             colorPalette[i] = computeColorRaw(scaling, sample, minDisplay, maxDisplay);
         }
         return colorPalette;
-    }
+    }*/
 
     private Color computeColorRaw(Scaling scaling, double sample, double minDisplay, double maxDisplay) {
         final Color c;
@@ -417,11 +440,13 @@ public class ColorPaletteDef implements Cloneable {
             final Point p2 = getPointAt(i + 1);
             final double sample1 = scaling.scaleInverse(p1.getSample());
             final double sample2 = scaling.scaleInverse(p2.getSample());
+            //System.out.println("sample 1 = " + sample1 + "   sample2 =    " + sample2);
             if (rawSample >= sample1 && rawSample <= sample2) {
                 if (discrete) {
                     return p1.getColor();
                 } else {
                     final double f = (rawSample - sample1) / (sample2 - sample1);
+                    //System.out.println("f= " + f);
                     final double r1 = p1.getColor().getRed();
                     final double r2 = p2.getColor().getRed();
                     final double g1 = p1.getColor().getGreen();
@@ -434,6 +459,8 @@ public class ColorPaletteDef implements Cloneable {
                     final int green = (int) MathUtils.roundAndCrop(g1 + f * (g2 - g1), 0L, 255L);
                     final int blue = (int) MathUtils.roundAndCrop(b1 + f * (b2 - b1), 0L, 255L);
                     final int alpha = (int) MathUtils.roundAndCrop(a1 + f * (a2 - a1), 0L, 255L);
+                    //System.out.println("r1 = " + r1 + " r2 = " + r2  + " g1 = " + g1  + " g2 = "  + g2 + "b1 = " + b1 + " b2 = " + b2 + "a1 = " + a1 + "a2 = " + a2);
+                    //System.out.println("red= " + red + "  green = " + green + " blue =" + blue + "alpha = " + alpha);
                     return new Color(red, green, blue, alpha);
                 }
             }
