@@ -34,7 +34,7 @@ public class HdfEosUtils {
     static final String CORE_METADATA = "CoreMetadata";
     static final String ARCHIVE_METADATA = "ArchiveMetadata";
 
-    static Element getEosElement(String name, Group eosGroup) throws IOException {
+    public static Element getEosElement(String name, Group eosGroup) throws IOException {
         String smeta = getEosMetadata(name, eosGroup);
         if (smeta == null) {
             return null;
