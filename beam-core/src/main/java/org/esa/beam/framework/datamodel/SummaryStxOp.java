@@ -154,7 +154,7 @@ class SummaryStxOp implements StxOp {
         double tileMean = this.mean;
         double tileM2 = this.m2;
 
-
+        System.out.println("mask accessor: " + maskAccessor == null );
         byte[] mask = null;
         int maskPixelStride = 0;
         int maskLineStride = 0;
@@ -204,6 +204,7 @@ class SummaryStxOp implements StxOp {
         this.sampleCount = tileSampleCount;
         this.mean = tileMean;
         this.m2 = tileM2;
+        System.out.println("tile minimum: " + tileMinimum );
     }
 
 

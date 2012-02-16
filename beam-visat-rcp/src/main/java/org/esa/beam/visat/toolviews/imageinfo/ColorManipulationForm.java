@@ -89,8 +89,9 @@ class ColorManipulationForm {
     private final String titlePrefix;
 
     //The following variables are added to aid SimpleColorManipulation functions
-    private double minValueData, minValueFile, maxValueData, maxValueFile;
+    private double minValueData, minValueFile, maxValueData, maxValueFile, currentMinValue, currentMaxValue;
     private boolean colorPaletteFileLoaded;
+    private boolean isLog10ScaledProduct;
 
     public ColorManipulationForm(ColorManipulationToolView colorManipulationToolView) {
         this.toolView = colorManipulationToolView;
@@ -100,6 +101,7 @@ class ColorManipulationForm {
         sceneViewChangeListener = new SceneViewImageInfoChangeListener();
         titlePrefix = getToolViewDescriptor().getTitle();
         colorPaletteFileLoaded = false;
+        isLog10ScaledProduct = false;
     }
 
     public ProductSceneView getProductSceneView() {
@@ -175,6 +177,7 @@ class ColorManipulationForm {
         final ColorManipulationChildForm oldForm = childForm;
         ColorManipulationChildForm newForm = EmptyImageInfoForm.INSTANCE;
         if (productSceneView != null) {
+            setDataFileMinMax();
             if (isContinuous3BandImage()) {
                 if (oldForm instanceof Continuous3BandGraphicalForm) {
                     newForm = oldForm;
@@ -360,12 +363,15 @@ class ColorManipulationForm {
         visatApp.addInternalFrameListener(new ColorManipulationIFL());
     }
 
-    private void setDataFileMinMax() {
+    protected void setDataFileMinMax() {
         if ( productSceneView != null) {
             RasterDataNode rasterDataNode = productSceneView.getRaster();
             Stx stx = rasterDataNode.getStx();
             minValueData = stx.getMin();
             maxValueData = stx.getMax();
+            isLog10ScaledProduct = rasterDataNode.isLog10Scaled();
+            setCurrentMinValue(minValueData);
+            setCurrentMaxValue(maxValueData);
          } else {
             minValueData = 0;
             maxValueData = 0;
@@ -405,6 +411,30 @@ class ColorManipulationForm {
         return minValueFile;
     }
 
+    protected void setMinValueFile(double minValueFile) {
+        this.minValueFile = minValueFile;
+        setCurrentMinValue(minValueFile );
+    }
+
+    protected void setMaxValueFile(double maxValueFile) {
+        this.maxValueFile = maxValueFile;
+        setCurrentMaxValue(maxValueFile );
+    }
+
+    protected void setCurrentMinValue(double  currentMinValue) {
+        this.currentMinValue = currentMinValue;
+    }
+    protected void setCurrentMaxValue(double  currentMaxValue) {
+        this.currentMaxValue = currentMaxValue;
+    }
+
+    protected double getCurrentMinValue() {
+        return currentMinValue;
+    }
+    protected double getCurrentMaxValue() {
+        return currentMaxValue;
+    }
+
     /**
      * Returns color palette application status. The default is black and white. It returns true if a color palette is loaded.
      * This method is called from Basic Color Manipulation.
@@ -412,6 +442,16 @@ class ColorManipulationForm {
      */
     public boolean isColorPaletteFileLoaded() {
         return colorPaletteFileLoaded;
+    }
+
+    /**
+     * Returns product data scale information. If the data is already logged, returns true. This variable is added to differentiate
+     * between the log option in "Basic Color Manipulation" and the pre-logged data.
+     *
+     * @return
+     */
+    public boolean isLog10ScaledProduct() {
+        return isLog10ScaledProduct;
     }
 
     private void setShowExtraInfo(boolean selected) {
@@ -618,6 +658,7 @@ class ColorManipulationForm {
             // is disabled if the _contrastStretchPane has no ImageInfo.
             return;
         }
+System.out.println("importing color palette...");
         final BeamFileChooser fileChooser = new BeamFileChooser();
         fileChooser.setDialogTitle("Import Colour Palette"); /*I18N*/
         fileChooser.setFileFilter(getOrCreateColorPaletteDefinitionFileFilter());
@@ -631,14 +672,15 @@ class ColorManipulationForm {
             if (file != null && file.canRead()) {
                 try {
                     final ColorPaletteDef colorPaletteDef = ColorPaletteDef.loadColorPaletteDef(file);
-                    minValueFile = colorPaletteDef.getMinDisplaySample();
-                    maxValueFile = colorPaletteDef.getMaxDisplaySample();
+                    setMinValueFile(colorPaletteDef.getMinDisplaySample());
+                    setMaxValueFile(colorPaletteDef.getMaxDisplaySample());
                     applyColorPaletteDef(colorPaletteDef, getProductSceneView().getRaster(), targetImageInfo);
                     setImageInfoCopy(targetImageInfo);
-                    childForm.updateFormModel(getProductSceneView());
                     if ( !colorPaletteFileLoaded ) {
                         colorPaletteFileLoaded = true;
                     }
+
+                    childForm.updateFormModel(getProductSceneView());
                     setApplyEnabled(true);
                 } catch (IOException e) {
                     showErrorDialog("Failed to import colour palette:\n" + e.getMessage());

@@ -99,6 +99,8 @@ class Continuous1BandGraphicalForm implements ColorManipulationChildForm {
             imageInfoEditor.computeZoomInToSliderLimits();
         }
 
+        parentForm.setCurrentMinValue(imageInfoEditor.getFirstSliderSample());
+        parentForm.setCurrentMaxValue(imageInfoEditor.getLastSliderSample());
         parentForm.revalidateToolViewPaneControl();
     }
 

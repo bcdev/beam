@@ -245,19 +245,24 @@ class StatisticsPanel extends TextPagePanel implements MultipleRoiComputePanel.C
     }
 
     private double getMedian(Stx stat) {
-        return getRaster().scale(stat.getMedian());
+        double median = stat.getMedian();
+        return getRaster().isLog10Scaled() ? getRaster().scale(median) : median;
     }
 
     private double getMin(Stx stat) {
-        return getRaster().scale(stat.getMin());
+        double min = stat.getMin();
+        return getRaster().isLog10Scaled()?getRaster().scale(min):min;
+        //return getRaster().scale(stat.getMin());
     }
 
     private double getMax(Stx stat) {
-        return getRaster().scale(stat.getMax());
+        double max = stat.getMax();
+        return getRaster().isLog10Scaled() ? getRaster().scale(max) : max;
     }
 
     private double getMean(Stx stat) {
-        return getRaster().scale(stat.getMean());
+        double mean = stat.getMean()  ;
+        return getRaster().isLog10Scaled() ? getRaster().scale(mean) : mean;
     }
 
     /*

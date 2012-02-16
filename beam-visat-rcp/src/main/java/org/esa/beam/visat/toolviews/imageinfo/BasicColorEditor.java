@@ -23,6 +23,7 @@ package org.esa.beam.visat.toolviews.imageinfo;
  * with this program; if not, see http://www.gnu.org/licenses/
  */
 
+import org.esa.beam.framework.datamodel.RasterDataNode;
 import org.esa.beam.framework.ui.ImageInfoEditor;
 import org.esa.beam.util.math.MathUtils;
 
@@ -41,7 +42,7 @@ import java.text.NumberFormat;
 /**
  * This class implements the Basic Color Manipulation GUI. It's design concept is similar to the ImageInfoEditor2 class that implements the "Sliders" option in BEAM.
  */
-class BasicColorEditor extends ImageInfoEditor {
+class BasicColorEditor extends ImageInfoEditor  {
 
     private final ColorManipulationForm parentForm;
     private boolean showExtraInfo;
@@ -65,7 +66,9 @@ class BasicColorEditor extends ImageInfoEditor {
         minVal = parentForm.getMinValueData();
         setLayout(new BorderLayout());
         setShowExtraInfo(true);
-        log10Scaled = true;
+        log10Scaled = false;
+        valFormat = NumberFormat.getNumberInstance();
+        valFormat.setMaximumFractionDigits(4);
     }
 
     public boolean getShowExtraInfo() {
@@ -107,7 +110,8 @@ class BasicColorEditor extends ImageInfoEditor {
      */
     private JPanel createSimpleColorRampEditorComponent(){
 
-        JPanel simpleColorEditorPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JPanel simpleColorEditorPanel = new JPanel();
+        simpleColorEditorPanel.setLayout(new GridLayout(0,1)  );
 
         final JPanel minPanel = new JPanel();
         minPanel.setLayout(new FlowLayout());
@@ -365,9 +369,10 @@ class BasicColorEditor extends ImageInfoEditor {
         minMaxPanel.add(dataDefaultButton,c);
 
         JPanel simpleColorManipulationPanel = new JPanel();
-        simpleColorManipulationPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 10, 1 ));
-        //simpleColorManipulationPanel.add(buttonPanel);
-        simpleColorManipulationPanel.add(minMaxPanel);
+        //simpleColorManipulationPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 10, 1 ));
+        simpleColorManipulationPanel.setLayout(new BoxLayout(simpleColorManipulationPanel, BoxLayout.Y_AXIS ));
+                //simpleColorManipulationPanel.add(buttonPanel);
+                simpleColorManipulationPanel.add(minMaxPanel);
         simpleColorManipulationPanel.add(scalePanel);
 
 
@@ -383,6 +388,8 @@ class BasicColorEditor extends ImageInfoEditor {
     }
 
     private void activateApply(){
+        parentForm.setCurrentMaxValue(maxVal);
+        parentForm.setCurrentMinValue(minVal);
         parentForm.setApplyEnabled(true);
     }
 
@@ -397,9 +404,18 @@ class BasicColorEditor extends ImageInfoEditor {
     protected void resetToFileDefault(){
         fileDefaultButton.doClick();
     }
+    protected void resetMinMax(){
+        minVal = parentForm.getCurrentMinValue();
+        maxVal = parentForm.getCurrentMaxValue();
+        minValField.setValue(MathUtils.round((new Double(minVal)).doubleValue(), 1000));
+        maxValField.setValue(MathUtils.round((new Double(maxVal)).doubleValue(), 1000));
+    }
     protected void recomputeSamplePoints(){
         //validateMinMax(minVal, maxVal);
+        RasterDataNode  rasterDataNode = parentForm.getProductSceneView().getRaster();
+        rasterDataNode.setLog10ScaledDisplay(log10Scaled);
         parentForm.getImageInfo().getColorPaletteDef().computeSamplePoints(minVal, maxVal, log10Scaled);
+    //    super.setColorPalette(parentForm.getImageInfo().getColorPaletteDef().getColors());
         activateApply();
     }
 

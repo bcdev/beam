@@ -297,16 +297,18 @@ public class ImageManager {
 
         RenderedImage sourceImage = getSourceImage(raster, level);
 
-        //aynur's code
+        //added by seadas team
            if (raster.isLog10ScaledDisplay()) {
             sourceImage = logScalePixels(sourceImage);
+               raster.setLog10Scaled(true);
         }
-        //aynur's code ends here
+        //seadas addition ends here
 
         RenderedImage validMaskImage = getValidMaskImage(raster, level);
         PlanarImage image = createByteIndexedImage(raster, sourceImage, imageInfo);
         image = createMatchCdfImage(image, imageInfo.getHistogramMatching(), new Stx[]{raster.getStx()});
         image = createLookupRgbImage(raster, image, validMaskImage, imageInfo);
+        raster.setLog10Scaled(false);
         return image;
     }
     //aynur's code
@@ -886,6 +888,7 @@ public class ImageManager {
 
         @Override
         public void nodeDataChanged(ProductNodeEvent event) {
+            System.out.println("after no data changed");
             super.nodeDataChanged(event);
             final ProductNode node = event.getSourceNode();
             synchronized (maskImageMap) {

@@ -71,6 +71,10 @@ public interface ImageInfoEditorModel {
 
     double getMinSample();
 
+    double getMinSample(boolean isLog10Scaled);
+
+    double getMaxSample(boolean isLog10Scaled);
+
     double getMaxSample();
 
     boolean isHistogramAvailable();

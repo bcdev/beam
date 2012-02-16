@@ -108,8 +108,9 @@ class ImageInfoEditor2 extends ImageInfoEditor {
             return stxOverlayComponent;
         }
 
-        labels.add(new JLabel("Min: " + getValueForDisplay(model.getMinSample())));
-        labels.add(new JLabel("Max: " + getValueForDisplay(model.getMaxSample())));
+
+        labels.add(new JLabel("Min: " + getValueForDisplay(model.getMinSample(parentForm.isLog10ScaledProduct()))));
+        labels.add(new JLabel("Max: " + getValueForDisplay(model.getMaxSample(parentForm.isLog10ScaledProduct() ))));
         if (stx.getResolutionLevel() > 0) {
             final ActionLabel label = new ActionLabel("Rough statistics!");
             label.setToolTipText("Click to compute accurate statistics.");

@@ -547,6 +547,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
             setModified(true);
             fireProductNodeChanged(PROPERTY_NAME_NO_DATA_VALUE_USED);
             fireProductNodeDataChanged();
+            System.out.println("no data value set to " + noDataValueUsed);
         }
     }
 
@@ -583,6 +584,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
      * @see #isNoDataValueSet()
      */
     public void setNoDataValue(final double noDataValue) {
+        System.out.println("setting no data value : " + noDataValue );
         if (noData == null || getNoDataValue() != noDataValue) {
             if (noData == null) {
                 noData = createCompatibleProductData(1);
@@ -712,6 +714,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
         } else if (isNoDataValueUsed()) {
             dataMaskExpression = createValidMaskExpressionForNoDataValue();
         }
+        System.out.println("valid mask expression: " + dataMaskExpression.toString() + " " + noData.getElemDoubleAt(0) );
         return dataMaskExpression;
     }
 
@@ -1781,7 +1784,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
     @Override
     public final double scale(double v) {
         v = v * scalingFactor + scalingOffset;
-        if (log10Scaled) {
+        if (log10Scaled || log10ScaledDisplay ) {
             v = Math.pow(10.0, v);
         }
         return v;
@@ -1881,7 +1884,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
     }
 
     private void setGeophysicalNoDataValue() {
-        geophysicalNoDataValue = scale(getNoDataValue());
+        geophysicalNoDataValue = isLog10Scaled()? scale(getNoDataValue()) : getNoDataValue() ;
     }
 
     /**
@@ -2123,6 +2126,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
      * @since since BEAM 4.5
      */
     public synchronized Stx getStx(boolean accurate, ProgressMonitor pm) {
+        System.out.println("setting stx");
         if (stx == null || stx.getResolutionLevel() > 0 && accurate) {
             if (accurate) {
                 setStx(computeStxImpl(0, pm));

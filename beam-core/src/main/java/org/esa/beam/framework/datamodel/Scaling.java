@@ -34,6 +34,14 @@ public interface Scaling {
         public double scaleInverse(final double value) {
             return value;
         }
+
+        public boolean isLog10Scaled() {
+            return false;
+        }
+
+        public boolean isLog10ScaledDisplay() {
+            return false;
+        }
     };
 
     /**
@@ -49,4 +57,8 @@ public interface Scaling {
      * @return the transformed value
      */
     double scaleInverse(double value);
+
+    boolean isLog10Scaled();
+
+    boolean isLog10ScaledDisplay();
 }

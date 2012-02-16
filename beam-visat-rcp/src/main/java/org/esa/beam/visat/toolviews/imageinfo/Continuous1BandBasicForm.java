@@ -32,13 +32,14 @@ class Continuous1BandBasicForm implements ColorManipulationChildForm {
 
     private final ColorManipulationForm parentForm;
     private final BasicColorEditor basicColorEditor;
+    private final ImageInfoEditor2 imageInfoEditor;
     private final JPanel contentPanel;
     private final MoreOptionsForm moreOptionsForm;
     private ChangeListener applyEnablerCL;
 
     Continuous1BandBasicForm(final ColorManipulationForm parentForm) {
         this.parentForm = parentForm;
-
+        imageInfoEditor = new ImageInfoEditor2(parentForm);
         basicColorEditor = new BasicColorEditor(parentForm);
         contentPanel = new JPanel(new BorderLayout(2, 2));
         contentPanel.add(basicColorEditor, BorderLayout.CENTER);
@@ -61,66 +62,58 @@ class Continuous1BandBasicForm implements ColorManipulationChildForm {
 
     @Override
     public void handleFormHidden(ProductSceneView productSceneView) {
-        //if (basicColorEditor.getModel() != null) {
-        //    basicColorEditor.getModel().removeChangeListener(applyEnablerCL);
-        //    basicColorEditor.setModel(null);
-        //}
+        if (imageInfoEditor.getModel() != null) {
+            imageInfoEditor.getModel().removeChangeListener(applyEnablerCL);
+            imageInfoEditor.setModel(null);
+        }
     }
 
     @Override
     public void updateFormModel(ProductSceneView productSceneView) {
 
-        productSceneView.getRaster().setLog10ScaledDisplay(basicColorEditor.isLog10Scaled())  ;
-        //productSceneView.getRaster().getSceneRasterData();
+        basicColorEditor.resetMinMax();
         basicColorEditor.recomputeSamplePoints();
-        //parentForm.applyColorPaletteDef(productSceneView.getImageInfo().getColorPaletteDef(), productSceneView.getRaster(), productSceneView.getImageInfo());
-//        if (basicColorEditor.isLog10Scaled()) {
-//            final double newMin = parentForm.getImageInfo().getColorPaletteDef().getMinDisplaySample();
-//            final double newMax = parentForm.getImageInfo().getColorPaletteDef().getMaxDisplaySample();
-//            try {
-//                productSceneView.getRaster().quantizeRasterData(newMin, newMax,1, ProgressMonitor.NULL);
-//            } catch (IOException ioe) {
-//
-//            }
-//        }
-
-
-        //basicColorEditor.recomputeSamplePoints();
         ImageInfoEditorModel1B model = new ImageInfoEditorModel1B(parentForm.getImageInfo());
         model.addChangeListener(applyEnablerCL);
+        ImageInfoEditorModel oldModel = imageInfoEditor.getModel();
+        setDisplayProperties(model, productSceneView.getRaster());
+        imageInfoEditor.setModel(model);
 
-        //ImageInfoEditorModel oldModel = basicColorEditor.getModel();
-       // setDisplayProperties(model, productSceneView.getRaster());
-        //basicColorEditor.setModel(model);
-        //if (oldModel != null) {
-         //   model.setHistogramViewGain(oldModel.getHistogramViewGain());
-         //   model.setMinHistogramViewSample(oldModel.getMinHistogramViewSample());
-          //  model.setMaxHistogramViewSample(oldModel.getMaxHistogramViewSample());
-       // }
-        //if (model.getSliderSample(0) < model.getMinHistogramViewSample() ||
-         //       model.getSliderSample(model.getSliderCount() - 1) > model.getMaxHistogramViewSample()) {
-            //basicColorEditor.computeZoomInToSliderLimits();
-       // }
+        if (oldModel != null) {
+            model.setHistogramViewGain(oldModel.getHistogramViewGain());
+            model.setMinHistogramViewSample(oldModel.getMinHistogramViewSample());
+            model.setMaxHistogramViewSample(oldModel.getMaxHistogramViewSample());
+        }
+        imageInfoEditor.computeZoomInToSliderLimits();
+        if (model.getSliderSample(0) < model.getMinHistogramViewSample() ||
+                model.getSliderSample(model.getSliderCount() - 1) > model.getMaxHistogramViewSample()) {
+            imageInfoEditor.computeZoomInToSliderLimits();
+        }
+        productSceneView.getRaster().setLog10ScaledDisplay(basicColorEditor.isLog10Scaled())  ;
+        //productSceneView.getRaster().setLog10Scaled(basicColorEditor.isLog10Scaled())  ;
 
-        //parentForm.revalidateToolViewPaneControl();
+        parentForm.revalidateToolViewPaneControl();
     }
 
     @Override
     public void resetFormModel(ProductSceneView productSceneView) {
          basicColorEditor.resetToDataDefault();
          updateFormModel(productSceneView);
-        //basicColorEditor.computeZoomOutToFullHistogramm();
-       // parentForm.revalidateToolViewPaneControl();
+         imageInfoEditor.computeZoomOutToFullHistogramm();
+         parentForm.revalidateToolViewPaneControl();
     }
 
     @Override
     public void handleRasterPropertyChange(ProductNodeEvent event, RasterDataNode raster) {
-       // if (basicColorEditor.getModel() != null) {
-        //    setDisplayProperties(basicColorEditor.getModel(), raster);
-        //    if (event.getPropertyName().equals(RasterDataNode.PROPERTY_NAME_STX)) {
-        //        updateFormModel(parentForm.getProductSceneView());
-        //    }
-       // }
+        if (imageInfoEditor.getModel() != null) {
+
+            setDisplayProperties(imageInfoEditor.getModel(), raster);
+            if (event.getPropertyName().equals(RasterDataNode.PROPERTY_NAME_STX)) {
+                //parentForm.setDataFileMinMax();
+                updateFormModel(parentForm.getProductSceneView());
+            }
+        }
+
     }
 
     @Override

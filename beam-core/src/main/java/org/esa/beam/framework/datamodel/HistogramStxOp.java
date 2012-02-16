@@ -27,16 +27,25 @@ class HistogramStxOp implements StxOp {
     private final double lowValue;
     private final double highValue;
     private final double binWidth;
+    private boolean log10ScaledDisplay = false;
+
 
     private final int[] bins;
 
     HistogramStxOp(int numBins, double lowValue, double highValue) {
-        this.lowValue = lowValue;
-        this.highValue = highValue;
-        this.binWidth = (highValue - lowValue) / numBins;
+        this.lowValue =  lowValue;
+        this.highValue =  highValue;
+        this.binWidth = highValue - lowValue / numBins;
         this.bins = new int[numBins];
     }
 
+    HistogramStxOp(int numBins, double lowValue, double highValue, boolean log10ScaledDisplay) {
+        this.log10ScaledDisplay = log10ScaledDisplay;
+        this.lowValue = log10ScaledDisplay & lowValue > 0 ? Math.log10(lowValue) : lowValue;
+        this.highValue = log10ScaledDisplay & highValue >0 ? Math.log10(highValue) : highValue;
+        this.binWidth = (this.highValue - this.lowValue) / numBins;
+        this.bins = new int[numBins];
+    }
     @Override
     public String getName() {
         return "Histogram";
@@ -44,6 +53,10 @@ class HistogramStxOp implements StxOp {
 
     int[] getBins() {
         return bins;
+    }
+
+    public void setLog10ScaledDisplay(boolean log10ScaledDisplay){
+        this.log10ScaledDisplay = log10ScaledDisplay ;
     }
 
     @Override
@@ -232,7 +245,7 @@ class HistogramStxOp implements StxOp {
             int maskPixelOffset = maskLineOffset;
             for (int x = 0; x < width; x++) {
                 if (mask == null || mask[maskPixelOffset] != 0) {
-                    final double d = data[dataPixelOffset];
+                    final double d = log10ScaledDisplay &  data[dataPixelOffset] > 0 ? Math.log10(data[dataPixelOffset]) : data[dataPixelOffset] ;
                     if (d >= lowValue && d < highValue) {
                         int i = (int) ((d - lowValue) / binWidth);
                         bins[i]++;
@@ -349,9 +362,10 @@ class HistogramStxOp implements StxOp {
     @Override
     public void accumulateDataFloat(PixelAccessor dataAccessor, Raster dataTile, PixelAccessor maskAccessor,
                                     Raster maskTile, Rectangle r) {
+        System.out.println("in float");
         final int[] bins = this.bins;
-        final double lowValue = this.lowValue;
-        final double highValue = this.highValue;
+        final double lowValue =  this.lowValue ;
+        final double highValue = this.highValue ;
         final double binWidth = this.binWidth;
 
         final UnpackedImageData duid = dataAccessor.getPixels(dataTile, r, DataBuffer.TYPE_FLOAT, false);
@@ -377,16 +391,19 @@ class HistogramStxOp implements StxOp {
 
         int dataLineOffset = dataBandOffset;
         int maskLineOffset = maskBandOffset;
+        System.out.println( "lowValue= " + lowValue  +  " highValue = " + highValue + " binWidth = " + binWidth );
         for (int y = 0; y < height; y++) {
             int dataPixelOffset = dataLineOffset;
             int maskPixelOffset = maskLineOffset;
             for (int x = 0; x < width; x++) {
                 if (mask == null || mask[maskPixelOffset] != 0) {
-                    final double d = data[dataPixelOffset];
+                    //final double d = data[dataPixelOffset];
+                    final double d = log10ScaledDisplay &  data[dataPixelOffset] > 0 ? Math.log10(data[dataPixelOffset]) : data[dataPixelOffset] ;
                     if (d >= lowValue && d <= highValue) {
                         int i = (int) ((d - lowValue) / binWidth);
                         i = i == bins.length ? i - 1 : i;
                         bins[i]++;
+                        System.out.println( "d= " + d +  " i = " + i );
                     }
                 }
                 dataPixelOffset += dataPixelStride;
@@ -400,6 +417,7 @@ class HistogramStxOp implements StxOp {
     @Override
     public void accumulateDataDouble(PixelAccessor dataAccessor, Raster dataTile, PixelAccessor maskAccessor,
                                      Raster maskTile, Rectangle r) {
+        System.out.println("in double");
         final int[] bins = this.bins;
         final double lowValue = this.lowValue;
         final double highValue = this.highValue;
