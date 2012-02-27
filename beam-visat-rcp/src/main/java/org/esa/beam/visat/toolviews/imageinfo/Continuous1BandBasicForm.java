@@ -71,12 +71,16 @@ class Continuous1BandBasicForm implements ColorManipulationChildForm {
     @Override
     public void updateFormModel(ProductSceneView productSceneView) {
 
+        //productSceneView.getRaster().setLog10ScaledDisplay(basicColorEditor.isLog10ScaledDisplay())  ;
         basicColorEditor.resetMinMax();
         basicColorEditor.recomputeSamplePoints();
+        //Stx stx = productSceneView.getRaster().getStx(false, com.bc.ceres.core.ProgressMonitor.NULL);
+        //stx.setLog10ScaledDisplay(basicColorEditor.isLog10ScaledDisplay());
         ImageInfoEditorModel1B model = new ImageInfoEditorModel1B(parentForm.getImageInfo());
         model.addChangeListener(applyEnablerCL);
         ImageInfoEditorModel oldModel = imageInfoEditor.getModel();
         setDisplayProperties(model, productSceneView.getRaster());
+        System.out.println("is log 10 scaled display" + productSceneView.getRaster().isLog10ScaledDisplay());
         imageInfoEditor.setModel(model);
 
         if (oldModel != null) {
@@ -89,8 +93,8 @@ class Continuous1BandBasicForm implements ColorManipulationChildForm {
                 model.getSliderSample(model.getSliderCount() - 1) > model.getMaxHistogramViewSample()) {
             imageInfoEditor.computeZoomInToSliderLimits();
         }
-        productSceneView.getRaster().setLog10ScaledDisplay(basicColorEditor.isLog10Scaled())  ;
-        //productSceneView.getRaster().setLog10Scaled(basicColorEditor.isLog10Scaled())  ;
+        //productSceneView.getRaster().setLog10ScaledDisplay(basicColorEditor.isLog10ScaledDisplay())  ;
+        //productSceneView.getRaster().setLog10Scaled(basicColorEditor.isLog10ScaledDisplay())  ;
 
         parentForm.revalidateToolViewPaneControl();
     }

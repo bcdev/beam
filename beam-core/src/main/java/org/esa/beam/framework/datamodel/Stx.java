@@ -56,6 +56,7 @@ public class Stx {
     private final Histogram histogram;
     private final double mean;
     private final double median;
+    //private static boolean log10ScaledDisplay;
 
     public static Stx create(RasterDataNode raster, int level, ProgressMonitor pm) {
         return createImpl(raster, level, null, null, DEFAULT_BIN_COUNT, pm);
@@ -163,9 +164,17 @@ public class Stx {
         this.resolutionLevel = resolutionLevel;
         this.sampleCount = computeSum(histogram.getBins(0));
         this.median = computeMedian(histogram, this.sampleCount);
+        //log10ScaledDisplay = false;
         System.out.println("in stx : min, max, mean, resolution level, sample count, median " + min + " " + max + " " + mean + " " + resolutionLevel + " " + sampleCount + " " + median );
     }
 
+//    public boolean isLog10ScaledDisplay() {
+//        return log10ScaledDisplay;
+//    }
+
+//    public void setLog10ScaledDisplay(boolean log10ScaledDisplay){
+//        this.log10ScaledDisplay = log10ScaledDisplay ;
+//    }
     public double getMin() {
         return min;
     }
@@ -284,7 +293,9 @@ public class Stx {
             }
 
             double off = getHighValueOffset(raster);
-            final HistogramStxOp histogramOp = new HistogramStxOp(binCount, min, max + off, raster.isLog10ScaledDisplay()  );
+
+            final HistogramStxOp histogramOp = new HistogramStxOp(binCount, min, max + off, raster.isLog10ScaledDisplay());
+            //final HistogramStxOp histogramOp = new HistogramStxOp(binCount, min, max + off );
             //histogramOp.setLog10ScaledDisplay(raster.isLog10ScaledDisplay() );
             accumulate(raster, level, maskImage, maskShape, histogramOp, SubProgressMonitor.create(pm, 1));
 
@@ -306,7 +317,7 @@ public class Stx {
             pm.beginTask("Computing statistics", 3);
 
             double off = getHighValueOffset(raster);
-            final HistogramStxOp histogramOp = new HistogramStxOp(binCount, min, max + off);
+            final HistogramStxOp histogramOp = new HistogramStxOp(binCount, min, max + off );
             accumulate(raster, level, maskImage, maskShape, histogramOp, SubProgressMonitor.create(pm, 1));
 
             // Create JAI histogram, but use our "BEAM" bins

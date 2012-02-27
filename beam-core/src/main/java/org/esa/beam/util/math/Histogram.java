@@ -18,16 +18,14 @@ package org.esa.beam.util.math;
 
 import com.bc.ceres.core.ProgressMonitor;
 import com.bc.ceres.core.SubProgressMonitor;
-
 import org.esa.beam.util.Debug;
 import org.esa.beam.util.Guardian;
 import org.esa.beam.util.jai.JAIUtils;
 
-import java.awt.image.RenderedImage;
-
 import javax.media.jai.ROI;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.HistogramDescriptor;
+import java.awt.image.RenderedImage;
 
 /**
  * Instances of the <code>Histogram</code> class store histogram data.

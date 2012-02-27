@@ -97,8 +97,8 @@ public abstract class AbstractImageInfoEditorModel implements ImageInfoEditorMod
     }
 
     public double getMinSample() {
-        //return scaling == null ? 0 : (scaling.scale(stx.getMin()));
-        return scaling == null ? 0 : ( scaling.isLog10Scaled() ? scaling.scale(stx.getMin()) : stx.getMin() );
+        return scaling == null ? 0 : (scaling.scale(stx.getMin()));
+        //return scaling == null ? 0 : ( scaling.isLog10Scaled() ? scaling.scale(stx.getMin()) : stx.getMin() );
     }
 
     public double getMinSample(boolean isLog10Scaled) {
@@ -110,8 +110,8 @@ public abstract class AbstractImageInfoEditorModel implements ImageInfoEditorMod
     }
 
     public double getMaxSample() {
-        //return scaling == null ? 0 : scaling.scale(stx.getMax());
-        return scaling == null ? 0 : ( scaling.isLog10Scaled() ? scaling.scale(stx.getMax()) : stx.getMax() );
+        return scaling == null ? 0 : scaling.scale(stx.getMax());
+        //return scaling == null ? 0 : ( scaling.isLog10Scaled() ? scaling.scale(stx.getMax()) : stx.getMax() );
     }
 
     public boolean isHistogramAvailable() {
@@ -119,8 +119,8 @@ public abstract class AbstractImageInfoEditorModel implements ImageInfoEditorMod
     }
 
     public int[] getHistogramBins() {
-        int[] histBins = stx == null ? null : stx.getHistogramBins();
-        System.out.println(" histogram bin length: " + histBins == null ? null : histBins.length );
+        //int[] histBins = stx == null ? null : stx.getHistogramBins();
+        //System.out.println(" histogram bin length: " + histBins == null ? null : histBins.length );
         return stx == null ? null : stx.getHistogramBins();
     }
 

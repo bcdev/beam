@@ -298,9 +298,10 @@ public class ImageManager {
         RenderedImage sourceImage = getSourceImage(raster, level);
 
         //added by seadas team
-           if (raster.isLog10ScaledDisplay()) {
+        boolean log10ScaledProduct = raster.isLog10Scaled();
+        if (raster.isLog10ScaledDisplay() & !log10ScaledProduct) {
             sourceImage = logScalePixels(sourceImage);
-               raster.setLog10Scaled(true);
+            raster.setLog10Scaled(true);    //now the source pixels are logged, so this flag needs to be true.
         }
         //seadas addition ends here
 
@@ -308,10 +309,18 @@ public class ImageManager {
         PlanarImage image = createByteIndexedImage(raster, sourceImage, imageInfo);
         image = createMatchCdfImage(image, imageInfo.getHistogramMatching(), new Stx[]{raster.getStx()});
         image = createLookupRgbImage(raster, image, validMaskImage, imageInfo);
-        raster.setLog10Scaled(false);
+        System.out.println("image manager log10ScaledProduct 1" + log10ScaledProduct);
+        // reset log10Scaled flag to original value; recreate STX.
+        if (raster.isLog10ScaledDisplay() ) {
+            raster.setLog10Scaled(log10ScaledProduct);
+        } else {
+            raster.resetValidMask(); // a new STX has to be generated to recompute the histogram.    this will set stx to null.
+        }
+        raster.getStx();   //  A new STX will be computed for the raster.
+        System.out.println("image manager log10ScaledProduct 2" + raster.isLog10Scaled()  );
         return image;
     }
-    //aynur's code
+    //new method added by seadas team
     private TiledImage logScalePixels(RenderedImage sourceImage){
         int width = sourceImage.getWidth();
         int height = sourceImage.getHeight();

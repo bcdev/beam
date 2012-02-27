@@ -57,7 +57,7 @@ class BasicColorEditor extends ImageInfoEditor  {
     private JRadioButton linearButton;
     private ButtonGroup buttonGroup;
     private NumberFormat valFormat;
-    private boolean log10Scaled;
+    private boolean log10ScaledDisplay;
 
 
     BasicColorEditor(final ColorManipulationForm parentForm) {
@@ -66,7 +66,7 @@ class BasicColorEditor extends ImageInfoEditor  {
         minVal = parentForm.getMinValueData();
         setLayout(new BorderLayout());
         setShowExtraInfo(true);
-        log10Scaled = false;
+        log10ScaledDisplay = false;
         valFormat = NumberFormat.getNumberInstance();
         valFormat.setMaximumFractionDigits(4);
     }
@@ -292,19 +292,19 @@ class BasicColorEditor extends ImageInfoEditor  {
 
         buttonGroup = new ButtonGroup();
         logButton  = new JRadioButton("Log");
-        logButton.setSelected(log10Scaled );
+        logButton.setSelected(log10ScaledDisplay);
         buttonGroup.add(logButton);
         scalePanel.add(logButton);
 
         linearButton = new JRadioButton("Linear");
-        linearButton.setSelected(!log10Scaled );
+        linearButton.setSelected(!log10ScaledDisplay);
         buttonGroup.add(linearButton);
         scalePanel.add(linearButton);
 
         logButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                log10Scaled = true;
+                log10ScaledDisplay = true;
                 validateMinMax(minVal, maxVal);     ///?? is this needed?
                 recomputeSamplePoints();
             }
@@ -313,7 +313,7 @@ class BasicColorEditor extends ImageInfoEditor  {
         linearButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                log10Scaled = false;
+                log10ScaledDisplay = false;
                 recomputeSamplePoints();
             }
         });
@@ -390,6 +390,7 @@ class BasicColorEditor extends ImageInfoEditor  {
     private void activateApply(){
         parentForm.setCurrentMaxValue(maxVal);
         parentForm.setCurrentMinValue(minVal);
+        parentForm.getProductSceneView().getRaster().setLog10ScaledDisplay(log10ScaledDisplay);
         parentForm.setApplyEnabled(true);
     }
 
@@ -413,8 +414,11 @@ class BasicColorEditor extends ImageInfoEditor  {
     protected void recomputeSamplePoints(){
         //validateMinMax(minVal, maxVal);
         RasterDataNode  rasterDataNode = parentForm.getProductSceneView().getRaster();
-        rasterDataNode.setLog10ScaledDisplay(log10Scaled);
-        parentForm.getImageInfo().getColorPaletteDef().computeSamplePoints(minVal, maxVal, log10Scaled);
+        rasterDataNode.setLog10ScaledDisplay(log10ScaledDisplay);
+        if (!log10ScaledDisplay ) {
+            //rasterDataNode.resetValidMask();
+        }
+        parentForm.getImageInfo().getColorPaletteDef().computeSamplePoints(minVal, maxVal, log10ScaledDisplay);
     //    super.setColorPalette(parentForm.getImageInfo().getColorPaletteDef().getColors());
         activateApply();
     }
@@ -423,8 +427,8 @@ class BasicColorEditor extends ImageInfoEditor  {
         JOptionPane.showMessageDialog(this, errorMessage );
 
     }
-    protected boolean isLog10Scaled() {
-        return log10Scaled;
+    protected boolean isLog10ScaledDisplay() {
+        return log10ScaledDisplay;
     }
     private boolean validateMinMax(double min, double max){
 
@@ -437,7 +441,7 @@ class BasicColorEditor extends ImageInfoEditor  {
             errorMessage = "Min cannot be greater than Max";
             valid = false;
             deactivateApply();
-        } else if (log10Scaled ) {
+        } else if (log10ScaledDisplay) {
             if (min < 0 || max < 0 ){
 
                 errorMessage = "Log cannot be applied to negative values. Will apply linear scale.";
@@ -450,7 +454,7 @@ class BasicColorEditor extends ImageInfoEditor  {
             if (!valid) {
                 logButton.setSelected(false);
                 linearButton.setSelected(true);
-                log10Scaled = false;
+                log10ScaledDisplay = false;
 
             }
 

@@ -847,6 +847,7 @@ System.out.println("importing color palette...");
 
     Stx getStx(RasterDataNode raster) {
         return raster.getStx(false, ProgressMonitor.NULL); // todo - use PM
+        //return raster.getStx(true, ProgressMonitor.NULL); // todo - use PM
     }
 
     private class ColorManipulationPNL extends ProductNodeListenerAdapter {

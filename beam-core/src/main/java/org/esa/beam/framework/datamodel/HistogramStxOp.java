@@ -37,6 +37,8 @@ class HistogramStxOp implements StxOp {
         this.highValue =  highValue;
         this.binWidth = highValue - lowValue / numBins;
         this.bins = new int[numBins];
+        System.out.println("lowvalue , highValue, binWidth, numBins, log10ScaledDisplay " + this.lowValue + " " + this.highValue + " " + binWidth + " " + numBins + " " + log10ScaledDisplay );
+
     }
 
     HistogramStxOp(int numBins, double lowValue, double highValue, boolean log10ScaledDisplay) {
@@ -45,6 +47,7 @@ class HistogramStxOp implements StxOp {
         this.highValue = log10ScaledDisplay & highValue >0 ? Math.log10(highValue) : highValue;
         this.binWidth = (this.highValue - this.lowValue) / numBins;
         this.bins = new int[numBins];
+        System.out.println("lowvalue , highValue, binWidth, numBins, log10ScaledDisplay " + this.lowValue + " " + this.highValue + " " + binWidth + " " + numBins + " " + log10ScaledDisplay );
     }
     @Override
     public String getName() {
@@ -53,10 +56,6 @@ class HistogramStxOp implements StxOp {
 
     int[] getBins() {
         return bins;
-    }
-
-    public void setLog10ScaledDisplay(boolean log10ScaledDisplay){
-        this.log10ScaledDisplay = log10ScaledDisplay ;
     }
 
     @Override
@@ -403,7 +402,7 @@ class HistogramStxOp implements StxOp {
                         int i = (int) ((d - lowValue) / binWidth);
                         i = i == bins.length ? i - 1 : i;
                         bins[i]++;
-                        System.out.println( "d= " + d +  " i = " + i );
+                        System.out.println( "low value = " + lowValue + " d= " + d +  " i = " + i );
                     }
                 }
                 dataPixelOffset += dataPixelStride;

@@ -43,6 +43,7 @@ import java.awt.image.SampleModel;
 import java.io.IOException;
 import java.util.Arrays;
 
+
 /**
  * The <code>RasterDataNode</code> class ist the abstract base class for all objects in the product package that contain
  * rasterized data. i.e. <code>Band</code> and <code>TiePointGrid</code>. It unifies the access to raster data in the
@@ -416,6 +417,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
      */
     public void setLog10ScaledDisplay( boolean log10ScaledDisplay ) {
         this.log10ScaledDisplay = log10ScaledDisplay ;
+        setModified(true);
     }
     /**
      * Gets whether or not the {@link <code>ProductData</code>} of this band has a negative binominal distribution and
@@ -1774,9 +1776,10 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
     @Override
     public final double scale(double v) {
         v = v * scalingFactor + scalingOffset;
-        if (log10Scaled || log10ScaledDisplay ) {
+        if (log10Scaled ) {
             v = Math.pow(10.0, v);
         }
+
         return v;
     }
 
@@ -1790,7 +1793,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
      */
     @Override
     public final double scaleInverse(double v) {
-        if (log10Scaled || log10ScaledDisplay ) {
+        if (log10Scaled ) {
             v = (v>0)?Math.log10(v):v;
         }
         return (v - scalingOffset) / scalingFactor;
@@ -1874,7 +1877,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
     }
 
     private void setGeophysicalNoDataValue() {
-        geophysicalNoDataValue = isLog10Scaled()? scale(getNoDataValue()) : getNoDataValue() ;
+        geophysicalNoDataValue = scale(getNoDataValue()) ;
     }
 
     /**
@@ -2120,10 +2123,12 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
         if (stx == null || stx.getResolutionLevel() > 0 && accurate) {
             if (accurate) {
                 setStx(computeStxImpl(0, pm));
+                System.out.println("accurate");
             } else {
                 final int levelCount = getSourceImage().getModel().getLevelCount();
                 final int statisticsLevel = ImageManager.getInstance().getStatisticsLevel(this, levelCount);
                 setStx(computeStxImpl(statisticsLevel, pm));
+                System.out.println("not accurate");
             }
         }
         return stx;
@@ -2156,6 +2161,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
      * @since BEAM 4.5
      */
     protected Stx computeStxImpl(int level, ProgressMonitor pm) {
+        System.out.println("this " + this.isLog10ScaledDisplay());
         return Stx.create(this, level, pm);
     }
 

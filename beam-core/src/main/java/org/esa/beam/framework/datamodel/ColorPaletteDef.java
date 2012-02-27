@@ -309,7 +309,7 @@ public class ColorPaletteDef implements Cloneable {
             range = max - min;
             inc = range/(numberOfPoints - 1 );
             for (int i = 0; i < numberOfPoints; i++) {
-                final double sample =   Math.pow(10, min + i *inc);
+                //final double sample =   Math.pow(10, min + i *inc);
                 points[i].setSample(Math.pow(10, min + i *inc));
             }
         } else {
@@ -318,7 +318,7 @@ public class ColorPaletteDef implements Cloneable {
             range = max - min;
             inc = range/(numberOfPoints - 1 );
             for (int i = 0; i < numberOfPoints; i++) {
-                final double sample =  min + i *inc;
+                //final double sample =  min + i *inc;
                 points[i].setSample(min + i *inc);
 
             }
@@ -328,40 +328,6 @@ public class ColorPaletteDef implements Cloneable {
         setPoints(points);
     }
 
-    public void computeSamplePointsForLogHistogram(double minSample, double maxSample, boolean log10Scaled) {
-
-        final double min, max, range;
-
-        final int numberOfPoints = getNumPoints();
-
-        final ColorPaletteDef.Point[] points = getPoints();
-
-        final double inc;
-
-        if (log10Scaled ){
-            min =  Math.log10(minSample);
-            max =  Math.log10(maxSample);
-            range = max - min;
-            inc = range/(numberOfPoints - 1 );
-            for (int i = 0; i < numberOfPoints; i++) {
-                final double sample =   Math.pow(10, min + i *inc);
-                points[i].setSample(Math.pow(10, min + i *inc));
-            }
-        } else {
-            min = minSample;
-            max = maxSample;
-            range = max - min;
-            inc = range/(numberOfPoints - 1 );
-            for (int i = 0; i < numberOfPoints; i++) {
-                final double sample =  min + i *inc;
-                points[i].setSample(min + i *inc);
-
-            }
-
-        }
-
-        setPoints(points);
-    }
     /**
      * Stores this color palette definition in the given file
      *
@@ -416,22 +382,41 @@ public class ColorPaletteDef implements Cloneable {
 
 
      public Color[] createColorPalette(Scaling scaling) {
+
         //System.out.println("new color palette");
+         if (scaling.isLog10ScaledDisplay()  & !scaling.isLog10Scaled()  ) {
+             return createColorPaletteForLogScaledDisplay();
+         }
+
         Debug.assertTrue(getNumPoints() >= 2);
         final int numColors = getNumColors();
         final Color[] colorPalette = new Color[numColors];
-        final double minDisplay = scaling.isLog10Scaled() ? scaling.scaleInverse(getMinDisplaySample()) : getMinDisplaySample();
-        final double maxDisplay = scaling.isLog10Scaled() ? scaling.scaleInverse(getMaxDisplaySample()) : getMaxDisplaySample();
-        //System.out.println("minDisplay and maxDisplay in createColor: " + minDisplay + " " + maxDisplay );
+        final double minDisplay = scaling.scaleInverse(getMinDisplaySample());
+        final double maxDisplay = scaling.scaleInverse(getMaxDisplaySample());
         for (int i = 0; i < numColors; i++) {
             final double w = i / (numColors - 1.0);
             final double sample = minDisplay + w * (maxDisplay - minDisplay);
             colorPalette[i] = computeColorRaw(scaling, sample, minDisplay, maxDisplay);
-           //System.out.println("i: " + i + "color: " + colorPalette[i].getRed() + " "  + colorPalette[i ].getGreen()  + " " + colorPalette[i ].getBlue());
-
         }
         return colorPalette;
     }
+
+    private Color[] createColorPaletteForLogScaledDisplay() {
+       RasterDataNode tmpScaling = new Band("temp", ProductData.TYPE_FLOAT32, 12, 12);
+       tmpScaling.setLog10Scaled(true);
+       Debug.assertTrue(getNumPoints() >= 2);
+       final int numColors = getNumColors();
+       final Color[] colorPalette = new Color[numColors];
+       final double minDisplay = Math.log10(getMinDisplaySample());
+       final double maxDisplay = Math.log10(getMaxDisplaySample());
+       for (int i = 0; i < numColors; i++) {
+           final double w = i / (numColors - 1.0);
+           final double sample = minDisplay + w * (maxDisplay - minDisplay);
+           colorPalette[i] = computeColorRaw(tmpScaling, sample, minDisplay, maxDisplay);
+       }
+       return colorPalette;
+   }
+
 
 
     private Color computeColorRaw(Scaling scaling, double sample, double minDisplay, double maxDisplay) {
@@ -454,10 +439,9 @@ public class ColorPaletteDef implements Cloneable {
         for (int i = 0; i < getNumPoints() - 1; i++) {
             final Point p1 = getPointAt(i);
             final Point p2 = getPointAt(i + 1);
-            final double sample1 = scaling.isLog10Scaled() ? scaling.scaleInverse(p1.getSample()) : p1.getSample();
-            final double sample2 = scaling.isLog10Scaled() ? scaling.scaleInverse(p2.getSample()) : p2.getSample();
-            //System.out.println("sample1, sample2, and rawSample: " + sample1 + " " + sample2 + " " + rawSample  );
-            if (rawSample >= sample1 && rawSample <= sample2) {
+            final double sample1 = scaling.scaleInverse(p1.getSample());
+            final double sample2 = scaling.scaleInverse(p2.getSample());
+             if (rawSample >= sample1 && rawSample <= sample2) {
                 if (discrete) {
                     return p1.getColor();
                 } else {
@@ -474,7 +458,6 @@ public class ColorPaletteDef implements Cloneable {
                     final int green = (int) MathUtils.roundAndCrop(g1 + f * (g2 - g1), 0L, 255L);
                     final int blue = (int) MathUtils.roundAndCrop(b1 + f * (b2 - b1), 0L, 255L);
                     final int alpha = (int) MathUtils.roundAndCrop(a1 + f * (a2 - a1), 0L, 255L);
-                     //System.out.println("red, green, blue: " + red + " " + green + " " + blue  );
                     return new Color(red, green, blue, alpha);
                 }
             }
