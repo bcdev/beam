@@ -16,18 +16,15 @@
 
 package org.esa.beam.visat.toolviews.layermanager.layersrc.shapefile;
 
-import com.bc.ceres.binding.ConversionException;
-import com.bc.ceres.binding.Property;
-import com.bc.ceres.binding.PropertyContainer;
-import com.bc.ceres.binding.PropertySet;
-import com.bc.ceres.binding.ValidationException;
+import com.bc.ceres.binding.*;
 import com.bc.ceres.binding.dom.DefaultDomConverter;
 import com.bc.ceres.binding.dom.DomConverter;
 import com.bc.ceres.binding.dom.DomElement;
-import com.bc.ceres.binding.dom.Xpp3DomElement;
+import com.bc.ceres.binding.dom.XppDomElement;
 import com.bc.ceres.glayer.Layer;
 import com.bc.ceres.glayer.LayerContext;
 import com.bc.ceres.glayer.LayerType;
+import com.bc.ceres.glayer.annotations.LayerTypeMetadata;
 import com.thoughtworks.xstream.io.copy.HierarchicalStreamCopier;
 import com.thoughtworks.xstream.io.xml.XppDomWriter;
 import com.thoughtworks.xstream.io.xml.XppReader;
@@ -59,6 +56,8 @@ import java.util.List;
  * <p/>
  * Unstable API. Use at own risk.
  */
+@LayerTypeMetadata(name = "FeatureLayerType",
+                   aliasNames = {"org.esa.beam.visat.toolviews.layermanager.layersrc.shapefile.FeatureLayerType"})
 public class FeatureLayerType extends LayerType {
 
     public static final String PROPERTY_NAME_SLD_STYLE = "sldStyle";
@@ -67,19 +66,6 @@ public class FeatureLayerType extends LayerType {
     public static final String PROPERTY_NAME_FEATURE_COLLECTION_CRS = "featureCollectionTargetCrs";
     public static final String PROPERTY_NAME_FEATURE_COLLECTION_CLIP_GEOMETRY = "featureCollectionClipGeometry";
 
-    private static final String TYPE_NAME = "FeatureLayerType";
-    private static final String[] ALIASES = {"org.esa.beam.visat.toolviews.layermanager.layersrc.shapefile.FeatureLayerType"};
-
-    @Override
-    public String getName() {
-        return TYPE_NAME;
-    }
-    
-    @Override
-    public String[] getAliases() {
-        return ALIASES;
-    }
-    
     @Override
     public boolean isValidFor(LayerContext ctx) {
         return true;
@@ -148,7 +134,7 @@ public class FeatureLayerType extends LayerType {
 
         @Override
         public Object convertDomToValue(DomElement parentElement, Object value) throws ConversionException,
-                                                                                       ValidationException {
+                ValidationException {
             final DomElement child = parentElement.getChild(0);
             SLDParser s = new SLDParser(CommonFactoryFinder.getStyleFactory(null), new StringReader(child.toXml()));
             final Style[] styles = s.readXML();
@@ -164,7 +150,7 @@ public class FeatureLayerType extends LayerType {
                 final String s = transformer.transform(style);
                 XppDomWriter domWriter = new XppDomWriter();
                 new HierarchicalStreamCopier().copy(new XppReader(new StringReader(s)), domWriter);
-                parentElement.addChild(new Xpp3DomElement(domWriter.getConfiguration()));
+                parentElement.addChild(new XppDomElement(domWriter.getConfiguration()));
             } catch (TransformerException e) {
                 throw new IllegalArgumentException(e);
             }
@@ -180,7 +166,7 @@ public class FeatureLayerType extends LayerType {
 
         @Override
         public Object convertDomToValue(DomElement parentElement, Object value) throws ConversionException,
-                                                                                       ValidationException {
+                ValidationException {
             try {
                 value = CRS.parseWKT(parentElement.getValue());
             } catch (FactoryException e) {
@@ -206,7 +192,7 @@ public class FeatureLayerType extends LayerType {
 
         @Override
         public Object convertDomToValue(DomElement parentElement, Object value) throws ConversionException,
-                                                                                       ValidationException {
+                ValidationException {
             com.vividsolutions.jts.geom.GeometryFactory gf = new com.vividsolutions.jts.geom.GeometryFactory();
             final DefaultDomConverter domConverter = new DefaultDomConverter(Coordinate.class);
             final DomElement[] children = parentElement.getChildren("coordinate");

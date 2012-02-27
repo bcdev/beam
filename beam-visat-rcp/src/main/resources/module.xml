@@ -28,6 +28,7 @@
     <changelog>
         <![CDATA[
         <p>Changes in 4.10<br/>
+          [BEAM-1372] Use latest XStream library<br/>
           [BEAM-1352] When exporting a product a SubsetInfo is always added to metadata tree<br/>
           [BEAM-1323] Add "magic stick" to VISAT that lets users create masks of similar pixels<br/>
         <p>Changes in 4.9<br/>
@@ -226,7 +227,8 @@
 
     <extension point="beam-ui:layerEditors">
         <layerEditor>
-            <editorFactory>org.esa.beam.visat.toolviews.layermanager.editors.VectorDataLayerEditorFactory</editorFactory>
+            <editorFactory>org.esa.beam.visat.toolviews.layermanager.editors.VectorDataLayerEditorFactory
+            </editorFactory>
             <layer>org.esa.beam.framework.ui.product.VectorDataLayer</layer>
         </layerEditor>
         <layerEditor>
@@ -418,6 +420,19 @@
             <smallIcon>/org/esa/beam/resources/images/icons/MaskManager16.png</smallIcon>
             <largeIcon>/org/esa/beam/resources/images/icons/MaskManager24.png</largeIcon>
             <helpId>showMaskROIManagerWnd</helpId>
+            <initState>HIDDEN</initState>
+            <initSide>SOUTH</initSide>
+            <initIndex>0</initIndex>
+        </toolView>
+
+        <toolView>
+            <id>org.esa.beam.visat.toolviews.placemark.PlacemarkEditorToolView</id>
+            <class>org.esa.beam.visat.toolviews.placemark.PlacemarkEditorToolView</class>
+            <title>Placemark Editor</title>
+            <description>Editor for placemarks of a data product.</description>
+            <smallIcon>/org/esa/beam/resources/images/icons/PinManager16.gif</smallIcon>
+            <largeIcon>/org/esa/beam/resources/images/icons/PinManager24.gif</largeIcon>
+            <helpId>showPlacemarkEditorWnd</helpId>
             <initState>HIDDEN</initState>
             <initSide>SOUTH</initSide>
             <initIndex>0</initIndex>
@@ -1085,6 +1100,21 @@
             <shortDescr>Open metadata view.</shortDescr>
             <description>Open a metadata view for the selected metadata node.</description>
             <context>metadataNode</context>
+            <smallIcon>icons/ImageView16.gif</smallIcon>
+            <largeIcon>icons/ImageView24.gif</largeIcon>
+        </action>
+
+        <action>
+            <parent>view</parent>
+            <id>showPlacemarkView</id>
+            <class>org.esa.beam.visat.actions.ShowPlacemarkViewAction</class>
+            <placeAfter>showMetadataView</placeAfter>
+            <text>Open Placemark View</text>
+            <mnemonic>P</mnemonic>
+            <accellerator>control alt P</accellerator>
+            <shortDescr>Open placemark view.</shortDescr>
+            <description>Open a placemark view for the selected metadata node.</description>
+            <context>vectorDataNode</context>
             <smallIcon>icons/ImageView16.gif</smallIcon>
             <largeIcon>icons/ImageView24.gif</largeIcon>
         </action>
