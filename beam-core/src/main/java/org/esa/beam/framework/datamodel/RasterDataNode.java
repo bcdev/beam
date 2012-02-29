@@ -706,7 +706,6 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
         } else if (isNoDataValueUsed()) {
             dataMaskExpression = createValidMaskExpressionForNoDataValue();
         }
-        System.out.println("valid mask expression: " + dataMaskExpression.toString() + " " + noData.getElemDoubleAt(0) );
         return dataMaskExpression;
     }
 

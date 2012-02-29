@@ -402,7 +402,7 @@ class HistogramStxOp implements StxOp {
                         int i = (int) ((d - lowValue) / binWidth);
                         i = i == bins.length ? i - 1 : i;
                         bins[i]++;
-                        System.out.println( "low value = " + lowValue + " d= " + d +  " i = " + i );
+                        //System.out.println( "low value = " + lowValue + " d= " + d +  " i = " + i );
                     }
                 }
                 dataPixelOffset += dataPixelStride;

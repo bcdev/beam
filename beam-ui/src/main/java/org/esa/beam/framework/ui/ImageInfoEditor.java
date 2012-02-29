@@ -261,6 +261,9 @@ public class ImageInfoEditor extends JPanel {
 
         final double tenPercentOffset = (lastSliderValue - firstSliderValue) / 80 * 10;
         double minViewSample = scale(firstSliderValue - tenPercentOffset);
+        if (model.getSampleScaling().isLog10ScaledDisplay() && minViewSample <= 0 ) {
+            minViewSample = scale(firstSliderValue );
+        }
         //double minViewSample = scale(firstSliderValue);
         double maxViewSample = scale(lastSliderValue + tenPercentOffset);
 
@@ -274,6 +277,9 @@ public class ImageInfoEditor extends JPanel {
     }
 
     public void computeZoomOutToFullHistogramm() {
+        if (model.getSampleScaling().isLog10ScaledDisplay() & ! model.getSampleScaling().isLog10Scaled()) {
+            computeFactors();
+        }
         getModel().setMinHistogramViewSample(getMinSample());
         getModel().setMaxHistogramViewSample(getMaxSample());
         repaint();
@@ -899,12 +905,28 @@ public class ImageInfoEditor extends JPanel {
     public double getNormalizedHistogramViewSampleValueForLogScaledDisplay(double sample) {
 
         double minVisibleSample = getModel().getMinHistogramViewSample();
-        minVisibleSample = Math.log10(minVisibleSample < getMinSample() ? getMinSample()  :   minVisibleSample);
-
         double maxVisibleSample = getModel().getMaxHistogramViewSample();
-        maxVisibleSample = Math.log10(maxVisibleSample > getMaxSample()  ? getMaxSample()  : maxVisibleSample) ;
 
-        sample = Math.log10(sample);
+        System.out.println("slider position before log: "  + minVisibleSample + " " + maxVisibleSample + " " + sample );
+
+        maxVisibleSample = Math.log10(maxVisibleSample) ;
+
+        if (minVisibleSample <= 0) {
+
+           minVisibleSample = -Math.log10(Math.abs(minVisibleSample));
+
+        } else {
+            minVisibleSample = Math.log10(minVisibleSample);
+        }
+
+        if (sample <= 0) {
+          sample = -Math.log10(Math.abs(sample));
+          System.out.println("sample is zero or minus");
+        } else  {
+            sample = Math.log10(sample);
+        }
+
+        System.out.println("slider position after log: "  + minVisibleSample + " " + maxVisibleSample + " " + sample );
 
         double delta = maxVisibleSample - minVisibleSample;
 
