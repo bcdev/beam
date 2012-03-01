@@ -539,7 +539,6 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
             setModified(true);
             fireProductNodeChanged(PROPERTY_NAME_NO_DATA_VALUE_USED);
             fireProductNodeDataChanged();
-            System.out.println("no data value set to " + noDataValueUsed);
         }
     }
 
@@ -576,7 +575,6 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
      * @see #isNoDataValueSet()
      */
     public void setNoDataValue(final double noDataValue) {
-        System.out.println("setting no data value : " + noDataValue );
         if (noData == null || getNoDataValue() != noDataValue) {
             if (noData == null) {
                 noData = createCompatibleProductData(1);
@@ -2118,16 +2116,13 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
      * @since since BEAM 4.5
      */
     public synchronized Stx getStx(boolean accurate, ProgressMonitor pm) {
-        System.out.println("setting stx");
         if (stx == null || stx.getResolutionLevel() > 0 && accurate) {
             if (accurate) {
                 setStx(computeStxImpl(0, pm));
-                System.out.println("accurate");
             } else {
                 final int levelCount = getSourceImage().getModel().getLevelCount();
                 final int statisticsLevel = ImageManager.getInstance().getStatisticsLevel(this, levelCount);
                 setStx(computeStxImpl(statisticsLevel, pm));
-                System.out.println("not accurate");
             }
         }
         return stx;
@@ -2160,7 +2155,6 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
      * @since BEAM 4.5
      */
     protected Stx computeStxImpl(int level, ProgressMonitor pm) {
-        System.out.println("this " + this.isLog10ScaledDisplay());
         return Stx.create(this, level, pm);
     }
 

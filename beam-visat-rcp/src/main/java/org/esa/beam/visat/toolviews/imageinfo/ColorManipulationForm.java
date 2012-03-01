@@ -658,7 +658,6 @@ class ColorManipulationForm {
             // is disabled if the _contrastStretchPane has no ImageInfo.
             return;
         }
-System.out.println("importing color palette...");
         final BeamFileChooser fileChooser = new BeamFileChooser();
         fileChooser.setDialogTitle("Import Colour Palette"); /*I18N*/
         fileChooser.setFileFilter(getOrCreateColorPaletteDefinitionFileFilter());

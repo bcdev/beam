@@ -82,7 +82,6 @@ class Continuous1BandGraphicalForm implements ColorManipulationChildForm {
 
     @Override
     public void updateFormModel(ProductSceneView productSceneView) {
-        System.out.println("is log 10 scaled display in graphical form" + productSceneView.getRaster().isLog10ScaledDisplay());
         ImageInfoEditorModel1B model = new ImageInfoEditorModel1B(parentForm.getImageInfo());
         model.addChangeListener(applyEnablerCL);
         ImageInfoEditorModel oldModel = imageInfoEditor.getModel();
@@ -148,7 +147,6 @@ class Continuous1BandGraphicalForm implements ColorManipulationChildForm {
     }
 
     static void setDisplayProperties(ImageInfoEditorModel model, RasterDataNode raster) {
-        System.out.println("raster " + raster.isLog10ScaledDisplay());
         model.setDisplayProperties(raster.getName(), raster.getUnit(), raster.getStx(), raster);
     }
 

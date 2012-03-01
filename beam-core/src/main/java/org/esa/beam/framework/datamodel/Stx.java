@@ -164,8 +164,6 @@ public class Stx {
         this.resolutionLevel = resolutionLevel;
         this.sampleCount = computeSum(histogram.getBins(0));
         this.median = computeMedian(histogram, this.sampleCount);
-        //log10ScaledDisplay = false;
-        System.out.println("in stx : min, max, mean, resolution level, sample count, median " + min + " " + max + " " + mean + " " + resolutionLevel + " " + sampleCount + " " + median );
     }
 
 //    public boolean isLog10ScaledDisplay() {
@@ -295,8 +293,6 @@ public class Stx {
             double off = getHighValueOffset(raster);
 
             final HistogramStxOp histogramOp = new HistogramStxOp(binCount, min, max + off, raster.isLog10ScaledDisplay());
-            //final HistogramStxOp histogramOp = new HistogramStxOp(binCount, min, max + off );
-            //histogramOp.setLog10ScaledDisplay(raster.isLog10ScaledDisplay() );
             accumulate(raster, level, maskImage, maskShape, histogramOp, SubProgressMonitor.create(pm, 1));
 
             // Create JAI histo, but use our "BEAM" bins
@@ -317,7 +313,7 @@ public class Stx {
             pm.beginTask("Computing statistics", 3);
 
             double off = getHighValueOffset(raster);
-            final HistogramStxOp histogramOp = new HistogramStxOp(binCount, min, max + off );
+            final HistogramStxOp histogramOp = new HistogramStxOp(binCount, min, max + off, raster.isLog10ScaledDisplay() );
             accumulate(raster, level, maskImage, maskShape, histogramOp, SubProgressMonitor.create(pm, 1));
 
             // Create JAI histogram, but use our "BEAM" bins

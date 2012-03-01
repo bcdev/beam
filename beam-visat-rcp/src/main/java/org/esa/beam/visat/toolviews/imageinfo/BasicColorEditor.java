@@ -432,8 +432,6 @@ class BasicColorEditor extends ImageInfoEditor  {
     }
     private boolean validateMinMax(double min, double max){
 
-        //log scale cannot be applied to negative min or max for sample points
-        //System.out.println("min: " + min + "    max:  " + max);
         String errorMessage = new String();
         boolean valid = true;
 

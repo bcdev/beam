@@ -37,7 +37,6 @@ class HistogramStxOp implements StxOp {
         this.highValue =  highValue;
         this.binWidth = highValue - lowValue / numBins;
         this.bins = new int[numBins];
-        System.out.println("lowvalue , highValue, binWidth, numBins, log10ScaledDisplay " + this.lowValue + " " + this.highValue + " " + binWidth + " " + numBins + " " + log10ScaledDisplay );
 
     }
 
@@ -47,7 +46,6 @@ class HistogramStxOp implements StxOp {
         this.highValue = log10ScaledDisplay & highValue >0 ? Math.log10(highValue) : highValue;
         this.binWidth = (this.highValue - this.lowValue) / numBins;
         this.bins = new int[numBins];
-        System.out.println("lowvalue , highValue, binWidth, numBins, log10ScaledDisplay " + this.lowValue + " " + this.highValue + " " + binWidth + " " + numBins + " " + log10ScaledDisplay );
     }
     @Override
     public String getName() {
@@ -361,7 +359,6 @@ class HistogramStxOp implements StxOp {
     @Override
     public void accumulateDataFloat(PixelAccessor dataAccessor, Raster dataTile, PixelAccessor maskAccessor,
                                     Raster maskTile, Rectangle r) {
-        System.out.println("in float");
         final int[] bins = this.bins;
         final double lowValue =  this.lowValue ;
         final double highValue = this.highValue ;
@@ -390,19 +387,16 @@ class HistogramStxOp implements StxOp {
 
         int dataLineOffset = dataBandOffset;
         int maskLineOffset = maskBandOffset;
-        System.out.println( "lowValue= " + lowValue  +  " highValue = " + highValue + " binWidth = " + binWidth );
         for (int y = 0; y < height; y++) {
             int dataPixelOffset = dataLineOffset;
             int maskPixelOffset = maskLineOffset;
             for (int x = 0; x < width; x++) {
                 if (mask == null || mask[maskPixelOffset] != 0) {
-                    //final double d = data[dataPixelOffset];
                     final double d = log10ScaledDisplay &  data[dataPixelOffset] > 0 ? Math.log10(data[dataPixelOffset]) : data[dataPixelOffset] ;
                     if (d >= lowValue && d <= highValue) {
                         int i = (int) ((d - lowValue) / binWidth);
                         i = i == bins.length ? i - 1 : i;
                         bins[i]++;
-                        //System.out.println( "low value = " + lowValue + " d= " + d +  " i = " + i );
                     }
                 }
                 dataPixelOffset += dataPixelStride;
@@ -416,7 +410,6 @@ class HistogramStxOp implements StxOp {
     @Override
     public void accumulateDataDouble(PixelAccessor dataAccessor, Raster dataTile, PixelAccessor maskAccessor,
                                      Raster maskTile, Rectangle r) {
-        System.out.println("in double");
         final int[] bins = this.bins;
         final double lowValue = this.lowValue;
         final double highValue = this.highValue;
@@ -450,7 +443,8 @@ class HistogramStxOp implements StxOp {
             int maskPixelOffset = maskLineOffset;
             for (int x = 0; x < width; x++) {
                 if (mask == null || mask[maskPixelOffset] != 0) {
-                    final double d = data[dataPixelOffset];
+                    final double d = log10ScaledDisplay &  data[dataPixelOffset] > 0 ? Math.log10(data[dataPixelOffset]) : data[dataPixelOffset] ;
+                    //final double d = data[dataPixelOffset];
                     if (d >= lowValue && d <= highValue) {
                         int i = (int) ((d - lowValue) / binWidth);
                         i = i == bins.length ? i - 1 : i;

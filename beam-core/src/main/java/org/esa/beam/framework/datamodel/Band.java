@@ -516,8 +516,6 @@ public class Band extends AbstractBand {
         final double min = minSample;
         final double max = maxSample;
 
-        System.out.println("level, minSample, maxSample, binCount, min, max");
-        System.out.println(level + " " + minSample + " "  +  maxSample + " " + binCount + " " +  min + " " +  max);
         return Stx.create(this, level, binCount, min, max, pm);
     }
 

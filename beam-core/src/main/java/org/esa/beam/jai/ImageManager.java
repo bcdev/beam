@@ -309,7 +309,7 @@ public class ImageManager {
         PlanarImage image = createByteIndexedImage(raster, sourceImage, imageInfo);
         image = createMatchCdfImage(image, imageInfo.getHistogramMatching(), new Stx[]{raster.getStx()});
         image = createLookupRgbImage(raster, image, validMaskImage, imageInfo);
-        System.out.println("image manager log10ScaledProduct 1" + log10ScaledProduct);
+
         // reset log10Scaled flag to original value; recreate STX.
         if (raster.isLog10ScaledDisplay() ) {
             raster.setLog10Scaled(log10ScaledProduct);
@@ -317,10 +317,17 @@ public class ImageManager {
             raster.resetValidMask(); // a new STX has to be generated to recompute the histogram.    this will set stx to null.
         }
         raster.getStx();   //  A new STX will be computed for the raster.
-        System.out.println("image manager log10ScaledProduct 2" + raster.isLog10Scaled()  );
+
         return image;
     }
-    //new method added by seadas team
+
+
+    /**
+     * logs each pixel value when a user chooses a log scale color map.
+     * @param sourceImage
+     * @return   returns a new image file with logged pixels.
+     */
+     //new method added by seadas team
     private TiledImage logScalePixels(RenderedImage sourceImage){
         int width = sourceImage.getWidth();
         int height = sourceImage.getHeight();
@@ -345,7 +352,7 @@ public class ImageManager {
         TiledImage ti = new TiledImage(sourceImage, true);
         ti.setData(outputRaster);
         return ti;
-    } //aynur's code ends here
+    } //seadas added method ends here
 
     private PlanarImage createColored3BandImage(RasterDataNode[] rasters, ImageInfo rgbImageInfo, int level) {
         RenderedImage[] images = new RenderedImage[rasters.length];
@@ -897,7 +904,6 @@ public class ImageManager {
 
         @Override
         public void nodeDataChanged(ProductNodeEvent event) {
-            System.out.println("after no data changed");
             super.nodeDataChanged(event);
             final ProductNode node = event.getSourceNode();
             synchronized (maskImageMap) {
