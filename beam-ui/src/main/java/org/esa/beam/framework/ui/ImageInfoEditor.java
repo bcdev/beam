@@ -539,7 +539,9 @@ public class ImageInfoEditor extends JPanel {
                 final double binWidth = getBinWidth(histoRect.width);
                 final double pixelOffs = indexDelta * binWidth;
                 int binInc = (int)(numVisibleBins/getModel().getSliderCount() + 0.5);
+
                 binInc = binInc > 20 ? 20 : binInc;     //this is added mainly for the default color table.
+
                 double countsScale;
                 if ((numVisibleBins + firstVisibleBinIndex) < histogramBins.length) {
                     numVisibleBins++;
