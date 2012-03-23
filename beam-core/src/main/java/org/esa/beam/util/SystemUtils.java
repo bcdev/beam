@@ -51,7 +51,7 @@ public class SystemUtils {
     /**
      * The URL string to the BEAM home page.
      */
-    public static final String BEAM_HOME_PAGE = "http://envisat.esa.int/beam/";
+    public static String BEAM_HOME_PAGE = "http://envisat.esa.int/beam/";
 
     public static final String BEAM_HOME_PROPERTY_NAME = "beam.home";
     public static final String BEAM_PLUGIN_PATH_PROPERTY_NAME = "beam.plugin.path";
