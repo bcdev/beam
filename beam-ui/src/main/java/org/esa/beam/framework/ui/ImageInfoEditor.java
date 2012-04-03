@@ -68,7 +68,7 @@ public class ImageInfoEditor extends JPanel {
     public static final Dimension PREF_COMPONENT_SIZE
             = new Dimension(PREF_HISTO_WIDTH + 2 * HOR_BORDER_SIZE,
                             PREF_HISTO_HEIGHT + PALETTE_HEIGHT + SLIDER_HEIGHT / 2
-                            + 2 * HOR_BORDER_SIZE + FONT_SIZE);
+                                    + 2 * HOR_BORDER_SIZE + FONT_SIZE);
     public static final BasicStroke STROKE_1 = new BasicStroke(1.0f);
     public static final BasicStroke STROKE_2 = new BasicStroke(2.0f);
     public static final BasicStroke DASHED_STROKE = new BasicStroke(0.75F, BasicStroke.CAP_SQUARE,
@@ -151,12 +151,12 @@ public class ImageInfoEditor extends JPanel {
 
     public void compute95Percent() {
         final Histogram histogram = new Histogram(getModel().getHistogramBins(),
-                                                  model.getSampleScaling().isLog10ScaledDisplay()&!model.getSampleScaling().isLog10Scaled()?Math.log10(getModel().getMinSample()):scaleInverse(getModel().getMinSample()) ,
-                                                  model.getSampleScaling().isLog10ScaledDisplay()&!model.getSampleScaling().isLog10Scaled()?Math.log10(getModel().getMaxSample()): scaleInverse(getModel().getMaxSample()));
+                                                  scaleInverse(getModel().getMinSample()),
+                                                  scaleInverse(getModel().getMaxSample()));
         final Range autoStretchRange = histogram.findRangeFor95Percent();
         computeFactors();
-        setFirstSliderSample(model.getSampleScaling().isLog10ScaledDisplay()&!model.getSampleScaling().isLog10Scaled()?Math.pow(10, autoStretchRange.getMin()):scale(autoStretchRange.getMin()));
-        setLastSliderSample(model.getSampleScaling().isLog10ScaledDisplay()&!model.getSampleScaling().isLog10Scaled()?Math.pow(10, autoStretchRange.getMax()):scale(autoStretchRange.getMax()));
+        setFirstSliderSample(scale(autoStretchRange.getMin()));
+        setLastSliderSample(scale(autoStretchRange.getMax()));
         partitionSliders(false);
         computeZoomInToSliderLimits();
     }
@@ -164,73 +164,42 @@ public class ImageInfoEditor extends JPanel {
     public void compute100Percent() {
         computeFactors();
         setFirstSliderSample(getModel().getMinSample());
-
         setLastSliderSample(getModel().getMaxSample());
         partitionSliders(false);
         computeZoomInToSliderLimits();
     }
 
     public void distributeSlidersEvenly() {
-        double pos1 = scaleInverse(getFirstSliderSample());
-        double pos2 = scaleInverse(getLastSliderSample());
-
-        pos1 = model.getSampleScaling().isLog10ScaledDisplay() & ! model.getSampleScaling().isLog10Scaled() ? Math.log10(pos1) : pos1;
-        pos2 = model.getSampleScaling().isLog10ScaledDisplay() & ! model.getSampleScaling().isLog10Scaled() ? Math.log10(pos2) : pos2;
-
+        final double pos1 = scaleInverse(getFirstSliderSample());
+        final double pos2 = scaleInverse(getLastSliderSample());
         final double delta = pos2 - pos1;
         final double evenSpace = delta / (getSliderCount() - 2 + 1);
         for (int i = 0; i < getSliderCount(); i++) {
-            double value = scale(pos1 + evenSpace * i);
-            value =  model.getSampleScaling().isLog10ScaledDisplay() & ! model.getSampleScaling().isLog10Scaled() ?  Math.pow(10, value) : value;
+            final double value = scale(pos1 + evenSpace * i);
             setSliderSample(i, value, false);
         }
     }
 
     private void partitionSliders(boolean adjusting) {
-        double pos1 = scaleInverse(getFirstSliderSample());
-        double pos2 = scaleInverse(getLastSliderSample());
-
-        pos1 = model.getSampleScaling().isLog10ScaledDisplay() & ! model.getSampleScaling().isLog10Scaled() ? Math.log10(pos1) : pos1;
-        pos2 = model.getSampleScaling().isLog10ScaledDisplay() & ! model.getSampleScaling().isLog10Scaled() ? Math.log10(pos2) : pos2;
-
+        final double pos1 = scaleInverse(getFirstSliderSample());
+        final double pos2 = scaleInverse(getLastSliderSample());
         final double delta = pos2 - pos1;
         for (int i = 0; i < (getSliderCount() - 1); i++) {
-            double value = scale(pos1 + factors[i] * delta);
-            value =  model.getSampleScaling().isLog10ScaledDisplay() & ! model.getSampleScaling().isLog10Scaled() ?  Math.pow(10, value) : value;
+            final double value = scale(pos1 + factors[i] * delta);
             setSliderSample(i, value, adjusting);
         }
     }
 
     private void computeFactors() {
         factors = new double[getSliderCount()];
-        double firstPS = scaleInverse(getFirstSliderSample());
-        double lastPS = scaleInverse(getLastSliderSample());
-
-        firstPS = model.getSampleScaling().isLog10ScaledDisplay() & ! model.getSampleScaling().isLog10Scaled() ? Math.log10(firstPS) : firstPS;
-        lastPS = model.getSampleScaling().isLog10ScaledDisplay() & ! model.getSampleScaling().isLog10Scaled() ? Math.log10(lastPS) : lastPS;
-
+        final double firstPS = scaleInverse(getFirstSliderSample());
+        final double lastPS = scaleInverse(getLastSliderSample());
         double dsn = lastPS - firstPS;
         if (dsn == 0 || Double.isNaN(dsn)) {
             dsn = Double.MIN_VALUE;
         }
         for (int i = 0; i < getSliderCount(); i++) {
-            double sample = scaleInverse(getSliderSample(i));
-            sample = model.getSampleScaling().isLog10ScaledDisplay() & ! model.getSampleScaling().isLog10Scaled() ? Math.log10(sample) : sample;
-            final double dsi = sample - firstPS;
-            factors[i] = dsi / dsn;
-        }
-    }
-
-    private void computeFactorsForLogScaledDisplay() {
-        factors = new double[getSliderCount()];
-        final double firstPS = Math.log10(getFirstSliderSample());
-        final double lastPS = Math.log10(getLastSliderSample());
-        double dsn = lastPS - firstPS;
-        if (dsn == 0 || Double.isNaN(dsn)) {
-            dsn = Double.MIN_VALUE;
-        }
-        for (int i = 0; i < getSliderCount(); i++) {
-            final double sample = Math.log10(getSliderSample(i));
+            final double sample = scaleInverse(getSliderSample(i));
             final double dsi = sample - firstPS;
             factors[i] = dsi / dsn;
         }
@@ -250,29 +219,18 @@ public class ImageInfoEditor extends JPanel {
     public void computeZoomInToSliderLimits() {
         final double firstSliderValue = scaleInverse(getFirstSliderSample());
         final double lastSliderValue = scaleInverse(getLastSliderSample());
-
         final double tenPercentOffset = (lastSliderValue - firstSliderValue) / 80 * 10;
-        double minViewSample = scale(firstSliderValue - tenPercentOffset);
-        if (model.getSampleScaling().isLog10ScaledDisplay() && minViewSample <= 0 ) {
-            minViewSample = scale(firstSliderValue );
-        }
-
+        final double minViewSample = scale(firstSliderValue - tenPercentOffset);
         final double maxViewSample = scale(lastSliderValue + tenPercentOffset);
-
 
         getModel().setMinHistogramViewSample(minViewSample);
         getModel().setMaxHistogramViewSample(maxViewSample);
-
         repaint();
     }
 
     public void computeZoomOutToFullHistogramm() {
         getModel().setMinHistogramViewSample(getMinSample());
         getModel().setMaxHistogramViewSample(getMaxSample());
-        if (model.getSampleScaling().isLog10ScaledDisplay() & ! model.getSampleScaling().isLog10Scaled()) {
-            computeFactors();
-        }
-
         repaint();
     }
 
@@ -304,11 +262,11 @@ public class ImageInfoEditor extends JPanel {
     }
 
     private boolean isValidModel() {
-        if(model == null) {
+        if (model == null) {
             return false;
         }
         return model.getMinSample() <= model.getMaxSample()
-               && model.getSampleScaling() != null && model.getSampleStx() != null;
+                && model.getSampleScaling() != null && model.getSampleStx() != null;
 
     }
 
@@ -331,16 +289,13 @@ public class ImageInfoEditor extends JPanel {
     }
 
     private void drawPalette(Graphics2D g2d) {
-
         long paletteX1 = paletteRect.x + Math.round(getRelativeSliderPos(getFirstSliderSample()));
         long paletteX2 = paletteRect.x + Math.round(getRelativeSliderPos(getLastSliderSample()));
-
         g2d.setStroke(STROKE_1);
         Color[] colorPalette = getColorPalette();
         if (colorPalette != null) {
-            long divisor = paletteX2 - paletteX1;
             for (int x = paletteRect.x; x < paletteRect.x + paletteRect.width; x++) {
-                //long divisor = paletteX2 - paletteX1;
+                long divisor = paletteX2 - paletteX1;
                 int palIndex;
                 if (divisor == 0) {
                     palIndex = x < paletteX1 ? 0 : colorPalette.length - 1;
@@ -369,19 +324,12 @@ public class ImageInfoEditor extends JPanel {
         return palette;
     }
 
-    public  void setColorPalette(Color[] colorPalette ) {
-        palette = colorPalette;
-    }
-
-
     private void drawSliders(Graphics2D g2d) {
         g2d.translate(sliderBaseLineRect.x, sliderBaseLineRect.y);
         g2d.setStroke(STROKE_1);
-
-
         for (int i = 0; i < getSliderCount(); i++) {
             double sliderPos = getRelativeSliderPos(getSliderSample(i));
-            //System.out.println("slider position: " + sliderPos + "  sample" + i + ": " + getSliderSample(i));
+
             g2d.translate(sliderPos, 0.0);
 
             final Color sliderColor = getSliderColor(i);
@@ -446,6 +394,7 @@ public class ImageInfoEditor extends JPanel {
                 int i = MathUtils.roundAndCrop((255.9f * (x - x1)) / (x2 - x1), 0, 255);
                 int y = y1 + ((y2 - y1) * (gammaCurve[i] & 0xff)) / 256;
                 g2d.drawLine(xx, yy, x, y);
+                //System.out.println("x=" + x + ", y=" + y);
                 xx = x;
                 yy = y;
             }
@@ -472,10 +421,6 @@ public class ImageInfoEditor extends JPanel {
 
     private void drawHistogram(Graphics2D g2d) {
 
-        if (getModel().getSampleScaling().isLog10ScaledDisplay()) {
-            drawHistogramForLogScaledDisplay(g2d);
-            return;
-        }
         if (getModel().isHistogramAvailable()) {
             final Paint oldPaint = g2d.getPaint();
             g2d.setColor(Color.black);
@@ -494,7 +439,6 @@ public class ImageInfoEditor extends JPanel {
                 g2d.setStroke(new BasicStroke(1.0f));
                 final double binWidth = getBinWidth(histoRect.width);
                 final double pixelOffs = indexDelta * binWidth;
-                //System.out.println("pixelOffset: " + pixelOffs + " first visible bin index: " + firstVisibleBinIndexFloat );
                 final double countsScale = (gain * maxHistoRectHeight) / maxHistogramCounts;
                 if ((numVisibleBins + firstVisibleBinIndex) < histogramBins.length) {
                     numVisibleBins++;
@@ -511,65 +455,6 @@ public class ImageInfoEditor extends JPanel {
                     final double y1 = histoRect.y + histoRect.height - 1 - binHeight;
                     final double x1 = histoRect.x + binWidth * i - pixelOffs - 0.5 * binWidth;
                     r.setRect(x1, y1, binWidth, binHeight);
-                    g2d.fill(r);
-                }
-            }
-            g2d.setPaint(oldPaint);
-        }
-    }
-
-    private void drawHistogramForLogScaledDisplay(Graphics2D g2d) {
-
-        if (getModel().isHistogramAvailable()) {
-            final Paint oldPaint = g2d.getPaint();
-            g2d.setColor(Color.black);
-            g2d.setPaint(Color.black);
-
-            final int[] histogramBins = getModel().getHistogramBins();
-            final double maxHistogramCounts = getMaxVisibleHistogramCounts(histogramBins, 1.0 / 16.0);
-            final double gain = getModel().getHistogramViewGain();
-            final double firstVisibleBinIndexFloat = getFirstHistogramViewBinIndex();
-            final int firstVisibleBinIndex = MathUtils.floorAndCrop(firstVisibleBinIndexFloat, 0,
-                                                                    histogramBins.length - 1);
-            final double indexDelta = firstVisibleBinIndexFloat - firstVisibleBinIndex;
-            final double maxHistoRectHeight = 0.9 * histoRect.height;
-            double numVisibleBins = Math.floor(getHistogramViewBinCount());
-            if (numVisibleBins > 0 && maxHistogramCounts > 0) {
-                g2d.setStroke(new BasicStroke(1.0f));
-                final double binWidth = getBinWidth(histoRect.width);
-                final double pixelOffs = indexDelta * binWidth;
-                int binInc = (int)(numVisibleBins/getModel().getSliderCount() + 0.5);
-
-                binInc = binInc > 20 ? 20 : binInc;     //this is added mainly for the default color table.
-
-                double countsScale;
-                if ((numVisibleBins + firstVisibleBinIndex) < histogramBins.length) {
-                    numVisibleBins++;
-                }
-                Rectangle2D.Double r = new Rectangle2D.Double();
-                double[] binHeights = new double[(int)numVisibleBins/binInc + 1];
-                double maxBinCount = 0;
-
-                for (int i = 0; i < (int) numVisibleBins; i = i + binInc ) {
-                    double counts = 0;
-                    for ( int j = i; j < i + binInc & j + firstVisibleBinIndex < histogramBins.length - 1; j++) {
-                         counts = counts +  histogramBins[j + firstVisibleBinIndex];
-                    }
-                    binHeights[i/binInc] = counts;
-                    maxBinCount = Math.max(maxBinCount, counts );
-                   g2d.fill(r);
-                }
-
-                countsScale = (gain * maxHistoRectHeight) / maxBinCount ;
-
-                for (int i = 0; i < binHeights.length; i++ ){
-                    double binHeight = binHeights[i] * countsScale;
-                    if (binHeight >= histoRect.height) {
-                        binHeight = histoRect.height - 1;
-                    }
-                    final double y1 = histoRect.y + histoRect.height - 1 - binHeight;
-                    final double x1 = histoRect.x + binWidth*i*binInc  - 0.5 * binWidth*binInc - pixelOffs;
-                    r.setRect(x1, y1, binWidth*binInc, binHeight);
                     g2d.fill(r);
                 }
             }
@@ -636,7 +521,7 @@ public class ImageInfoEditor extends JPanel {
         }
     }
 
-    public double getFirstSliderSample() {
+    private double getFirstSliderSample() {
         return getSliderSample(0);
     }
 
@@ -644,7 +529,7 @@ public class ImageInfoEditor extends JPanel {
         setSliderSample(0, v);
     }
 
-    public double getLastSliderSample() {
+    private double getLastSliderSample() {
         return getSliderSample(getModel().getSliderCount() - 1);
     }
 
@@ -695,16 +580,9 @@ public class ImageInfoEditor extends JPanel {
     }
 
     private double computeSliderValueForX(int sliderIndex, int x) {
-        double minVS = scaleInverse(getModel().getMinHistogramViewSample());
-        double maxVS = scaleInverse(getModel().getMaxHistogramViewSample());
-
-        minVS = model.getSampleScaling().isLog10ScaledDisplay() & ! model.getSampleScaling().isLog10Scaled() ? Math.log10(minVS) : minVS;
-        maxVS = model.getSampleScaling().isLog10ScaledDisplay() & ! model.getSampleScaling().isLog10Scaled() ? Math.log10(maxVS) : maxVS;
-
-        double value = scale(minVS + (x - sliderBaseLineRect.x) * (maxVS - minVS) / sliderBaseLineRect.width);
-
-        value =  model.getSampleScaling().isLog10ScaledDisplay() & ! model.getSampleScaling().isLog10Scaled() ?  Math.pow(10, value) : value;
-
+        final double minVS = scaleInverse(getModel().getMinHistogramViewSample());
+        final double maxVS = scaleInverse(getModel().getMaxHistogramViewSample());
+        final double value = scale(minVS + (x - sliderBaseLineRect.x) * (maxVS - minVS) / sliderBaseLineRect.width);
         if (isFirstSliderIndex(sliderIndex)) {
             return Math.min(value, getLastSliderSample());
         }
@@ -744,8 +622,7 @@ public class ImageInfoEditor extends JPanel {
     }
 
     private double getRelativeSliderPos(double sample) {
-        return ((model.getSampleScaling().isLog10ScaledDisplay() & !model.getSampleScaling().isLog10Scaled()) ? getNormalizedHistogramViewSampleValueForLogScaledDisplay(sample):getNormalizedHistogramViewSampleValue(sample)) * sliderBaseLineRect.width;
-        //return getNormalizedHistogramViewSampleValue(sample) * sliderBaseLineRect.width;
+        return getNormalizedHistogramViewSampleValue(sample) * sliderBaseLineRect.width;
     }
 
     private void computeSizeAttributes() {
@@ -780,45 +657,20 @@ public class ImageInfoEditor extends JPanel {
     private double getDisplayableBinCount() {
         final double max = Math.min(getMaxSample(), getModel().getMaxHistogramViewSample());
         final double min = Math.max(getMinSample(), getModel().getMinHistogramViewSample());
-        //double range = getBinsInRange(min, max);
         return getBinsInRange(min, max);
     }
 
     private double getBinsInRange(double minSample, double maxSample) {
-
         if (!isHistogramAvailable()) {
             return -1;
         }
-
-        if(getModel().getMinHistogramViewSample() >= getMaxSample() || getModel().getMaxHistogramViewSample() <= getMinSample()) {
+        if (getModel().getMinHistogramViewSample() >= getMaxSample() || getModel().getMaxHistogramViewSample() <= getMinSample()) {
             return 0;
         }
-
-        if(getModel().getMaxHistogramViewSample() >= getMaxSample() && getModel().getMinHistogramViewSample() <= getMinSample()) {
-            return getModel().getHistogramBins().length;
-        }
-
-        if ( getMinSample() != getModel().getMinHistogramViewSample() || getMaxSample() != getModel().getMaxHistogramViewSample()) {
-
-            if (model.getSampleScaling().isLog10ScaledDisplay()  ){
-                double d1,d2,d3,d4;
-                d1 =  getMaxSample();
-                d2 =  getMinSample();
-                d3 =  maxSample;
-                d4 =  minSample;
-                d1 =  d1 > 0 ? Math.log10(getMaxSample()) : d1;
-                d2 =  d2 > 0 ? Math.log10(getMinSample()) : d2 ;
-                d3 =  d3 > 0 ? Math.log10(maxSample) : d3 ;
-                d4 =  minSample > 0 ? Math.log10(minSample) : d2;
-                double binsInRange = getModel().getHistogramBins().length /(d1 - d2)* ( d3 - d4);
-
-                return binsInRange;
-
-            }
-
+        if (getMinSample() != getModel().getMinHistogramViewSample() || getMaxSample() != getModel().getMaxHistogramViewSample()) {
             return getModel().getHistogramBins().length
-                   / (scaleInverse(getMaxSample()) - scaleInverse(getMinSample()))
-                   * (scaleInverse(maxSample) - scaleInverse(minSample));
+                    / (scaleInverse(getMaxSample()) - scaleInverse(getMinSample()))
+                    * (scaleInverse(maxSample) - scaleInverse(minSample));
         }
         return getModel().getHistogramBins().length;
     }
@@ -827,17 +679,10 @@ public class ImageInfoEditor extends JPanel {
         if (!isHistogramAvailable()) {
             return -1;
         }
-
-        if (getMinSample() != getModel().getMinHistogramViewSample()) { // & getMinSample() < getModel().getMinHistogramViewSample() ) {
-
-            final double firstHistogramViewBinIndex =  model.getSampleScaling().isLog10ScaledDisplay()  & ! model.getSampleScaling().isLog10Scaled() ?
-                                                      (getModel().getHistogramBins().length - 1)
-                                                      / (Math.log10(getMaxSample()) - Math.log10(getMinSample()))
-                                                      * (Math.log10(getModel().getMinHistogramViewSample()) - Math.log10(getMinSample())) :
-                                                      (getModel().getHistogramBins().length - 1)
-                                                      / (scaleInverse(getMaxSample()) - scaleInverse(getMinSample()))
-                                                      * (scaleInverse(getModel().getMinHistogramViewSample()) - scaleInverse(getMinSample()));
-            return firstHistogramViewBinIndex;
+        if (getMinSample() != getModel().getMinHistogramViewSample()) {
+            return (getModel().getHistogramBins().length - 1)
+                    / (scaleInverse(getMaxSample()) - scaleInverse(getMinSample()))
+                    * (scaleInverse(getModel().getMinHistogramViewSample()) - scaleInverse(getMinSample()));
         }
         return 0;
     }
@@ -846,50 +691,13 @@ public class ImageInfoEditor extends JPanel {
     public double getNormalizedHistogramViewSampleValue(double sample) {
         final double minVisibleSample = scaleInverse(getModel().getMinHistogramViewSample());
         final double maxVisibleSample = scaleInverse(getModel().getMaxHistogramViewSample());
-        //System.out.println("min/max visible samples in linear: " + minVisibleSample + "  " + maxVisibleSample );
         sample = scaleInverse(sample);
         double delta = maxVisibleSample - minVisibleSample;
         if (delta == 0 || Double.isNaN(delta)) {
             delta = 1;
         }
-        //System.out.println("slider position after computation in linEAR: " + (sample - minVisibleSample) / delta + "sliderBaseLineRect.width: " + sliderBaseLineRect.width);
         return (sample - minVisibleSample) / delta;
-
     }
-    public double getNormalizedHistogramViewSampleValueForLogScaledDisplay(double sample) {
-
-        double minVisibleSample = getModel().getMinHistogramViewSample();
-        double maxVisibleSample = getModel().getMaxHistogramViewSample();
-
-        //System.out.println("min/max visible samples in log: " + minVisibleSample + "  " + maxVisibleSample );
-
-        maxVisibleSample = Math.log10(maxVisibleSample) ;
-
-        if (minVisibleSample <= 0) {
-
-           minVisibleSample = -Math.log10(Math.abs(minVisibleSample));
-
-        } else {
-            minVisibleSample = Math.log10(minVisibleSample);
-        }
-
-        if (sample <= 0) {
-          sample = -Math.log10(Math.abs(sample));
-
-        } else  {
-            sample = Math.log10(sample);
-        }
-
-        double delta = maxVisibleSample - minVisibleSample;
-
-        if (delta == 0 || Double.isNaN(delta)) {
-            delta = 1;
-        }
-        //System.out.println("slider position after computation in log: " + (sample - minVisibleSample) / delta + "sliderBaseLineRect.width: " + sliderBaseLineRect.width);
-        return (sample - minVisibleSample) / delta;
-
-    }
-
 
     private void editSliderColor(MouseEvent evt, final int sliderIndex) {
         final ColorChooserPanel panel = new ColorChooserPanel(ColorChooserPanel.PALETTE_COLOR_40,
@@ -922,11 +730,11 @@ public class ImageInfoEditor extends JPanel {
         vc.getDescriptor("sample").setDisplayName("sample");
         vc.getDescriptor("sample").setUnit(getModel().getParameterUnit());
         final ValueRange valueRange;
-        if(sliderIndex == 0) {
+        if (sliderIndex == 0) {
             valueRange = new ValueRange(Double.NEGATIVE_INFINITY, round(getMaxSliderSample(sliderIndex)));
-        }else if(sliderIndex == getSliderCount()-1) {
+        } else if (sliderIndex == getSliderCount() - 1) {
             valueRange = new ValueRange(round(getMinSliderSample(sliderIndex)), Double.POSITIVE_INFINITY);
-        }else {
+        } else {
             valueRange = new ValueRange(round(getMinSliderSample(sliderIndex)), round(getMaxSliderSample(sliderIndex)));
         }
         vc.getDescriptor("sample").setValueRange(valueRange);
@@ -996,10 +804,6 @@ public class ImageInfoEditor extends JPanel {
             if (!maybeShowSliderActions(mouseEvent)) {
                 setDraggedSliderIndex(getNearestSliderIndex(mouseEvent.getX(), mouseEvent.getY()));
                 if (isFirstSliderDragged() || isLastSliderDragged()) {
-                    if (model.getSampleScaling().isLog10ScaledDisplay()  ) {
-                        computeFactorsForLogScaledDisplay();
-
-                    }   else
                     computeFactors();
                 }
             }
@@ -1216,7 +1020,6 @@ public class ImageInfoEditor extends JPanel {
             if (isVerticalInSliderArea(evt.getY())) {
                 final int sliderIndex = getNearestSliderIndex(evt.getX());
                 final double dx = Math.abs(getAbsoluteSliderPos(getSliderSample(sliderIndex)) - evt.getX());
-
                 if (dx < SLIDER_WIDTH / 2) {
                     return sliderIndex;
                 }
@@ -1261,7 +1064,6 @@ public class ImageInfoEditor extends JPanel {
             double dx = 0.0;
             for (int i = 0; i < getSliderCount(); i++) {
                 dx = getAbsoluteSliderPos(getSliderSample(i)) - x;
-
                 if (Math.abs(dx) <= minDx) {
                     nearestIndex = i;
                     minDx = Math.abs(dx);

@@ -859,75 +859,7 @@ public abstract class ProductData implements Cloneable {
         readFrom(startPos, numElems, input);
     }
 
-    /**
-     * Returns an element at position pos
-     */
 
-    public Object getElementAt(int type, int pos){
-        switch (type) {
-            case TYPE_INT8:
-                return getElemIntAt(pos);
-            case TYPE_INT16:
-                return getElemIntAt(pos);
-            case TYPE_INT32:
-                return getElemIntAt(pos);
-            case TYPE_UINT8:
-                return getElemIntAt(pos);
-            case TYPE_UINT16:
-                return getElemIntAt(pos);
-            case TYPE_UINT32:
-                return getElemIntAt(pos);
-            case TYPE_FLOAT32:
-                return getElemFloatAt(pos);
-            case TYPE_FLOAT64:
-                return getElemDoubleAt(pos);
-            case TYPE_ASCII:
-                return getElemStringAt(pos);
-            case TYPE_UTC:
-                return null;
-            default:
-                return null;
-
-        }
-
-    }
-
-    public void setElementAt(int type, int pos, Object obj){
-        switch (type) {
-            case TYPE_INT8:
-                setElemIntAt(pos, (Integer)obj);
-                return;
-            case TYPE_INT16:
-                setElemIntAt(pos, (Integer)obj);
-                return;
-            case TYPE_INT32:
-                setElemIntAt(pos, (Integer)obj);
-                return;
-            case TYPE_UINT8:
-                setElemUIntAt(pos, (Integer)obj);
-                return;
-            case TYPE_UINT16:
-                setElemUIntAt(pos, (Integer)obj);
-                return;
-            case TYPE_UINT32:
-                setElemUIntAt(pos, (Integer)obj);
-                return;
-            case TYPE_FLOAT32:
-                setElemFloatAt(pos, ((java.lang.Float )obj).floatValue());
-                return;
-            case TYPE_FLOAT64:
-                setElemDoubleAt(pos, ((java.lang.Double )obj).doubleValue());
-                return;
-            case TYPE_ASCII:
-                setElemStringAt(pos, (String )obj);
-            case TYPE_UTC:
-                return;
-            default:
-                return;
-
-        }
-
-    }
     /**
      * Writes all elements of this <code>ProductData</code> instance to to the given output stream.
      * <p/>

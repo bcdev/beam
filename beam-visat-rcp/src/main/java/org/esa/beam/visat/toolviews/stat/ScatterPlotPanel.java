@@ -16,22 +16,22 @@
 
 package org.esa.beam.visat.toolviews.stat;
 
+import com.bc.ceres.binding.*;
+import com.bc.ceres.binding.PropertyDescriptor;
+import com.bc.ceres.binding.accessors.DefaultPropertyAccessor;
 import com.bc.ceres.core.ProgressMonitor;
 import com.bc.ceres.core.SubProgressMonitor;
 import com.bc.ceres.swing.TableLayout;
+import com.bc.ceres.swing.binding.BindingContext;
 import com.bc.ceres.swing.progress.ProgressMonitorSwingWorker;
-import org.esa.beam.framework.datamodel.Band;
-import org.esa.beam.framework.datamodel.Mask;
-import org.esa.beam.framework.datamodel.Product;
-import org.esa.beam.framework.datamodel.RasterDataNode;
-import org.esa.beam.framework.datamodel.Stx;
-import org.esa.beam.framework.datamodel.TiePointGrid;
+import org.esa.beam.framework.datamodel.*;
 import org.esa.beam.framework.param.ParamChangeEvent;
 import org.esa.beam.framework.param.ParamChangeListener;
 import org.esa.beam.framework.param.ParamGroup;
 import org.esa.beam.framework.param.Parameter;
 import org.esa.beam.framework.param.editors.ComboBoxEditor;
 import org.esa.beam.framework.ui.GridBagUtils;
+import org.esa.beam.framework.ui.UIUtils;
 import org.esa.beam.framework.ui.application.ToolView;
 import org.esa.beam.util.Debug;
 import org.esa.beam.util.ProductUtils;
@@ -42,17 +42,22 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.title.TextTitle;
 import org.jfree.chart.title.Title;
 import org.jfree.ui.RectangleInsets;
+import org.opengis.feature.type.*;
+import org.opengis.feature.type.GeometryDescriptor;
 
-import javax.swing.BorderFactory;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.GridBagConstraints;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.IndexColorModel;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyVetoException;
+import java.beans.VetoableChangeListener;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -63,12 +68,11 @@ import java.util.concurrent.ExecutionException;
 
 /**
  * The scatter plot pane within the statistcs window.
- *
  */
 class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.ComputeMask {
 
     private static final String NO_DATA_MESSAGE = "No scatter plot computed yet.\n" +
-                                                  ZOOM_TIP_MESSAGE;
+            ZOOM_TIP_MESSAGE;
     private static final String CHART_TITLE = "Scatter Plot";
     private static final String TITLE_PREFIX = CHART_TITLE;
 
@@ -77,15 +81,28 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
 
     private ParamGroup paramGroup;
 
-    private static Parameter[] rasterNameParams = new Parameter[2];
-    private static Parameter[] autoMinMaxParams = new Parameter[2];
-    private static Parameter[] minParams = new Parameter[2];
-    private static Parameter[] maxParams = new Parameter[2];
+    private Parameter[] rasterNameParams;
+    private Parameter[] autoMinMaxParams;
+    private Parameter[] minParams;
+    private Parameter[] maxParams;
 
-    private SingleRoiComputePanel computePanel;
     private ChartPanel scatterPlotDisplay;
     private boolean adjustingAutoMinMax;
     private XYImagePlot plot;
+
+    private ScatterPlotModel scatterPlotModel;
+    private BindingContext bindingContext;
+
+    private Property logScaled;
+    private final String PARAM_RASTER_DATA_NODE_NAME = "rasterDataNodeName";
+    private final String PARAM_BOX_SIZE = "boxSize";
+    private final String PARAM_ROI_MASK_NAME = "roiMaskName";
+    private final String PARAM_POINT_DATA_NODE_NAME = "pointDataNodeName";
+    private final String PARAM_POINT_DATA_FIELD_NAME = "pointDataFieldName";
+    private final String PARAM_X_AXIS_LOG_SCALED = "xAxisLogScaled";
+    private final String PARAM_Y_AXIS_LOG_SCALED = "yAxisLogScaled";
+    private final String PARAM_SHOW_CONFIDENCE_INTERVAL = "showConfidenceInterval";
+    private final String PARAM_CONFIDENCE_INTERVAL = "confidenceInterval";
 
     ScatterPlotPanel(ToolView parentDialog, String helpId) {
         super(parentDialog, helpId);
@@ -116,16 +133,48 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
             final String[] availableBands = createAvailableBandList();
             updateParameters(X_VAR, availableBands);
             updateParameters(Y_VAR, availableBands);
+
+            final PropertySet propertySet = bindingContext.getPropertySet();
+            propertySet.getProperty(PARAM_RASTER_DATA_NODE_NAME).getDescriptor().setValueSet(new ValueSet(createAvailableBandList()));
+            propertySet.getProperty(PARAM_ROI_MASK_NAME).getDescriptor().setValueSet(new ValueSet(getAvailableMaskNames()));
+            propertySet.getProperty(PARAM_POINT_DATA_NODE_NAME).getDescriptor().setValueSet(new ValueSet(getAvailablePointDataNodeNames()));
+
             setChartTitle();
         }
+    }
+
+    private String[] getAvailablePointDataNodeNames() {
+        final Product product = getProduct();
+        if (product != null) {
+            final ProductNodeGroup<VectorDataNode> vectorDataGroup = product.getVectorDataGroup();
+            final VectorDataNode[] vectorDataNodes = vectorDataGroup.toArray(new VectorDataNode[vectorDataGroup.getNodeCount()]);
+            final ArrayList<String> names = new ArrayList<String>();
+            for (VectorDataNode vectorDataNode : vectorDataNodes) {
+                final GeometryDescriptor geometryDescriptor = vectorDataNode.getFeatureType().getGeometryDescriptor();
+                final Class<?> geometryBinding = geometryDescriptor.getType().getBinding();
+                if (geometryBinding.isAssignableFrom(com.vividsolutions.jts.geom.Point.class)) {
+                    names.add(vectorDataNode.getName());
+                }
+            }
+            return names.toArray(new String[names.size()]);
+        }
+        return new String[0];
+    }
+
+    private String[] getAvailableMaskNames() {
+        final Product product = getProduct();
+        if (product != null) {
+            return product.getMaskGroup().getNodeNames();
+        }
+        return new String[0];
     }
 
     private void setChartTitle() {
         final JFreeChart chart = scatterPlotDisplay.getChart();
         final List<Title> subtitles = new ArrayList<Title>(7);
         subtitles.add(new TextTitle(MessageFormat.format("{0}, {1}",
-                                                         rasterNameParams[X_VAR].getValueAsText(),
-                                                         rasterNameParams[Y_VAR].getValueAsText())));
+                rasterNameParams[X_VAR].getValueAsText(),
+                rasterNameParams[Y_VAR].getValueAsText())));
         chart.setSubtitles(subtitles);
     }
 
@@ -152,7 +201,22 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
     }
 
     private void initParameters() {
+        scatterPlotModel = new ScatterPlotModel();
+        bindingContext = new BindingContext(PropertyContainer.createObjectBacked(scatterPlotModel));
+
+        rasterNameParams = new Parameter[2];
+        autoMinMaxParams = new Parameter[2];
+        minParams = new Parameter[2];
+        maxParams = new Parameter[2];
+
         paramGroup = new ParamGroup();
+
+        final PropertyDescriptor logScaleDescriptor = new PropertyDescriptor("scatter.plot.log.scale", Boolean.class);
+        logScaleDescriptor.setDisplayName("Log scaled");
+        logScaleDescriptor.setDefaultValue(Boolean.FALSE);
+        logScaleDescriptor.setDescription("Toggle linear/log10 scaling");
+
+        logScaled = new Property(logScaleDescriptor, new DefaultPropertyAccessor());
 
         final String[] availableBands = createAvailableBandList();
         initParameters(X_VAR, availableBands);
@@ -205,47 +269,179 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
     }
 
     private void createUI() {
-        computePanel = new SingleRoiComputePanel(this, getRaster());
+
+        final JButton computeButton = new JButton("Compute");     /*I18N*/
+        computeButton.setMnemonic('A');
+        computeButton.setEnabled(getRaster() != null);
+        computeButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                boolean maskSelected = isMaskSelected();
+                if (maskSelected) {
+                    String selectedMaskName = getSelectedMaskName();
+                    Mask mask = getRaster().getProduct().getMaskGroup().get(selectedMaskName);
+                    compute(mask);
+                } else {
+                    compute(null);
+                }
+            }
+        });
+        computeButton.setIcon(UIUtils.loadImageIcon("icons/Gears20.gif"));
+
+
+        final JComboBox rasterDataSourceComboBox = new JComboBox();
+        bindingContext.bind(PARAM_RASTER_DATA_NODE_NAME, rasterDataSourceComboBox);
+        final JPanel rasterDataSourcePanel = new JPanel(new BorderLayout(5, 3));
+        rasterDataSourcePanel.add(new JLabel("Raster data source:"), BorderLayout.NORTH);
+        rasterDataSourcePanel.add(rasterDataSourceComboBox);
+
+
+        final JSpinner boxSizeSpinner = new JSpinner();
+        bindingContext.bind(PARAM_BOX_SIZE, boxSizeSpinner);
+        final JPanel boxSizePanel = new JPanel(new BorderLayout(5, 3));
+        boxSizePanel.add(new JLabel("Box size:"), BorderLayout.WEST);
+        boxSizePanel.add(boxSizeSpinner);
+
+
+        final JComboBox roiMaskComboBox = new JComboBox();
+        bindingContext.bind(PARAM_ROI_MASK_NAME, roiMaskComboBox);
+        final JPanel roiMaskPanel = new JPanel(new BorderLayout(5, 3));
+        roiMaskPanel.add(new JLabel("ROI mask:"), BorderLayout.NORTH);
+        roiMaskPanel.add(roiMaskComboBox);
+        roiMaskPanel.add(createShowMaskManagerButton(), BorderLayout.EAST);
+
+        final JComboBox pointDataSourceCombo = new JComboBox();
+        bindingContext.bind(PARAM_POINT_DATA_NODE_NAME, pointDataSourceCombo);
+        final JPanel pointDataSourcePanel = new JPanel(new BorderLayout(5, 3));
+        pointDataSourcePanel.add(new JLabel("Point data source:"), BorderLayout.NORTH);
+        pointDataSourcePanel.add(pointDataSourceCombo);
+
+        final JComboBox pointDataFieldCombo = new JComboBox();
+        bindingContext.bind(PARAM_POINT_DATA_FIELD_NAME, pointDataFieldCombo);
+        final JPanel pointDataFieldPanel = new JPanel(new BorderLayout(5, 3));
+        pointDataFieldPanel.add(new JLabel("Point data field:"), BorderLayout.NORTH);
+        pointDataFieldPanel.add(pointDataFieldCombo);
+
+        final AxisRangeControl xAxisRangeControl = new AxisRangeControl("X-Axis");
+        final JPanel xAxisRangePanel = xAxisRangeControl.getPanel();
+
+        final JCheckBox xLogCheck = new JCheckBox("Log scaled");
+        bindingContext.bind(PARAM_X_AXIS_LOG_SCALED, xLogCheck);
+        final JPanel xAxisOptionPanel = new JPanel(new BorderLayout());
+        xAxisOptionPanel.add(xAxisRangePanel);
+        xAxisOptionPanel.add(xLogCheck, BorderLayout.SOUTH);
+
+        rasterDataSourceComboBox.addItemListener(new ItemListener() {
+            @Override
+            public void itemStateChanged(ItemEvent e) {
+                final String value = (String) e.getItem();
+                if (value != null) {
+                    xAxisRangeControl.setTitleSuffix(value);
+                }
+            }
+        });
+
+        final AxisRangeControl yAxisRangeControl = new AxisRangeControl("Y-Axis");
+        final JPanel yAxisRangePanel = yAxisRangeControl.getPanel();
+
+        final JCheckBox yLogCheck = new JCheckBox("Log scaled");
+        bindingContext.bind(PARAM_Y_AXIS_LOG_SCALED, yLogCheck);
+        final JPanel yAxisOptionPanel = new JPanel(new BorderLayout());
+        yAxisOptionPanel.add(yAxisRangePanel);
+        yAxisOptionPanel.add(yLogCheck, BorderLayout.SOUTH);
+
+        final JCheckBox confidenceCheck = new JCheckBox("Confidence interval");
+        final JTextField confidenceField = new JTextField();
+        confidenceField.setPreferredSize(new Dimension(40,confidenceField.getPreferredSize().height));
+        confidenceField.setHorizontalAlignment(JTextField.RIGHT);
+        bindingContext.bind(PARAM_SHOW_CONFIDENCE_INTERVAL, confidenceCheck);
+        bindingContext.bind(PARAM_CONFIDENCE_INTERVAL, confidenceField);
+        final JPanel confidencePanel = new JPanel(new BorderLayout(5, 3));
+        confidencePanel.add(confidenceCheck, BorderLayout.WEST);
+        confidencePanel.add(confidenceField);
+
+        // help
+
+        final JPanel helpPanel = new JPanel(new BorderLayout());
+        helpPanel.add(getHelpButton(), BorderLayout.EAST);
+
+
+        // Plot
+
         plot = new XYImagePlot();
         plot.setAxisOffset(new RectangleInsets(5, 5, 5, 5));
         plot.setNoDataMessage(NO_DATA_MESSAGE);
         plot.getRenderer().setBaseToolTipGenerator(new XYPlotToolTipGenerator());
 
-//        NumberAxis scaleAxis = new NumberAxis("Scale");
-//        scaleAxis.setTickLabelFont(new Font("Dialog", Font.PLAIN, 7));
-//        PaintScaleLegend legend = new PaintScaleLegend(new GrayPaintScale(), scaleAxis);
-//        legend.setAxisLocation(AxisLocation.BOTTOM_OR_LEFT);
-//        legend.setAxisOffset(5.0);
-//        legend.setMargin(new RectangleInsets(5, 5, 5, 5));
-//        legend.setPadding(new RectangleInsets(10, 10, 10, 10));
-//        legend.setStripWidth(10);
-//        legend.setPosition(RectangleEdge.RIGHT);
-
         JFreeChart chart = new JFreeChart(CHART_TITLE, plot);
         chart.removeLegend();
-//         chart.addSubtitle(legend);
 
         scatterPlotDisplay = new ChartPanel(chart);
         scatterPlotDisplay.getPopupMenu().add(createCopyDataToClipboardMenuItem());
 
-        final TableLayout rightPanelLayout = new TableLayout(1);
-        final JPanel rightPanel = new JPanel(rightPanelLayout);
-        rightPanelLayout.setTableFill(TableLayout.Fill.HORIZONTAL);
-        rightPanelLayout.setRowWeightY(3, 1.0);
-        rightPanelLayout.setCellFill(5, 1, TableLayout.Fill.NONE);
-        rightPanelLayout.setCellAnchor(5, 1, TableLayout.Anchor.EAST);
-        rightPanel.add(computePanel);
-        rightPanel.add(createOptionsPane());
-        rightPanel.add(createChartButtonPanel(scatterPlotDisplay));
-        rightPanel.add(new JPanel());   // filler
-        final JPanel helpPanel = new JPanel(new BorderLayout());
-        helpPanel.add(getHelpButton(), BorderLayout.EAST);
-        rightPanel.add(helpPanel);
+        // UI arrangement
+
+        final GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets.top = 6;
+        gbc.weighty = 0;
+        gbc.gridy = 0;
+
+        final JPanel rightPanel = new JPanel(new GridBagLayout());
+        rightPanel.add(computeButton, gbc);
+        gbc.gridy++;
+        rightPanel.add(rasterDataSourcePanel, gbc);
+        gbc.gridy++;
+        rightPanel.add(boxSizePanel, gbc);
+        gbc.gridy++;
+        rightPanel.add(roiMaskPanel, gbc);
+        gbc.gridy++;
+        rightPanel.add(pointDataSourcePanel, gbc);
+        gbc.gridy++;
+        rightPanel.add(pointDataFieldPanel, gbc);
+
+        gbc.weighty = 1;
+        gbc.gridy++;
+        rightPanel.add(new JPanel(), gbc);   // filler
+
+        gbc.weighty = 0;
+        gbc.gridy++;
+        rightPanel.add(xAxisOptionPanel, gbc);
+        gbc.gridy++;
+        rightPanel.add(yAxisOptionPanel, gbc);
+        gbc.gridy++;
+        rightPanel.add(new JSeparator(JSeparator.HORIZONTAL), gbc);
+        gbc.gridy++;
+        rightPanel.add(confidencePanel, gbc);
+        gbc.gridy++;
+        rightPanel.add(createChartButtonPanel2(scatterPlotDisplay), gbc);
 
         add(scatterPlotDisplay, BorderLayout.CENTER);
         add(rightPanel, BorderLayout.EAST);
 
         updateUIState();
+    }
+
+    private JButton createShowMaskManagerButton() {
+        final JButton showMaskManagerButton = new JButton("...");
+        showMaskManagerButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                openMaskManager();
+            }
+        });
+        return showMaskManagerButton;
+    }
+
+    private void openMaskManager() {
+        //Todo change body of created method. Use File | Settings | File Templates to change
+    }
+
+    private String getSelectedMaskName() {
+        return (String) bindingContext.getBinding(PARAM_ROI_MASK_NAME).getPropertyValue();
+    }
+
+    private boolean isMaskSelected() {
+        return getSelectedMaskName() != null;
     }
 
     private RasterDataNode getRaster(int varIndex) {
@@ -256,7 +452,6 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
         final String rasterName = rasterNameParams[varIndex].getValue().toString();
         RasterDataNode raster = product.getRasterDataNode(rasterName);
         if (raster == null) {
-            // todo - "if the product doesn't have the raster, take some other?" - this is stupid (nf - 18.12.2007)
             if (getRaster() != null && rasterName.equalsIgnoreCase(getRaster().getName())) {
                 raster = getRaster();
             }
@@ -266,14 +461,9 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
     }
 
     private void updateUIState() {
-        updateComputePane();
         updateUIState(X_VAR);
         updateUIState(Y_VAR);
         setChartTitle();
-    }
-
-    private void updateComputePane() {
-        computePanel.setRaster(getRaster(X_VAR));
     }
 
     private void updateUIState(int varIndex) {
@@ -286,46 +476,6 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
         final boolean autoMinMaxEnabled = (Boolean) autoMinMaxParams[varIndex].getValue();
         minParams[varIndex].setUIEnabled(!autoMinMaxEnabled);
         maxParams[varIndex].setUIEnabled(!autoMinMaxEnabled);
-    }
-
-
-    private JPanel createOptionsPane() {
-        final JPanel optionsPane = GridBagUtils.createPanel();
-        final GridBagConstraints gbc = GridBagUtils.createConstraints("anchor=NORTHWEST,fill=BOTH");
-
-        GridBagUtils.setAttributes(gbc, "gridy=1,weightx=1");
-        GridBagUtils.addToPanel(optionsPane, createOptionsPane(X_VAR), gbc, "gridy=0,insets.top=0");
-        GridBagUtils.addToPanel(optionsPane, createOptionsPane(Y_VAR), gbc, "gridy=1,insets.top=7");
-
-        return optionsPane;
-    }
-
-    private JPanel createOptionsPane(int varIndex) {
-
-        final JPanel optionsPane = GridBagUtils.createPanel();
-        final GridBagConstraints gbc = GridBagUtils.createConstraints("anchor=WEST,fill=HORIZONTAL");
-
-        GridBagUtils.setAttributes(gbc, "gridwidth=2,gridy=0,insets.top=0");
-        GridBagUtils.addToPanel(optionsPane, rasterNameParams[varIndex].getEditor().getComponent(), gbc,
-                                "gridx=0,weightx=1");
-
-        GridBagUtils.setAttributes(gbc, "gridwidth=2,gridy=1,insets.top=4");
-        GridBagUtils.addToPanel(optionsPane, autoMinMaxParams[varIndex].getEditor().getComponent(), gbc,
-                                "gridx=0,weightx=1");
-
-        GridBagUtils.setAttributes(gbc, "gridwidth=1,gridy=2,insets.top=2");
-        GridBagUtils.addToPanel(optionsPane, minParams[varIndex].getEditor().getLabelComponent(), gbc,
-                                "gridx=0,weightx=0");
-        GridBagUtils.addToPanel(optionsPane, minParams[varIndex].getEditor().getComponent(), gbc, "gridx=1,weightx=1");
-
-        GridBagUtils.setAttributes(gbc, "gridwidth=1,gridy=3,insets.top=2");
-        GridBagUtils.addToPanel(optionsPane, maxParams[varIndex].getEditor().getLabelComponent(), gbc,
-                                "gridx=0,weightx=0");
-        GridBagUtils.addToPanel(optionsPane, maxParams[varIndex].getEditor().getComponent(), gbc, "gridx=1,weightx=1");
-
-        optionsPane.setBorder(BorderFactory.createTitledBorder((varIndex == 0 ? "X" : "Y") + "-Band"));
-
-        return optionsPane;
     }
 
     private static class ScatterPlot {
@@ -353,6 +503,21 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
         }
     }
 
+    private static class ScatterPlotModel {
+        private String rasterDataNodeName;
+        private int boxSize;
+        private String roiMaskName;
+        private String pointDataNodeName;
+        private String pointDataFieldName;
+        public AxisRangeControl xAxisRangeControl;
+        private boolean xAxisLogScaled;
+        public AxisRangeControl yAxisRangeControl;
+        private boolean yAxisLogScaled;
+        private boolean showConfidenceInterval;
+        private double confidenceInterval;
+
+    }
+
     @Override
     public void compute(final Mask selectedMask) {
 
@@ -372,18 +537,18 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
                 try {
                     final Range rangeX = getRange(X_VAR, rasterX, selectedMask, SubProgressMonitor.create(pm, 15));
                     final Range rangeY = getRange(Y_VAR, rasterY, selectedMask, SubProgressMonitor.create(pm, 15));
-                    final BufferedImage image = ProductUtils.createScatterPlotImage(rasterX,
-                                                                                    (float) rangeX.getMin(),
-                                                                                    (float) rangeX.getMax(),
-                                                                                    rasterY,
-                                                                                    (float) rangeY.getMin(),
-                                                                                    (float) rangeY.getMax(),
-                                                                                    selectedMask,
-                                                                                    512,
-                                                                                    512,
-                                                                                    new Color(255, 255, 255, 0),
-                                                                                    null,
-                                                                                    SubProgressMonitor.create(pm, 70));
+                    final BufferedImage image = ProductUtils.createDensityPlotImage(rasterX,
+                            (float) rangeX.getMin(),
+                            (float) rangeX.getMax(),
+                            rasterY,
+                            (float) rangeY.getMin(),
+                            (float) rangeY.getMax(),
+                            selectedMask,
+                            512,
+                            512,
+                            new Color(255, 255, 255, 0),
+                            null,
+                            SubProgressMonitor.create(pm, 70));
                     return new ScatterPlot(image, rangeX, rangeY);
                 } finally {
                     pm.done();
@@ -400,11 +565,11 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
                     double maxY = scatterPlot.getRangeY().getMax();
                     if (minX > maxX || minY > maxY) {
                         JOptionPane.showMessageDialog(getParentDialogContentPane(),
-                                                      "Failed to compute scatter plot.\n" +
-                                                      "No Pixels considered..",
-                                                      /*I18N*/
-                                                      CHART_TITLE, /*I18N*/
-                                                      JOptionPane.ERROR_MESSAGE);
+                                "Failed to compute scatter plot.\n" +
+                                        "No Pixels considered..",
+                                /*I18N*/
+                                CHART_TITLE, /*I18N*/
+                                JOptionPane.ERROR_MESSAGE);
                         plot.setDataset(null);
                         return;
 
@@ -427,27 +592,27 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                     JOptionPane.showMessageDialog(getParentDialogContentPane(),
-                                                  "Failed to compute scatter plot.\n" +
-                                                  "Calculation canceled.",
-                                                  /*I18N*/
-                                                  CHART_TITLE, /*I18N*/
-                                                  JOptionPane.ERROR_MESSAGE);
+                            "Failed to compute scatter plot.\n" +
+                                    "Calculation canceled.",
+                            /*I18N*/
+                            CHART_TITLE, /*I18N*/
+                            JOptionPane.ERROR_MESSAGE);
                 } catch (CancellationException e) {
                     e.printStackTrace();
                     JOptionPane.showMessageDialog(getParentDialogContentPane(),
-                                                  "Failed to compute scatter plot.\n" +
-                                                  "Calculation canceled.",
-                                                  /*I18N*/
-                                                  CHART_TITLE, /*I18N*/
-                                                  JOptionPane.ERROR_MESSAGE);
+                            "Failed to compute scatter plot.\n" +
+                                    "Calculation canceled.",
+                            /*I18N*/
+                            CHART_TITLE, /*I18N*/
+                            JOptionPane.ERROR_MESSAGE);
                 } catch (ExecutionException e) {
                     e.printStackTrace();
                     JOptionPane.showMessageDialog(getParentDialogContentPane(),
-                                                  "Failed to compute scatter plot.\n" +
-                                                  "An error occured:\n" +
-                                                  e.getCause().getMessage(),
-                                                  CHART_TITLE, /*I18N*/
-                                                  JOptionPane.ERROR_MESSAGE);
+                            "Failed to compute scatter plot.\n" +
+                                    "An error occured:\n" +
+                                    e.getCause().getMessage(),
+                            CHART_TITLE, /*I18N*/
+                            JOptionPane.ERROR_MESSAGE);
                 }
             }
         };
@@ -463,16 +628,16 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
     }
 
     private Range getRange(int varIndex, RasterDataNode raster, Mask mask, ProgressMonitor pm) throws
-                                                                                                            IOException {
+            IOException {
         final boolean autoMinMax = (Boolean) autoMinMaxParams[varIndex].getValue();
         if (autoMinMax) {
             Stx stx;
             if (mask == null) {
                 stx = raster.getStx(false, pm);
             } else {
-                stx = Stx.create(raster, mask, pm);
+                stx = new StxFactory().withRoiMask(mask).create(raster, pm);
             }
-            return new Range(raster.scale(stx.getMin()), raster.scale(stx.getMax()));
+            return new Range(stx.getMinimum(), stx.getMaximum());
         } else {
             return new Range((Double) minParams[varIndex].getValue(), (Double) maxParams[varIndex].getValue());
         }
@@ -510,6 +675,7 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
             }
         }
 
+        availableBandList.add(0, "");
         return availableBandList.toArray(new String[availableBandList.size()]);
     }
 
@@ -522,18 +688,18 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
             String excelNote = "";
             if (numNonEmptyBins > excelLimit - 100) {
                 excelNote = "Note that e.g., Microsoft® Excel 2002 only supports a total of "
-                            + excelLimit + " rows in a sheet.\n";   /*I18N*/
+                        + excelLimit + " rows in a sheet.\n";   /*I18N*/
             }
             final String message = MessageFormat.format(
                     "This scatter plot diagram contains {0} non-empty bins.\n" +
-                    "For each bin, a text data row containing an x, y and z value will be created.\n" +
-                    "{1}\nPress ''Yes'' if you really want to copy this amount of data to the system clipboard.\n",
+                            "For each bin, a text data row containing an x, y and z value will be created.\n" +
+                            "{1}\nPress ''Yes'' if you really want to copy this amount of data to the system clipboard.\n",
                     numNonEmptyBins, excelNote);
             final int status = JOptionPane.showConfirmDialog(this,
-                                                             message, /*I18N*/
-                                                             "Copy Data to Clipboard", /*I18N*/
-                                                             JOptionPane.YES_NO_OPTION,
-                                                             JOptionPane.WARNING_MESSAGE);
+                    message, /*I18N*/
+                    "Copy Data to Clipboard", /*I18N*/
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE);
             if (status != JOptionPane.YES_OPTION) {
                 return false;
             }
@@ -543,8 +709,8 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
 
     private byte[] getValidData(BufferedImage image) {
         if (image != null &&
-            image.getColorModel() instanceof IndexColorModel &&
-            image.getData().getDataBuffer() instanceof DataBufferByte) {
+                image.getColorModel() instanceof IndexColorModel &&
+                image.getData().getDataBuffer() instanceof DataBufferByte) {
             return ((DataBufferByte) image.getData().getDataBuffer()).getData();
         }
         return null;

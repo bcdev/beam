@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -22,10 +22,7 @@ import org.esa.beam.framework.gpf.Operator;
 import org.esa.beam.framework.gpf.OperatorException;
 import org.esa.beam.framework.gpf.OperatorSpi;
 import org.esa.beam.framework.gpf.Tile;
-import org.esa.beam.framework.gpf.annotations.OperatorMetadata;
-import org.esa.beam.framework.gpf.annotations.Parameter;
-import org.esa.beam.framework.gpf.annotations.SourceProducts;
-import org.esa.beam.framework.gpf.annotations.TargetProduct;
+import org.esa.beam.framework.gpf.annotations.*;
 import org.esa.beam.util.ProductUtils;
 import org.esa.beam.util.StringUtils;
 
@@ -52,22 +49,26 @@ import java.util.regex.Pattern;
  * @author Thomas Storm
  */
 @OperatorMetadata(alias = "Merge",
-                  description = "Allows copying raster data from other products to a specified product.",
+                  description = "Allows copying raster data from other products to a specified product. The " +
+                          "'master product' receives nodes from the source products products.",
                   authors = "BEAM team",
                   version = "1.0",
-                  copyright = "(c) 2012 by Brockmann Consult")
+                  copyright = "(c) 2012 by Brockmann Consult",
+                  internal = false)
 public class MergeOp extends Operator {
 
-    @SourceProducts(description = "The products to be merged. The first product is considered the 'master product', " +
-                                  "which receives nodes from subsequently provided products.")
+    @SourceProduct(description = "The 'master product', which receives nodes from subsequently provided products.")
+    private Product masterProduct;
+
+    @SourceProducts(description = "The products to be merged into the 'master product'.")
     private Product[] sourceProducts;
-    
+
     @TargetProduct
     private Product targetProduct;
 
     @Parameter(itemAlias = "include", itemsInlined = false,
                description = "Defines nodes to be included in the target product. If no includes are provided, all" +
-                             " nodes are copied.")
+                       " nodes are copied.")
     private NodeDescriptor[] includes;
     @Parameter(itemAlias = "exclude", itemsInlined = false,
                description = "Defines nodes to be excluded from the target product.")
@@ -75,7 +76,7 @@ public class MergeOp extends Operator {
 
     @Override
     public void initialize() throws OperatorException {
-        targetProduct = sourceProducts[0];
+        targetProduct = masterProduct;
         validateSourceProducts();
         if (includes == null || includes.length == 0) {
             List<NodeDescriptor> nodeDescriptorList = new ArrayList<NodeDescriptor>();
@@ -148,30 +149,29 @@ public class MergeOp extends Operator {
     private void copyBandWithFeatures(Product sourceProduct, String oldBandName, String newBandName) {
         Band sourceBand = sourceProduct.getBand(oldBandName);
         if (sourceBand == null) {
-            final String msg = String.format("Source product [%s] does not contain a band with the name [%s]",
+            final String msg = String.format("Source product [%s] does not contain a band with name [%s]",
                                              sourceProduct.getName(), oldBandName);
             throw new OperatorException(msg);
         }
 
-        if(targetProduct.containsBand(newBandName)) {
+        if (targetProduct.containsBand(newBandName)) {
             return;
         }
-        Band targetBand = targetProduct.addBand(newBandName, sourceBand.getDataType());
-        ProductUtils.copyRasterDataNodeProperties(sourceBand, targetBand);
+        ProductUtils.copyBand(oldBandName, sourceProduct, newBandName, targetProduct, true);
     }
 
     private void validateSourceProducts() {
         for (Product sourceProduct : getSourceProducts()) {
             if (!targetProduct.isCompatibleProduct(sourceProduct, 1.0E-5f)) {
-                throw new OperatorException("Product '" + getSourceProductId(sourceProduct) + "' is not compatible to" +
-                                            " master product.");
+                throw new OperatorException(String.format("Product [%s] is not compatible to master product.",
+                                                          getSourceProductId(sourceProduct)));
             }
         }
     }
 
     @Override
     public void computeTile(Band band, Tile targetTile, ProgressMonitor pm) throws OperatorException {
-        getLogger().warning("Wrongly configured ProductMerger operator. Tiles should not be requested.");
+        getLogger().warning("Wrongly configured operator. Tiles should not be requested.");
     }
 
     public static class NodeDescriptor {

@@ -165,6 +165,7 @@ class ColorManipulationForm {
         if (this.productSceneView != null) {
             setImageInfoCopy(this.productSceneView.getImageInfo());
         }
+
         installChildForm(productSceneViewOld);
 
         updateTitle();
@@ -232,7 +233,7 @@ class ColorManipulationForm {
         if (productSceneView != null) {
             titlePostfix = " - " + productSceneView.getSceneName();
         }
-        toolView.setTitle( titlePrefix + titlePostfix);
+        toolView.setTitle(titlePrefix + titlePostfix);
     }
 
     private void updateToolButtons() {
@@ -289,9 +290,8 @@ class ColorManipulationForm {
         applyButton.setName("ApplyButton");
         applyButton.setMnemonic('A');
         applyButton.addActionListener(new ActionListener() {
-
+            @Override
             public void actionPerformed(final ActionEvent e) {
-
                 applyChanges();
             }
         });
@@ -301,6 +301,7 @@ class ColorManipulationForm {
         resetButton.setToolTipText("Reset to defaults"); /*I18N*/
         resetButton.addActionListener(new ActionListener() {
 
+            @Override
             public void actionPerformed(final ActionEvent e) {
                 resetToDefaults();
             }
@@ -311,6 +312,7 @@ class ColorManipulationForm {
         multiApplyButton.setToolTipText("Apply to other bands"); /*I18N*/
         multiApplyButton.addActionListener(new ActionListener() {
 
+            @Override
             public void actionPerformed(final ActionEvent e) {
                 applyMultipleColorPaletteDef();
             }
@@ -320,7 +322,7 @@ class ColorManipulationForm {
         importButton.setName("ImportButton");
         importButton.setToolTipText("Import settings from text file."); /*I18N*/
         importButton.addActionListener(new ActionListener() {
-
+            @Override
             public void actionPerformed(final ActionEvent e) {
                 importColorPaletteDef();
             }
@@ -331,7 +333,7 @@ class ColorManipulationForm {
         exportButton.setName("ExportButton");
         exportButton.setToolTipText("Export settings to text file."); /*I18N*/
         exportButton.addActionListener(new ActionListener() {
-
+            @Override
             public void actionPerformed(final ActionEvent e) {
                 exportColorPaletteDef();
             }
@@ -354,7 +356,6 @@ class ColorManipulationForm {
         installHelp();
         suppressibleOptionPane = visatApp.getSuppressibleOptionPane();
         setProductSceneView(visatApp.getSelectedProductSceneView());
-
 
         // Add an internal frame listsner to VISAT so that we can update our
         // contrast stretch dialog with the information of the currently activated
@@ -700,8 +701,8 @@ class ColorManipulationForm {
                 return;
             }
             targetImageInfo.setColorPaletteDef(colorPaletteDef,
-                                               targetRaster.scale(stx.getMin()),
-                                               targetRaster.scale(stx.getMax()),
+                                               stx.getMinimum(),
+                                               stx.getMaximum(),
                                                autoDistribute);
         }
     }
@@ -846,7 +847,6 @@ class ColorManipulationForm {
 
     Stx getStx(RasterDataNode raster) {
         return raster.getStx(false, ProgressMonitor.NULL); // todo - use PM
-        //return raster.getStx(true, ProgressMonitor.NULL); // todo - use PM
     }
 
     private class ColorManipulationPNL extends ProductNodeListenerAdapter {

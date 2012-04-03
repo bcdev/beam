@@ -28,6 +28,11 @@
     <changelog>
         <![CDATA[
         <p>Changes in 4.10<br/>
+          [BEAM-1385] Import images as products (missing RGB product reader)<br/>
+          [BEAM-1384] Synchronise image views via geographical center coordinates<br/>
+          [BEAM-1379] Log-scaled data and log-scaled display shall be independent<br/>
+          [BEAM-1374] On Mac OS X, processor windows don't have menu bars<br/>
+          [BEAM-1373] Use latest JIDE libraries<br/>
           [BEAM-1372] Use latest XStream library<br/>
           [BEAM-1352] When exporting a product a SubsetInfo is always added to metadata tree<br/>
           [BEAM-1323] Add "magic stick" to VISAT that lets users create masks of similar pixels<br/>
@@ -1232,7 +1237,7 @@
         <action>
             <parent>data</parent>
             <id>openScatterPlotDialog</id>
-            <class>org.esa.beam.visat.actions.OpenScatterPlotDialogAction</class>
+            <class>org.esa.beam.visat.actions.OpenDensityPlotDialogAction</class>
             <placeAfter>openHistogramDialog</placeAfter>
             <text>Scatter Plot...</text>
             <mnemonic>L</mnemonic>
@@ -1696,18 +1701,17 @@
             <helpId>rangeFinder</helpId>
         </action>
         <action>
-            <id>magicStickTool</id>
+            <id>magicWandTool</id>
             <class>org.esa.beam.visat.actions.ToolAction</class>
-            <tool>org.esa.beam.visat.actions.magicstick.MagicStickTool</tool>
-            <interactor>org.esa.beam.visat.actions.magicstick.MagicStickInteractor</interactor>
+            <interactor>org.esa.beam.visat.actions.masktools.MagicWandInteractor</interactor>
             <parent>tools</parent>
             <placeAfter>rangeFinder</placeAfter>
-            <text>Magic Stick</text>
-            <shortDescr>Creates a ROI mask using a magic stick</shortDescr>
-            <largeIcon>/org/esa/beam/visat/actions/magicstick/MagicStick22.png</largeIcon>
+            <text>Magic Wand</text>
+            <shortDescr>Creates a ROI mask using a magic wand</shortDescr>
+            <largeIcon>/org/esa/beam/visat/actions/masktools/MagicWand22.png</largeIcon>
             <selected>false</selected>
             <context>image</context>
-            <helpId>magicStickTool</helpId>
+            <helpId>magicWandTool</helpId>
         </action>
 
         <action>
@@ -1764,6 +1768,14 @@
             <id>importTrack</id>
             <class>org.esa.beam.visat.actions.ImportTrackAction</class>
             <text>Import Track File (Experimental)...</text>
+            <parent>import</parent>
+            <placeBefore>importPoints</placeBefore>
+        </action>
+
+        <action>
+            <id>importPoints</id>
+            <class>org.esa.beam.visat.actions.ImportPointDataAction</class>
+            <text>Import points from a CSV file... (experimental)</text>
             <parent>import</parent>
             <placeBefore>importGeometry</placeBefore>
         </action>

@@ -43,7 +43,6 @@ import java.awt.image.SampleModel;
 import java.io.IOException;
 import java.util.Arrays;
 
-
 /**
  * The <code>RasterDataNode</code> class ist the abstract base class for all objects in the product package that contain
  * rasterized data. i.e. <code>Band</code> and <code>TiePointGrid</code>. It unifies the access to raster data in the
@@ -108,7 +107,6 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
     private double scalingFactor;
     private double scalingOffset;
     private boolean log10Scaled;
-    private boolean log10ScaledDisplay;
     private boolean scalingApplied;
 
     private boolean noDataValueUsed;
@@ -173,7 +171,6 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
         scalingFactor = 1.0;
         scalingOffset = 0.0;
         log10Scaled = false;
-        log10ScaledDisplay = false;
         scalingApplied = false;
 
         noData = null;
@@ -402,24 +399,6 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
     }
 
     /**
-     *
-     * @return whether the log10 scale option is chosen in the "basic color manipulation" tab
-     *
-     * */
-
-    public final boolean isLog10ScaledDisplay() {
-        return log10ScaledDisplay;
-    }
-
-    /**
-     * log10ScaledDisplay is set to true when the "log" option is selected in "Basic Color Manipulation"
-
-     */
-    public void setLog10ScaledDisplay( boolean log10ScaledDisplay ) {
-        this.log10ScaledDisplay = log10ScaledDisplay ;
-        setModified(true);
-    }
-    /**
      * Gets whether or not the {@link <code>ProductData</code>} of this band has a negative binominal distribution and
      * thus the common logarithm (base 10) of the values is stored in the raw data. The default value is
      * <code>false</code>.
@@ -427,12 +406,9 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
      * @return whether or not the data is logging-10 scaled
      * @see #isScalingApplied()
      */
-
     public final boolean isLog10Scaled() {
         return log10Scaled;
     }
-
-
 
     /**
      * Sets whether or not the {@link <code>ProductData</code>} of this band has a negative binominal distribution and
@@ -1598,8 +1574,8 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
     public synchronized ImageInfo createDefaultImageInfo(double[] histoSkipAreas, ProgressMonitor pm) {
         Stx stx = getStx(false, pm);
         Histogram histogram = new Histogram(stx.getHistogramBins(),
-                                            stx.getMin(),
-                                            stx.getMax());
+                                            stx.getMinimum(),
+                                            stx.getMaximum());
         return createDefaultImageInfo(histoSkipAreas, histogram);
     }
 
@@ -1625,11 +1601,11 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
 
         final double min, max;
         if (range.getMin() != range.getMax()) {
-            min = scale(range.getMin());
-            max = scale(range.getMax());
+            min = range.getMin();
+            max = range.getMax();
         } else {
-            min = scale(histogram.getMin());
-            max = scale(histogram.getMax());
+            min = histogram.getMin();
+            max = histogram.getMax();
         }
 
         double center = scale(0.5 * (scaleInverse(min) + scaleInverse(max)));
@@ -1776,7 +1752,6 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
         if (log10Scaled ) {
             v = Math.pow(10.0, v);
         }
-
         return v;
     }
 
@@ -1791,7 +1766,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
     @Override
     public final double scaleInverse(double v) {
         if (log10Scaled ) {
-            v = (v>0)?Math.log10(v):v;
+            v = Math.log10(v);
         }
         return (v - scalingOffset) / scalingFactor;
     }
@@ -2155,7 +2130,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
      * @since BEAM 4.5
      */
     protected Stx computeStxImpl(int level, ProgressMonitor pm) {
-        return Stx.create(this, level, pm);
+        return new StxFactory().withResolutionLevel(level).create(this, pm);
     }
 
     /**

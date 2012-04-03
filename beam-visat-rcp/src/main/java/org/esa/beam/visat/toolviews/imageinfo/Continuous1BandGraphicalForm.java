@@ -18,6 +18,7 @@ package org.esa.beam.visat.toolviews.imageinfo;
 
 import org.esa.beam.framework.datamodel.ProductNodeEvent;
 import org.esa.beam.framework.datamodel.RasterDataNode;
+import org.esa.beam.framework.datamodel.Scaling;
 import org.esa.beam.framework.ui.ImageInfoEditor;
 import org.esa.beam.framework.ui.ImageInfoEditorModel;
 import org.esa.beam.framework.ui.product.ProductSceneView;
@@ -30,10 +31,14 @@ import java.awt.event.ActionListener;
 
 class Continuous1BandGraphicalForm implements ColorManipulationChildForm {
 
+    public static final Scaling LOG10_SCALING = new Log10Scaling();
+    public static final Scaling POW10_SCALING = new Pow10Scaling();
+
     private final ColorManipulationForm parentForm;
     private final ImageInfoEditor2 imageInfoEditor;
     private final ImageInfoEditorSupport imageInfoEditorSupport;
     private final JPanel contentPanel;
+    private final AbstractButton logDisplayButton;
     private final AbstractButton evenDistButton;
     private final MoreOptionsForm moreOptionsForm;
     private ChangeListener applyEnablerCL;
@@ -47,6 +52,15 @@ class Continuous1BandGraphicalForm implements ColorManipulationChildForm {
         contentPanel.add(imageInfoEditor, BorderLayout.CENTER);
         moreOptionsForm = new MoreOptionsForm(parentForm, true);
 
+        logDisplayButton = ImageInfoEditorSupport.createToggleButton("icons/LogDisplay24.png");
+        logDisplayButton.setName("logDisplayButton");
+        logDisplayButton.setToolTipText("Switch to logarithmic display"); /*I18N*/
+        logDisplayButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                setLogarithmicDisplay(logDisplayButton.isSelected());
+            }
+        });
+
         evenDistButton = ImageInfoEditorSupport.createButton("icons/EvenDistribution24.gif");
         evenDistButton.setName("evenDistButton");
         evenDistButton.setToolTipText("Distribute sliders evenly between first and last slider"); /*I18N*/
@@ -56,8 +70,10 @@ class Continuous1BandGraphicalForm implements ColorManipulationChildForm {
             }
         });
 
+
         applyEnablerCL = parentForm.createApplyEnablerChangeListener();
     }
+
 
     public Component getContentPanel() {
         return contentPanel;
@@ -96,8 +112,8 @@ class Continuous1BandGraphicalForm implements ColorManipulationChildForm {
                 model.getSliderSample(model.getSliderCount() - 1) > model.getMaxHistogramViewSample()) {
             imageInfoEditor.computeZoomInToSliderLimits();
         }
-        parentForm.setCurrentMinValue(imageInfoEditor.getFirstSliderSample());
-        parentForm.setCurrentMaxValue(imageInfoEditor.getLastSliderSample());
+
+        logDisplayButton.setSelected(model.getSampleScaling() != Scaling.IDENTITY);
         parentForm.revalidateToolViewPaneControl();
     }
 
@@ -128,11 +144,16 @@ class Continuous1BandGraphicalForm implements ColorManipulationChildForm {
         return moreOptionsForm;
     }
 
+    private void setLogarithmicDisplay(boolean logarithmicDisplay) {
+        imageInfoEditor.getModel().setSampleScaling(logarithmicDisplay ? POW10_SCALING : Scaling.IDENTITY);
+        imageInfoEditor.getModel().fireStateChanged();
+    }
+
     private void distributeSlidersEvenly() {
         imageInfoEditor.distributeSlidersEvenly();
     }
 
-
+    @Override
     public AbstractButton[] getToolButtons() {
         return new AbstractButton[]{
                 imageInfoEditorSupport.autoStretch95Button,
@@ -141,14 +162,46 @@ class Continuous1BandGraphicalForm implements ColorManipulationChildForm {
                 imageInfoEditorSupport.zoomOutVButton,
                 imageInfoEditorSupport.zoomInHButton,
                 imageInfoEditorSupport.zoomOutHButton,
-                imageInfoEditorSupport.showExtraInfoButton,
+                logDisplayButton,
                 evenDistButton,
+                imageInfoEditorSupport.showExtraInfoButton,
         };
     }
 
     static void setDisplayProperties(ImageInfoEditorModel model, RasterDataNode raster) {
-        model.setDisplayProperties(raster.getName(), raster.getUnit(), raster.getStx(), raster);
+        // In BEAM 4.10, Stx is geo-pyhsical, scaling not required, possibly only for log-scaled
+        // model.setDisplayProperties(raster.getName(), raster.getUnit(), raster.getStx(), raster);
+        model.setDisplayProperties(raster.getName(), raster.getUnit(), raster.getStx(), raster.isLog10Scaled() ? POW10_SCALING : Scaling.IDENTITY);
     }
 
 
+    private static class Log10Scaling implements Scaling {
+        @Override
+        public double scale(double value) {
+            return value > 1.0E-10 ? Math.log10(value) : -10.0;
+        }
+
+        @Override
+        public double scaleInverse(double value) {
+            if (value < -10.0) {
+                return 1.0E-10;
+            }
+            return Math.pow(10.0, value);
+        }
+    }
+
+    private static class Pow10Scaling implements Scaling {
+        @Override
+        public double scale(double value) {
+            if (value < -10.0) {
+                return 1.0E-10;
+            }
+            return Math.pow(10.0, value);
+        }
+
+        @Override
+        public double scaleInverse(double value) {
+            return value > 1.0E-10 ? Math.log10(value) : -10.0;
+        }
+    }
 }

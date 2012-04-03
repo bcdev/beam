@@ -62,6 +62,7 @@
     <categories>Application,Processor,Envisat,AATSR</categories>
 
     <extension point="beam-ui:actions">
+        <!-- old SST processor action
         <action>
             <id>sstScientificTool</id>
             <class>org.esa.beam.visat.actions.ProcessorAction</class>
@@ -73,8 +74,18 @@
             <helpId>sstScientificTool</helpId>
             <placeAfter>smacScientificTool</placeAfter>
         </action>
+        -->
+        <action>
+            <id>sstScientificTool</id>
+            <helpId>sstScientificTool</helpId>
+            <class>org.esa.beam.aatsr.sst.visat.AatsrSstAction</class>
+            <parent>tools</parent>
+            <text>SST Processor ((A)ATSR)...</text>
+            <shortDescr>Invoke the BEAM (A)ATSR SST Processor.</shortDescr>
+            <mnemonic>S</mnemonic>
+            <placeAfter>smacScientificTool</placeAfter>
+        </action>
     </extension>
-
 
     <extension point="beam-ui:helpSets">
         <helpSet>

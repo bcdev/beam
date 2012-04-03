@@ -59,12 +59,15 @@ import java.util.Set;
  */
 public class ImageManager {
 
+    /**
+     * The default BEAM image coordinate reference system.
+     */
+    public static final ImageCRS DEFAULT_IMAGE_CRS = new DefaultImageCRS("BEAM",
+                                                                         new DefaultImageDatum("BEAM", PixelInCell.CELL_CORNER),
+                                                                         DefaultCartesianCS.DISPLAY);
+
     private static final boolean CACHE_INTERMEDIATE_TILES = Boolean.getBoolean(
             "beam.imageManager.enableIntermediateTileCaching");
-
-    private static final ImageCRS DEFAULT_IMAGE_CRS = new DefaultImageCRS("BEAM",
-                                                                          new DefaultImageDatum("BEAM", PixelInCell.CELL_CORNER),
-                                                                          DefaultCartesianCS.DISPLAY);
 
     private final Map<MaskKey, MultiLevelImage> maskImageMap = new HashMap<MaskKey, MultiLevelImage>(101);
     private final ProductNodeListener rasterDataChangeListener;
@@ -294,65 +297,13 @@ public class ImageManager {
     private RenderedImage createColored1BandImage(RasterDataNode raster, ImageInfo imageInfo, int level) {
         Assert.notNull(raster, "raster");
         Assert.notNull(imageInfo, "imageInfo");
-
         RenderedImage sourceImage = getSourceImage(raster, level);
-
-        //added by seadas team
-        boolean log10ScaledProduct = raster.isLog10Scaled();
-        if (raster.isLog10ScaledDisplay() & !log10ScaledProduct) {
-            sourceImage = logScalePixels(sourceImage);
-            raster.setLog10Scaled(true);    //now the source pixels are logged, so this flag needs to be true.
-        }
-        //seadas addition ends here
-
         RenderedImage validMaskImage = getValidMaskImage(raster, level);
         PlanarImage image = createByteIndexedImage(raster, sourceImage, imageInfo);
         image = createMatchCdfImage(image, imageInfo.getHistogramMatching(), new Stx[]{raster.getStx()});
         image = createLookupRgbImage(raster, image, validMaskImage, imageInfo);
-
-        // reset log10Scaled flag to original value; recreate STX.
-        if (raster.isLog10ScaledDisplay() ) {
-            raster.setLog10Scaled(log10ScaledProduct);
-        } else {
-            raster.resetValidMask(); // a new STX has to be generated to recompute the histogram.    this will set stx to null.
-        }
-        raster.getStx();   //  A new STX will be computed for the raster.
-
         return image;
     }
-
-
-    /**
-     * logs each pixel value when a user chooses a log scale color map.
-     * @param sourceImage
-     * @return   returns a new image file with logged pixels.
-     */
-     //new method added by seadas team
-    private TiledImage logScalePixels(RenderedImage sourceImage){
-        int width = sourceImage.getWidth();
-        int height = sourceImage.getHeight();
-        SampleModel sm = sourceImage.getSampleModel();
-        int nbands = sm.getNumBands();
-        Raster inputRaster = sourceImage.getData();
-        WritableRaster outputRaster = inputRaster.createCompatibleWritableRaster();
-        double[] pixels = new double[nbands*width*height];
-        inputRaster.getPixels(0,0,width,height, pixels);
-
-        int offset;
-        for (int h=0; h<height; h++) {
-            for (int w=0; w<width; w++ ){
-                offset = h*width*nbands + w*nbands;
-                for (int band=0; band<nbands; band++) {
-                    pixels[offset+band] = pixels[offset+band] > 0 ? Math.log10(pixels[offset+band])  : pixels[offset+band];
-                }
-            }
-        }
-        outputRaster.setPixels(0,0,width,height,pixels);
-
-        TiledImage ti = new TiledImage(sourceImage, true);
-        ti.setData(outputRaster);
-        return ti;
-    } //seadas added method ends here
 
     private PlanarImage createColored3BandImage(RasterDataNode[] rasters, ImageInfo rgbImageInfo, int level) {
         RenderedImage[] images = new RenderedImage[rasters.length];
@@ -399,16 +350,13 @@ public class ImageManager {
                                                       double minSample,
                                                       double maxSample,
                                                       double gamma) {
-
         double newMin = raster.scaleInverse(minSample);
         double newMax = raster.scaleInverse(maxSample);
-
         PlanarImage image = createRescaleOp(sourceImage,
                                             255.0 / (newMax - newMin),
                                             255.0 * newMin / (newMin - newMax));
         // todo - make sure this is not needed, e.g. does "format" auto-clamp?? (nf, 10.2008)
         // image = createClampOp(image, 0, 255);
-
         image = createByteFormatOp(image);
         if (gamma != 0.0 && gamma != 1.0) {
             byte[] gammaCurve = MathUtils.createGammaCurve(gamma, new byte[256]);
@@ -550,12 +498,10 @@ public class ImageManager {
         return alpha;
     }
 
-    //check this method
     private static PlanarImage createLookupRgbImage(RasterDataNode rasterDataNode,
                                                     RenderedImage sourceImage,
                                                     RenderedImage maskImage,
                                                     ImageInfo imageInfo) {
-
         Color[] palette;
         ColorPaletteDef colorPaletteDef = imageInfo.getColorPaletteDef();
         if (rasterDataNode instanceof Band && ((Band) rasterDataNode).getIndexCoding() != null) {
@@ -842,7 +788,6 @@ public class ImageManager {
         if (factor == 1.0 && offset == 0.0) {
             return PlanarImage.wrapRenderedImage(src);
         }
-
         return RescaleDescriptor.create(src,
                                         new double[]{factor},
                                         new double[]{offset},

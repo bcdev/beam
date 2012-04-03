@@ -1226,14 +1226,16 @@ public class DimapProductHelpers {
             final Double stdDev = getElemDouble(bandStatisticsElem, DimapProductConstants.TAG_STX_STDDEV);
             final Integer level = getElemInt(bandStatisticsElem, DimapProductConstants.TAG_STX_LEVEL);
             final int[] bins = getHistogramBins(bandStatisticsElem);
+            boolean intHistogram = !ProductData.isFloatingPointType(band.getGeophysicalDataType());
             if (minSample != null && maxSample != null) {
-                return new Stx(band.scaleInverse(minSample),
-                               band.scaleInverse(maxSample),
-                               mean != null ? band.scaleInverse(mean) : Double.NaN,
-                               stdDev != null ? band.scaleInverse(stdDev) : Double.NaN,
-                               ProductData.isIntType(band.getDataType()),
-                               bins == null ? new int[0] : bins,
-                               level == null ? 0 : level);
+                return new StxFactory()
+                        .withMinimum(minSample)
+                        .withMaximum(maxSample)
+                        .withMean(mean)
+                        .withStandardDeviation(stdDev)
+                        .withIntHistogram(intHistogram)
+                        .withHistogramBins(bins == null ? new int[0] : bins)
+                        .withResolutionLevel(level).create();
             }
             return null;
         }

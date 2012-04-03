@@ -21,7 +21,7 @@ import org.esa.beam.framework.datamodel.Scaling;
 import org.esa.beam.framework.datamodel.Stx;
 
 import javax.swing.event.ChangeListener;
-import java.awt.Color;
+import java.awt.*;
 
 /**
  * Unstable interface. Do not use.
@@ -67,13 +67,11 @@ public interface ImageInfoEditorModel {
 
     Scaling getSampleScaling();
 
+    void setSampleScaling(Scaling scaling);
+
     Stx getSampleStx();
 
     double getMinSample();
-
-    double getMinSample(boolean isLog10Scaled);
-
-    double getMaxSample(boolean isLog10Scaled);
 
     double getMaxSample();
 

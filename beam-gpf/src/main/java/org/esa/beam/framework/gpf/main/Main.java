@@ -16,29 +16,14 @@
 
 package org.esa.beam.framework.gpf.main;
 
-import org.esa.beam.util.SystemUtils;
-
-import java.util.Locale;
-
 /**
- * The entry point for the GPF command-line tool.
- * For usage, see {@link org/esa/beam/framework/gpf/main/CommandLineUsage.txt}
- * or use the option "-h".
+ * @deprecated Since BEAM 4.10, use {@link GPT} instead.
  */
+@Deprecated
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        if (System.getProperty("ceres.context") == null) {
-            System.setProperty("ceres.context", "beam");
-        }
-        try {
-            Locale.setDefault(Locale.ENGLISH); // Force usage of english locale
-            SystemUtils.init3rdPartyLibs(Main.class.getClassLoader());
-            new CommandLineTool().run(args);
-        } catch (Exception e) {
-            System.err.println("\nError: " + e.getMessage());
-            System.exit(1);
-        }
+        GPT.main(args);
     }
 
 }

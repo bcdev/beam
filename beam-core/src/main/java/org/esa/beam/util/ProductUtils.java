@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -865,18 +865,13 @@ public class ProductUtils {
      * @return the rectangular boundary
      */
     public static PixelPos[] createRectBoundary(final Rectangle rect, int step, final boolean usePixelCenter) {
-        final float insetDistance;
-        if (usePixelCenter) {
-            insetDistance = 0.5f;
-        } else {
-            insetDistance = 0.0f;
-        }
-        final float x1 = rect.x + insetDistance;
-        final float y1 = rect.y + insetDistance;
-        final float w = rect.width - 2 * insetDistance;
-        final float h = rect.height - 2 * insetDistance;
-        final float x2 = x1 + w;
-        final float y2 = y1 + h;
+        final float insetDistance = usePixelCenter ? 0.5f : 0.0f;
+        final int x1 = rect.x;
+        final int y1 = rect.y;
+        final int w = usePixelCenter ? rect.width - 1 : rect.width;
+        final int h = usePixelCenter ? rect.height - 1 : rect.height;
+        final int x2 = x1 + w;
+        final int y2 = y1 + h;
 
         if (step <= 0) {
             step = 2 * Math.max(rect.width, rect.height); // don't step!
@@ -884,28 +879,28 @@ public class ProductUtils {
 
         final ArrayList<PixelPos> pixelPosList = new ArrayList<PixelPos>(2 * (rect.width + rect.height) / step + 10);
 
-        float lastX = 0;
-        for (float x = x1; x < x2; x += step) {
-            pixelPosList.add(new PixelPos(x, y1));
+        int lastX = 0;
+        for (int x = x1; x < x2; x += step) {
+            pixelPosList.add(new PixelPos(x + insetDistance, y1 + insetDistance));
             lastX = x;
         }
 
-        float lastY = 0;
-        for (float y = y1; y < y2; y += step) {
-            pixelPosList.add(new PixelPos(x2, y));
+        int lastY = 0;
+        for (int y = y1; y < y2; y += step) {
+            pixelPosList.add(new PixelPos(x2 + insetDistance, y + insetDistance));
             lastY = y;
         }
 
-        pixelPosList.add(new PixelPos(x2, y2));
+        pixelPosList.add(new PixelPos(x2 + insetDistance, y2 + insetDistance));
 
-        for (float x = lastX; x > x1; x -= step) {
-            pixelPosList.add(new PixelPos(x, y2));
+        for (int x = lastX; x > x1; x -= step) {
+            pixelPosList.add(new PixelPos(x + insetDistance, y2 + insetDistance));
         }
 
-        pixelPosList.add(new PixelPos(x1, y2));
+        pixelPosList.add(new PixelPos(x1 + insetDistance, y2 + insetDistance));
 
-        for (float y = lastY; y > y1; y -= step) {
-            pixelPosList.add(new PixelPos(x1, y));
+        for (int y = lastY; y > y1; y -= step) {
+            pixelPosList.add(new PixelPos(x1 + insetDistance, y + insetDistance));
         }
 
         return pixelPosList.toArray(new PixelPos[pixelPosList.size()]);
@@ -1062,30 +1057,25 @@ public class ProductUtils {
         }
     }
 
-
     /**
      * Copies all bands which contain a flagcoding from the source product to the target product.
      *
-     * @param sourceProduct the source product
-     * @param targetProduct the target product
+     * @param sourceProduct   the source product
+     * @param targetProduct   the target product
+     * @param copySourceImage whether the source image of the source band should be copied.
+     * @since BEAM 4.10
      */
-    public static void copyFlagBands(Product sourceProduct, Product targetProduct) {
+    public static void copyFlagBands(Product sourceProduct, Product targetProduct, boolean copySourceImage) {
         Guardian.assertNotNull("source", sourceProduct);
         Guardian.assertNotNull("target", targetProduct);
         if (sourceProduct.getFlagCodingGroup().getNodeCount() > 0) {
-            copyFlagCodings(sourceProduct, targetProduct);
 
             // loop over bands and check if they have a flags coding attached
             for (int i = 0; i < sourceProduct.getNumBands(); i++) {
                 Band sourceBand = sourceProduct.getBandAt(i);
                 String bandName = sourceBand.getName();
-                FlagCoding coding = sourceBand.getFlagCoding();
-                if (coding != null) {
-                    Band targetBand = targetProduct.getBand(bandName);
-                    if (targetBand == null) {
-                        targetBand = copyBand(bandName, sourceProduct, targetProduct);
-                    }
-                    targetBand.setSampleCoding(targetProduct.getFlagCodingGroup().get(coding.getName()));
+                if (sourceBand.isFlagBand() && targetProduct.getBand(bandName) == null) {
+                    copyBand(bandName, sourceProduct, targetProduct, copySourceImage);
                 }
             }
 
@@ -1095,6 +1085,18 @@ public class ProductUtils {
             copyMasks(sourceProduct, targetProduct);
             copyOverlayMasks(sourceProduct, targetProduct);
         }
+    }
+
+    /**
+     * Copies all bands which contain a flagcoding from the source product to the target product.
+     *
+     * @param sourceProduct the source product
+     * @param targetProduct the target product
+     * @deprecated since BEAM 4.10, use {@link #copyFlagBands(Product, Product, boolean)} instead.
+     */
+    @Deprecated
+    public static void copyFlagBands(Product sourceProduct, Product targetProduct) {
+        copyFlagBands(sourceProduct, targetProduct, false);
     }
 
     /**
@@ -1124,26 +1126,30 @@ public class ProductUtils {
     /**
      * Copies the named band from the source product to the target product.
      *
-     * @param sourceBandName the name of the band to be copied.
-     * @param sourceProduct  the source product.
-     * @param targetProduct  the target product.
+     * @param sourceBandName  the name of the band to be copied.
+     * @param sourceProduct   the source product.
+     * @param targetProduct   the target product.
+     * @param copySourceImage whether the source image of the source band should be copied.
      * @return the copy of the band, or <code>null</code> if the sourceProduct does not contain a band with the given name.
+     * @since BEAM 4.10
      */
-    public static Band copyBand(String sourceBandName, Product sourceProduct, Product targetProduct) {
-        return copyBand(sourceBandName, sourceProduct, sourceBandName, targetProduct);
+    public static Band copyBand(String sourceBandName, Product sourceProduct, Product targetProduct, boolean copySourceImage) {
+        return copyBand(sourceBandName, sourceProduct, sourceBandName, targetProduct, copySourceImage);
     }
 
     /**
      * Copies the named band from the source product to the target product.
      *
-     * @param sourceBandName the name of the band to be copied.
-     * @param sourceProduct  the source product.
-     * @param targetBandName the name of the band copied.
-     * @param targetProduct  the target product.
+     * @param sourceBandName  the name of the band to be copied.
+     * @param sourceProduct   the source product.
+     * @param targetBandName  the name of the band copied.
+     * @param targetProduct   the target product.
+     * @param copySourceImage whether the source image of the source band should be copied.
      * @return the copy of the band, or <code>null</code> if the sourceProduct does not contain a band with the given name.
+     * @since BEAM 4.10
      */
     public static Band copyBand(String sourceBandName, Product sourceProduct,
-                                String targetBandName, Product targetProduct) {
+                                String targetBandName, Product targetProduct, boolean copySourceImage) {
         Guardian.assertNotNull("sourceProduct", sourceProduct);
         Guardian.assertNotNull("targetProduct", targetProduct);
 
@@ -1154,12 +1160,11 @@ public class ProductUtils {
         if (sourceBand == null) {
             return null;
         }
-        Band targetBand = new Band(targetBandName,
-                                   sourceBand.getDataType(),
-                                   sourceBand.getRasterWidth(),
-                                   sourceBand.getRasterHeight());
+        Band targetBand = targetProduct.addBand(targetBandName, sourceBand.getDataType());
         copyRasterDataNodeProperties(sourceBand, targetBand);
-        targetProduct.addBand(targetBand);
+        if (copySourceImage) {
+            targetBand.setSourceImage(sourceBand.getSourceImage());
+        }
         return targetBand;
     }
 
@@ -1183,22 +1188,51 @@ public class ProductUtils {
             Band sourceBand = (Band) sourceRaster;
             Band targetBand = (Band) targetRaster;
             copySpectralBandProperties(sourceBand, targetBand);
-            targetBand.setSourceImage(sourceBand.getSourceImage());
-            Product outputProduct = targetBand.getProduct();
-            if(outputProduct == null) {
+            Product targetProduct = targetBand.getProduct();
+            if (targetProduct == null) {
                 return;
             }
             if (sourceBand.getFlagCoding() != null) {
                 FlagCoding srcFlagCoding = sourceBand.getFlagCoding();
-                copyFlagCoding(srcFlagCoding, outputProduct);
-                targetBand.setSampleCoding(outputProduct.getFlagCodingGroup().get(srcFlagCoding.getName()));
+                copyFlagCoding(srcFlagCoding, targetProduct);
+                targetBand.setSampleCoding(targetProduct.getFlagCodingGroup().get(srcFlagCoding.getName()));
             }
             if (sourceBand.getIndexCoding() != null) {
                 IndexCoding srcIndexCoding = sourceBand.getIndexCoding();
-                copyIndexCoding(srcIndexCoding, outputProduct);
-                targetBand.setSampleCoding(outputProduct.getIndexCodingGroup().get(srcIndexCoding.getName()));
+                copyIndexCoding(srcIndexCoding, targetProduct);
+                targetBand.setSampleCoding(targetProduct.getIndexCodingGroup().get(srcIndexCoding.getName()));
             }
         }
+    }
+
+    /**
+     * Copies the named band from the source product to the target product.
+     *
+     * @param sourceBandName the name of the band to be copied.
+     * @param sourceProduct  the source product.
+     * @param targetProduct  the target product.
+     * @return the copy of the band, or <code>null</code> if the sourceProduct does not contain a band with the given name.
+     * @deprecated since BEAM 4.10, use {@link #copyBand(String, Product, Product, boolean)} instead.
+     */
+    @Deprecated
+    public static Band copyBand(String sourceBandName, Product sourceProduct, Product targetProduct) {
+        return copyBand(sourceBandName, sourceProduct, sourceBandName, targetProduct, false);
+    }
+
+    /**
+     * Copies the named band from the source product to the target product.
+     *
+     * @param sourceBandName the name of the band to be copied.
+     * @param sourceProduct  the source product.
+     * @param targetBandName the name of the band copied.
+     * @param targetProduct  the target product.
+     * @return the copy of the band, or <code>null</code> if the sourceProduct does not contain a band with the given name.
+     * @deprecated since BEAM 4.10, use {@link #copyBand(String, Product, String, Product, boolean)} instead.
+     */
+    @Deprecated
+    public static Band copyBand(String sourceBandName, Product sourceProduct,
+                                String targetBandName, Product targetProduct) {
+        return copyBand(sourceBandName, sourceProduct, targetBandName, targetProduct, false);
     }
 
     /**
@@ -1269,7 +1303,7 @@ public class ProductUtils {
                 FeatureCollection<SimpleFeatureType, SimpleFeature> featureCollection = sourceVDN.getFeatureCollection();
                 featureCollection = new DefaultFeatureCollection(featureCollection);
                 VectorDataNode targetVDN = new VectorDataNode(name, featureCollection);
-                targetVDN.setDefaultCSS(sourceVDN.getDefaultCSS());
+                targetVDN.setDefaultStyleCss(sourceVDN.getDefaultStyleCss());
                 targetVDN.setDescription(sourceVDN.getDescription());
                 targetProduct.getVectorDataGroup().add(targetVDN);
             }
@@ -1300,7 +1334,7 @@ public class ProductUtils {
                                                                          clipGeometry, DefaultGeographicCRS.WGS84,
                                                                          null, targetModelCrs);
                 VectorDataNode targetVDN = new VectorDataNode(name, featureCollection);
-                targetVDN.setDefaultCSS(sourceVDN.getDefaultCSS());
+                targetVDN.setDefaultStyleCss(sourceVDN.getDefaultStyleCss());
                 targetVDN.setDescription(sourceVDN.getDescription());
                 targetProduct.getVectorDataGroup().add(targetVDN);
             }
@@ -1332,7 +1366,7 @@ public class ProductUtils {
     }
 
     /**
-     * Creates a scatter plot image from two raster data nodes.
+     * Creates a density plot image from two raster data nodes.
      *
      * @param raster1    the first raster data node
      * @param sampleMin1 the minimum sample value to be considered in the first raster
@@ -1346,10 +1380,10 @@ public class ProductUtils {
      * @param background the background color of the output image
      * @param image      an image to be used as output image, if <code>null</code> a new image is created
      * @param pm         the progress monitor
-     * @return the scatter plot image
+     * @return the density plot image
      * @throws java.io.IOException when an error occurred.
      */
-    public static BufferedImage createScatterPlotImage(final RasterDataNode raster1,
+    public static BufferedImage createDensityPlotImage(final RasterDataNode raster1,
                                                        final float sampleMin1,
                                                        final float sampleMax1,
                                                        final RasterDataNode raster2,
@@ -1370,14 +1404,14 @@ public class ProductUtils {
             throw new IllegalArgumentException("'raster1' has not the same size as 'raster2'");
         }
 
-        image = getCompatibleBufferedImageForScatterPlot(image, width, height, background);
+        image = getCompatibleBufferedImageForDensityPlot(image, width, height, background);
         final byte[] pixelValues = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
-        ScatterPlot.accumulate(raster1, sampleMin1, sampleMax1, raster2, sampleMin2, sampleMax2, roiMask, width,
-                               height, pixelValues, pm);
+        DensityPlot.accumulate(raster1, sampleMin1, sampleMax1, raster2, sampleMin2, sampleMax2, roiMask, width,
+                height, pixelValues, pm);
         return image;
     }
 
-    private static BufferedImage getCompatibleBufferedImageForScatterPlot(BufferedImage image, int width, int height,
+    private static BufferedImage getCompatibleBufferedImageForDensityPlot(BufferedImage image, int width, int height,
                                                                           Color background) {
         if (image == null
                 || image.getWidth() != width
@@ -1520,6 +1554,7 @@ public class ProductUtils {
         return normalized;
     }
 
+    @Deprecated
     public static int normalizeGeoPolygon_old(GeoPos[] polygon) {
         boolean negNormalized = false;
         boolean posNormalized = false;
@@ -1578,6 +1613,7 @@ public class ProductUtils {
         geoPos.lon -= factor * 360.f;
     }
 
+    @Deprecated
     public static void denormalizeGeoPos_old(GeoPos geoPos) {
         if (geoPos.lon > 180.0f) {
             geoPos.lon -= 360.0f;

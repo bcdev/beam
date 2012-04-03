@@ -20,9 +20,7 @@ import org.esa.beam.dataio.netcdf.ProfileWriteContext;
 import org.esa.beam.dataio.netcdf.metadata.ProfilePartIO;
 import org.esa.beam.dataio.netcdf.nc.NVariable;
 import org.esa.beam.dataio.netcdf.util.ReaderUtils;
-import org.esa.beam.framework.datamodel.Band;
-import org.esa.beam.framework.datamodel.Product;
-import org.esa.beam.framework.datamodel.Stx;
+import org.esa.beam.framework.datamodel.*;
 import ucar.ma2.Array;
 import ucar.nc2.Attribute;
 import ucar.nc2.Variable;
@@ -48,21 +46,16 @@ public class BeamStxPart extends ProfilePartIO {
             final Attribute sampleFrequencies = variable.findAttributeIgnoreCase(SAMPLE_FREQUENCIES);
 
             if (statistics != null && sampleFrequencies != null && statistics.getLength() >= 2) {
-                final double scaledMin = statistics.getNumericValue(INDEX_SCALED_MIN).doubleValue();
-                final double min = band.scaleInverse(scaledMin);
-
-                final double scaledMax = statistics.getNumericValue(INDEX_SCALED_MAX).doubleValue();
-                final double max = band.scaleInverse(scaledMax);
+                final double min = statistics.getNumericValue(INDEX_SCALED_MIN).doubleValue();
+                final double max = statistics.getNumericValue(INDEX_SCALED_MAX).doubleValue();
 
                 final Number meanNumber = statistics.getNumericValue(INDEX_MEAN);
-                final double scaledMean = meanNumber != null ? meanNumber.doubleValue() : Double.NaN;
-                final double mean = band.scaleInverse(scaledMean);
+                final double mean = meanNumber != null ? meanNumber.doubleValue() : Double.NaN;
 
                 final Number stdDevNumber = statistics.getNumericValue(INDEX_STANDARD_DEVIATION);
-                final double scaledStdDev = stdDevNumber != null ? stdDevNumber.doubleValue() : Double.NaN;
-                final double stdDev = band.scaleInverse(scaledStdDev);
+                final double stdDev = stdDevNumber != null ? stdDevNumber.doubleValue() : Double.NaN;
 
-                final boolean intType = variable.getDataType().isIntegral();
+                final boolean intHistogram = !ProductData.isFloatingPointType(band.getGeophysicalDataType());
 
                 final int[] frequencies = new int[sampleFrequencies.getLength()];
                 for (int i = 0; i < frequencies.length; i++) {
@@ -70,7 +63,18 @@ public class BeamStxPart extends ProfilePartIO {
                     frequencies[i] = fNumber != null ? fNumber.intValue() : 0;
                 }
                 final int resolutionLevel = 0;
-                band.setStx(new Stx(min, max, mean, stdDev, intType, frequencies, resolutionLevel));
+
+                Stx stx = new StxFactory()
+                        .withMinimum(min)
+                        .withMaximum(max)
+                        .withMean(mean)
+                        .withStandardDeviation(stdDev)
+                        .withIntHistogram(intHistogram)
+                        .withHistogramBins(frequencies)
+                        .withResolutionLevel(resolutionLevel)
+                        .create();
+
+                band.setStx(stx);
             }
         }
     }
@@ -83,8 +87,8 @@ public class BeamStxPart extends ProfilePartIO {
                 final Stx stx = band.getStx();
                 final NVariable variable = ctx.getNetcdfFileWriteable().findVariable(variableName);
                 final double[] statistics = new double[4];
-                statistics[INDEX_SCALED_MIN] = stx.getMin();
-                statistics[INDEX_SCALED_MAX] = stx.getMax();
+                statistics[INDEX_SCALED_MIN] = stx.getMinimum();
+                statistics[INDEX_SCALED_MAX] = stx.getMaximum();
                 statistics[INDEX_MEAN] = stx.getMean();
                 statistics[INDEX_STANDARD_DEVIATION] = stx.getStandardDeviation();
                 variable.addAttribute(STATISTICS, Array.factory(statistics));

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -22,6 +22,7 @@ import com.bc.ceres.swing.progress.ProgressMonitorSwingWorker;
 import org.esa.beam.framework.datamodel.Mask;
 import org.esa.beam.framework.datamodel.RasterDataNode;
 import org.esa.beam.framework.datamodel.Stx;
+import org.esa.beam.framework.datamodel.StxFactory;
 import org.esa.beam.framework.param.ParamChangeEvent;
 import org.esa.beam.framework.param.ParamChangeListener;
 import org.esa.beam.framework.param.ParamGroup;
@@ -29,7 +30,6 @@ import org.esa.beam.framework.param.Parameter;
 import org.esa.beam.framework.ui.GridBagUtils;
 import org.esa.beam.framework.ui.application.ToolView;
 import org.esa.beam.util.math.MathUtils;
-import org.esa.beam.util.math.Range;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -38,26 +38,23 @@ import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.StandardXYBarPainter;
 import org.jfree.chart.renderer.xy.XYBarRenderer;
 import org.jfree.data.xy.XIntervalSeries;
 import org.jfree.data.xy.XIntervalSeriesCollection;
 import org.jfree.ui.RectangleInsets;
 
-import javax.swing.BorderFactory;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import java.awt.BorderLayout;
-import java.awt.Container;
-import java.awt.GridBagConstraints;
+import javax.media.jai.Histogram;
+import javax.swing.*;
+import java.awt.*;
 
 /**
  * A pane within the statistcs window which displays a histogram.
- *
  */
 class HistogramPanel extends PagePanel implements SingleRoiComputePanel.ComputeMask {
 
     private static final String NO_DATA_MESSAGE = "No histogram computed yet.\n" +
-                                                  ZOOM_TIP_MESSAGE;
+            ZOOM_TIP_MESSAGE;
     private static final String CHART_TITLE = "Histogram";
     private static final String TITLE_PREFIX = CHART_TITLE;
 
@@ -66,6 +63,8 @@ class HistogramPanel extends PagePanel implements SingleRoiComputePanel.ComputeM
     private Parameter autoMinMaxEnabledParam;
     private Parameter histoMinParam;
     private Parameter histoMaxParam;
+    private Parameter logarithmicAxis;
+    private Parameter logarithmicHistogram;
     private boolean histogramComputing;
     private SingleRoiComputePanel computePanel;
     private XIntervalSeriesCollection dataset;
@@ -94,30 +93,17 @@ class HistogramPanel extends PagePanel implements SingleRoiComputePanel.ComputeM
     protected void updateContent() {
         if (computePanel != null) {
             computePanel.setRaster(getRaster());
-            if (!(Boolean) autoMinMaxEnabledParam.getValue()) {
-                return;
-            }
             chart.setTitle(getRaster() != null ? CHART_TITLE + " for " + getRaster().getName() : CHART_TITLE);
-            if (getRaster() != null && getRaster().isLog10Scaled()) {
-                ValueAxis oldDomainAxis = chart.getXYPlot().getDomainAxis();
-                if (!(oldDomainAxis instanceof LogarithmicAxis)) {
-                    LogarithmicAxis logAxisX = new LogarithmicAxis("Values");
-                    logAxisX.setAllowNegativesFlag(true);
-                    chart.getXYPlot().setDomainAxis(logAxisX);
-                }
-            } else {
-                ValueAxis oldDomainAxis = chart.getXYPlot().getDomainAxis();
-                if (oldDomainAxis instanceof LogarithmicAxis) {
-                    NumberAxis xAxis = new NumberAxis("Values");
-                    chart.getXYPlot().setDomainAxis(xAxis);
-                }
+            updateXAxis();
+            if ((Boolean) autoMinMaxEnabledParam.getValue()) {
+                histoMinParam.setDefaultValue();
+                histoMaxParam.setDefaultValue();
             }
-            histoMinParam.setDefaultValue();
-            histoMaxParam.setDefaultValue();
             chart.getXYPlot().setDataset(null);
             chart.fireChartChanged();
         }
     }
+
 
     @Override
     protected boolean mustUpdateContent() {
@@ -152,6 +138,16 @@ class HistogramPanel extends PagePanel implements SingleRoiComputePanel.ComputeM
         histoMaxParam.getProperties().setNumCols(7);
         paramGroup.addParameter(histoMaxParam);
 
+        logarithmicAxis = new Parameter("histo.logarithmicAxis", false);
+        logarithmicAxis.getProperties().setLabel("Logarithmic X-axis");    /*I18N*/
+        logarithmicAxis.getProperties().setDescription("Use a logarithmic X-axis");    /*I18N*/
+        paramGroup.addParameter(logarithmicAxis);
+
+        logarithmicHistogram = new Parameter("histo.logarithmicHistogram", false);
+        logarithmicHistogram.getProperties().setLabel("Log-10 histogram");    /*I18N*/
+        logarithmicHistogram.getProperties().setDescription("Compute a log-10 histogram for log-normal pixel distributions");    /*I18N*/
+        paramGroup.addParameter(logarithmicHistogram);
+
         paramGroup.addParamChangeListener(new ParamChangeListener() {
 
             @Override
@@ -166,7 +162,7 @@ class HistogramPanel extends PagePanel implements SingleRoiComputePanel.ComputeM
         chart = ChartFactory.createHistogram(
                 CHART_TITLE,
                 "Values",
-                "Frequency",
+                "Sample Frequency",
                 dataset,
                 PlotOrientation.VERTICAL,
                 false,  // Legend?
@@ -176,8 +172,10 @@ class HistogramPanel extends PagePanel implements SingleRoiComputePanel.ComputeM
         final XYPlot xyPlot = chart.getXYPlot();
         XYBarRenderer renderer = (XYBarRenderer) xyPlot.getRenderer();
         renderer.setDrawBarOutline(false);
-        renderer.setShadowVisible(false);
+        renderer.setShadowVisible(true);
+        renderer.setShadowYOffset(-4.0);
         renderer.setBaseToolTipGenerator(new XYPlotToolTipGenerator());
+        renderer.setBarPainter(new StandardXYBarPainter());
 
         ChartPanel histogramDisplay = createChartPanel(chart);
 
@@ -222,6 +220,7 @@ class HistogramPanel extends PagePanel implements SingleRoiComputePanel.ComputeM
         final boolean autoMinMaxEnabled = (Boolean) autoMinMaxEnabledParam.getValue();
         histoMinParam.setUIEnabled(!autoMinMaxEnabled);
         histoMaxParam.setUIEnabled(!autoMinMaxEnabled);
+        updateXAxis();
     }
 
     private JPanel createOptionsPane() {
@@ -249,6 +248,11 @@ class HistogramPanel extends PagePanel implements SingleRoiComputePanel.ComputeM
                                 "gridx=0,weightx=1");
         GridBagUtils.addToPanel(optionsPane, histoMaxParam.getEditor().getComponent(), gbc, "gridx=1,weightx=0");
 
+        GridBagUtils.setAttributes(gbc, "gridwidth=2,gridy=4,insets.top=2,insets.bottom=0");
+        GridBagUtils.addToPanel(optionsPane, logarithmicAxis.getEditor().getComponent(), gbc, "gridx=0,weightx=0");
+        GridBagUtils.setAttributes(gbc, "gridy=5");
+        GridBagUtils.addToPanel(optionsPane, logarithmicHistogram.getEditor().getComponent(), gbc, "gridx=0,weightx=0");
+
         optionsPane.setBorder(BorderFactory.createTitledBorder("X"));
 
         return optionsPane;
@@ -258,37 +262,45 @@ class HistogramPanel extends PagePanel implements SingleRoiComputePanel.ComputeM
     public void compute(final Mask selectedMask) {
         final int numBins = ((Number) numBinsParam.getValue()).intValue();
         final boolean autoMinMaxEnabled = getAutoMinMaxEnabled();
-        final Range range;
+        final Number min;
+        final Number max;
         if (autoMinMaxEnabled) {
-            range = null; // auto compute range
+            min = null;
+            max = null;
         } else {
-            final double min = ((Number) histoMinParam.getValue()).doubleValue();
-            final double max = ((Number) histoMaxParam.getValue()).doubleValue();
-            range = new Range(getRaster().scaleInverse(min), getRaster().scaleInverse(max));
+            min = (Number) histoMinParam.getValue();
+            max = (Number) histoMaxParam.getValue();
         }
+        final boolean logHistogram = (Boolean) logarithmicHistogram.getValue();
 
         ProgressMonitorSwingWorker<Stx, Object> swingWorker = new ProgressMonitorSwingWorker<Stx, Object>(this, "Computing Histogram") {
             @Override
             protected Stx doInBackground(ProgressMonitor pm) throws Exception {
                 final Stx stx;
-                if (selectedMask == null && range == null && numBins == Stx.DEFAULT_BIN_COUNT) {
+                final boolean reuseRasterStx = selectedMask == null && min == null && max == null && numBins == Stx.DEFAULT_BIN_COUNT && !logHistogram;
+                if (reuseRasterStx) {
                     stx = getRaster().getStx(true, pm);
-                } else if (range == null) {
-                    stx = Stx.create(getRaster(), selectedMask, numBins, pm);
                 } else {
-                    stx = Stx.create(getRaster(), selectedMask, numBins, range.getMin(), range.getMax(), pm);
+                    stx = new StxFactory()
+                            .withRoiMask(selectedMask)
+                            .withHistogramBinCount(numBins)
+                            .withLogHistogram(logHistogram)
+                            .withMinimum(min)
+                            .withMaximum(max)
+                            .create(getRaster(), pm);
                 }
                 return stx;
             }
 
             @Override
             public void done() {
+
                 try {
                     Stx stx = get();
                     if (stx.getSampleCount() > 0) {
                         if (autoMinMaxEnabled) {
-                            final double min = getRaster().scale(stx.getMin());
-                            final double max = getRaster().scale(stx.getMax());
+                            final double min = stx.getMinimum();
+                            final double max = stx.getMaximum();
                             final double v = MathUtils.computeRoundFactor(min, max, 4);
                             histogramComputing = true;
                             histoMinParam.setValue(StatisticsUtils.round(min, v), null);
@@ -316,31 +328,46 @@ class HistogramPanel extends PagePanel implements SingleRoiComputePanel.ComputeM
     }
 
     private void setStx(Stx stx) {
+        updateXAxis();
+
         this.stx = stx;
         dataset = new XIntervalSeriesCollection();
         if (this.stx != null) {
             final int[] binCounts = this.stx.getHistogramBins();
             final RasterDataNode raster = getRaster();
             final XIntervalSeries series = new XIntervalSeries(raster.getName());
+            final Histogram histogram = stx.getHistogram();
             for (int i = 0; i < binCounts.length; i++) {
-                final double xMin = raster.scale(stx.getHistogramBinMin(i));
-                final double xMax = raster.scale(stx.getHistogramBinMax(i));
-                final double xAvg = (xMin + xMax) * 0.5;
-                series.add(xAvg, xMin, xMax, binCounts[i]);
+                final double xMin = histogram.getBinLowValue(0, i);
+                final double xMax = i < binCounts.length - 1 ? histogram.getBinLowValue(0, i + 1) : histogram.getHighValue(0);
+                series.add(xMin, xMin, xMax, binCounts[i]);
             }
             dataset.addSeries(series);
-            chart.getXYPlot().getDomainAxis().setLabel(getAxisLabel(raster));
         }
         chart.getXYPlot().setDataset(dataset);
         chart.fireChartChanged();
     }
 
-    private static String getAxisLabel(RasterDataNode raster) {
-        final String unit = raster.getUnit();
-        if (unit != null) {
-            return raster.getName() + " (" + unit + ")";
+    // Check how we can draw an axis label that uses a sub-scripted "10" in "log10". (ts,nf)
+    private String getAxisLabel() {
+        boolean logScaled = (Boolean) logarithmicHistogram.getValue();
+        RasterDataNode raster = getRaster();
+        if (raster != null) {
+            if (logScaled) {
+                return "log(" + raster.getName() + ")";
+            }
+            final String unit = raster.getUnit();
+            if (unit != null && !unit.isEmpty()) {
+                return raster.getName() + " (" + unit + ")";
+            }
+            return raster.getName();
+        } else {
+            if (logScaled) {
+                return "log(x)";
+            } else {
+                return "x";
+            }
         }
-        return raster.getName();
     }
 
     private Container getParentComponent() {
@@ -360,8 +387,8 @@ class HistogramPanel extends PagePanel implements SingleRoiComputePanel.ComputeM
 
         final int[] binVals = stx.getHistogramBins();
         final int numBins = binVals.length;
-        final double min = getRaster().scale(stx.getMin());
-        final double max = getRaster().scale(stx.getMax());
+        final double min = stx.getMinimum();
+        final double max = stx.getMaximum();
 
         final StringBuilder sb = new StringBuilder(16000);
 
@@ -390,5 +417,27 @@ class HistogramPanel extends PagePanel implements SingleRoiComputePanel.ComputeM
 
         return sb.toString();
     }
+
+    private void updateXAxis() {
+        if ((Boolean) logarithmicAxis.getValue()) {
+            ValueAxis oldDomainAxis = chart.getXYPlot().getDomainAxis();
+            if (!(oldDomainAxis instanceof LogarithmicAxis)) {
+                LogarithmicAxis logAxisX = new LogarithmicAxis("Values");
+                logAxisX.setAllowNegativesFlag(true);
+                logAxisX.setLog10TickLabelsFlag(true);
+                logAxisX.setMinorTickCount(10);
+                chart.getXYPlot().setDomainAxis(logAxisX);
+            }
+        } else {
+            ValueAxis oldDomainAxis = chart.getXYPlot().getDomainAxis();
+            if (oldDomainAxis instanceof LogarithmicAxis) {
+                NumberAxis xAxis = new NumberAxis("Values");
+                chart.getXYPlot().setDomainAxis(xAxis);
+            }
+        }
+
+        chart.getXYPlot().getDomainAxis().setLabel(getAxisLabel());
+    }
+
 }
 

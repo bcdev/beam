@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -628,7 +628,8 @@ public class PlacemarkManagerToolView extends AbstractToolView {
                 }
                 setIODir(file.getAbsoluteFile().getParentFile());
                 BeamFileFilter beamFileFilter = fileChooser.getBeamFileFilter();
-                if (!StringUtils.contains(beamFileFilter.getExtensions(), FileUtils.getExtension(file))) {
+                String fileExtension = FileUtils.getExtension(file);
+                if (fileExtension == null || !StringUtils.contains(beamFileFilter.getExtensions(), fileExtension)) {
                     file = FileUtils.ensureExtension(file, beamFileFilter.getDefaultExtension());
                 }
                 try {
@@ -965,8 +966,7 @@ public class PlacemarkManagerToolView extends AbstractToolView {
                 for (int i = 0; i < placemarks.length; i++) {
                     Placemark placemark = placemarks[i];
                     int sortedIndex = placemarkTable.getSortedRowAt(i);
-                    boolean selected = placemarkTable.isRowSelected(sortedIndex);
-                    if (selected) {
+                    if (placemarkTable.isRowSelected(sortedIndex)) {
                         selectedPlacemarks.add(placemark);
                     }
                 }
@@ -995,7 +995,7 @@ public class PlacemarkManagerToolView extends AbstractToolView {
             if (layer instanceof VectorDataLayer) {
                 VectorDataLayer vectorDataLayer = (VectorDataLayer) layer;
                 if (vectorDataLayer.getVectorDataNode() == getProduct().getPinGroup().getVectorDataNode() ||
-                        vectorDataLayer.getVectorDataNode() == getProduct().getGcpGroup().getVectorDataNode()) {
+                    vectorDataLayer.getVectorDataNode() == getProduct().getGcpGroup().getVectorDataNode()) {
                     updateUIState();
                 }
             }

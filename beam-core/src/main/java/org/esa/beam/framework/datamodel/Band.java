@@ -516,22 +516,13 @@ public class Band extends AbstractBand {
         final double min = minSample;
         final double max = maxSample;
 
-        return Stx.create(this, level, binCount, min, max, pm);
+        return new StxFactory()
+                .withResolutionLevel(level)
+                .withHistogramBinCount(binCount)
+                .withMinimum(min)
+                .withMaximum(max).create(this, pm);
     }
 
-    public void scalePixels(){
-        int width = getRasterWidth();
-        int height = getRasterHeight();
-        double[] pixels = new double[width * height];;
-        getPixels(0,0,width, height, pixels);
-        for (int h = 0; h < height; h++ ){
-            for (int w = 0; w < width; w++ ){
-                pixels[ h*width + w] = scaleInverse(pixels[h*width + w]);
-            }
-
-        }
-
-    }
     /**
      * Releases all of the resources used by this object instance and all of its owned children. Its primary use is to
      * allow the garbage collector to perform a vanilla job.

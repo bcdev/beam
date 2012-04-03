@@ -381,9 +381,9 @@ public class ColorPaletteDef implements Cloneable {
 
      public Color[] createColorPalette(Scaling scaling) {
 
-         if (scaling.isLog10ScaledDisplay()  & !scaling.isLog10Scaled()  ) {
-             return createColorPaletteForLogScaledDisplay();
-         }
+//         if (scaling.isLogScaled()  & !scaling.isLog10Scaled()  ) {
+//             return createColorPaletteForLogScaledDisplay();
+//         }
 
         Debug.assertTrue(getNumPoints() >= 2);
         final int numColors = getNumColors();

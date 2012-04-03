@@ -16,88 +16,149 @@
 package org.esa.beam.framework.datamodel;
 
 import com.bc.ceres.core.ProgressMonitor;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.Point;
 import org.esa.beam.util.Guardian;
 import org.esa.beam.util.ShapeRasterizer;
 import org.esa.beam.util.math.MathUtils;
+import org.opengis.feature.simple.SimpleFeature;
 
-import java.awt.Shape;
+import java.awt.*;
+import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.io.IOException;
+import java.util.Arrays;
 
 
 /**
  * A container for data which fully describes a transect profile.
  *
  * @author Norman Fomferra
- * @version $Revision$ $Date$
  */
 public class TransectProfileData {
 
+    public static final GeoPos NO_GEO_POS = new GeoPos(Float.NaN, Float.NaN);
     private final Point2D[] shapeVertices;
     private final int[] shapeVertexIndexes;
-    private final Point2D[] pixelPositions;
+    private final Point2D[] pixelPositions; // todo - ts02Apr2012 - better use integer point class
     private final GeoPos[] geoPositions;
     private final float[] sampleValues;
+    private final float[] sampleSigmas;
     private float sampleMin;
     private float sampleMax;
 
-    public static TransectProfileData create(RasterDataNode raster, Shape shape) throws IOException {
-        return new TransectProfileData(raster, shape);
+    /*
+     * Since 4.5
+     */
+    public static TransectProfileData create(RasterDataNode raster, Shape path) throws IOException {
+        return create(raster, path, 1, null);
     }
 
-    private TransectProfileData(RasterDataNode raster, Shape shape) throws IOException {
+    /*
+     * Since 4.10
+     */
+    public static TransectProfileData create(RasterDataNode raster, Shape path, int boxSize, Mask roiMask) throws IOException {
+        return new TransectProfileData(raster, path, boxSize, roiMask);
+    }
+
+    /*
+    * Since 4.10
+    */
+    public static TransectProfileData create(RasterDataNode raster, VectorDataNode pointData, int boxSize, Mask roiMask) throws IOException {
+        return create(raster, createPath(pointData), boxSize, roiMask);
+    }
+
+    private static Path2D createPath(VectorDataNode pointData) {
+        Path2D.Double path = new Path2D.Double();
+        SimpleFeature[] simpleFeatures = pointData.getFeatureCollection().toArray(new SimpleFeature[0]);
+        for (int i = 0; i < simpleFeatures.length; i++) {
+            SimpleFeature simpleFeature = simpleFeatures[i];
+            Geometry geometry = (Geometry) simpleFeature.getDefaultGeometry();
+            Point centroid = geometry.getCentroid();
+            if (i == 0) {
+                path.moveTo(centroid.getX(), centroid.getY());
+            } else {
+                path.lineTo(centroid.getX(), centroid.getY());
+            }
+        }
+        return path;
+    }
+
+
+    private TransectProfileData(RasterDataNode raster, Shape path, int boxSize, Mask roiMask) throws IOException {
         Guardian.assertNotNull("raster", raster);
-        Guardian.assertNotNull("shape", shape);
+        Guardian.assertNotNull("path", path);
         if (raster.getProduct() == null) {
             throw new IllegalArgumentException("raster without product");
         }
 
         ShapeRasterizer rasterizer = new ShapeRasterizer();
-        shapeVertices = rasterizer.getVertices(shape);
+        shapeVertices = rasterizer.getVertices(path);
         shapeVertexIndexes = new int[shapeVertices.length];
         pixelPositions = rasterizer.rasterize(shapeVertices, shapeVertexIndexes);
         sampleValues = new float[pixelPositions.length];
+        Arrays.fill(sampleValues, Float.NaN);
+        sampleSigmas = new float[pixelPositions.length];
+        Arrays.fill(sampleSigmas, Float.NaN);
+
         sampleMin = Float.MAX_VALUE;
         sampleMax = -Float.MAX_VALUE;
 
         GeoCoding geoCoding = raster.getGeoCoding();
         if (geoCoding != null) {
             geoPositions = new GeoPos[pixelPositions.length];
+            Arrays.fill(geoPositions, NO_GEO_POS);
         } else {
             geoPositions = null;
         }
 
+        final Rectangle sceneRect = new Rectangle(raster.getSceneRasterWidth(), raster.getSceneRasterHeight());
         PixelPos pixelPos = new PixelPos();
-        float[] sampleBuffer = new float[1];
         for (int i = 0; i < pixelPositions.length; i++) {
-            pixelPos.x = (float) pixelPositions[i].getX() + 0.5f;
-            pixelPos.y = (float) pixelPositions[i].getY() + 0.5f;
-            final int x = MathUtils.floorInt(pixelPos.x);
-            final int y = MathUtils.floorInt(pixelPos.y);
-            if (x >= 0 && x < raster.getSceneRasterWidth()
-                    && y >= 0 && y < raster.getSceneRasterHeight()) {
+            final int xC = MathUtils.floorInt(pixelPositions[i].getX() + 0.5f);
+            final int yC = MathUtils.floorInt(pixelPositions[i].getY() + 0.5f);
+            if (!sceneRect.contains(xC, yC)) {
+                continue;
+            }
+            final Rectangle box = sceneRect.intersection(new Rectangle(xC - boxSize / 2,
+                                                                       yC - boxSize / 2,
+                                                                       boxSize, boxSize));
+            if (box.isEmpty()) {
+                continue;
+            }
+            float[] sampleBuffer = new float[box.width * box.height];
+            raster.readPixels(box.x, box.y, box.width, box.height, sampleBuffer, ProgressMonitor.NULL);
 
-                float sampleValue;
-                if (raster.hasRasterData()) {
-                    sampleValue = raster.getPixelFloat(x, y);
-                } else {
-                    raster.readPixels(x, y, 1, 1, sampleBuffer, ProgressMonitor.NULL);
-                    sampleValue = sampleBuffer[0];
-                }
-                if (raster.isPixelValid(x, y)) {
-                    if (sampleValue < sampleMin) {
-                        sampleMin = sampleValue;
+            float sum = 0;
+            float sumSqr = 0;
+            int n = 0;
+            for (int y = 0; y < box.height; y++) {
+                for (int x = 0; x < box.width; x++) {
+                    if (raster.isPixelValid(box.x + x, box.y + y)) {
+                        final float v = sampleBuffer[y * box.height + x];
+                        sum += v;
+                        sumSqr += v * v;
+                        n++;
+
+                        if (v < sampleMin) {
+                            sampleMin = v;
+                        }
+                        if (v > sampleMax) {
+                            sampleMax = v;
+                        }
                     }
-                    if (sampleValue > sampleMax) {
-                        sampleMax = sampleValue;
-                    }
-                    sampleValues[i] = sampleValue;
-                } else {
-                    sampleValues[i] = Float.NaN;
                 }
             }
 
+            if (n > 0) {
+                final float mean = sum / n;
+                sampleValues[i] = mean;
+                sampleSigmas[i] = n > 1 ? (float) Math.sqrt(1.0 / (n - 1.0) * (sumSqr - (sum * sum) / n)) : 0.0F;
+            }
+
             if (geoPositions != null) {
+                pixelPos.x = (float) pixelPositions[i].getX() + 0.5f;
+                pixelPos.y = (float) pixelPositions[i].getY() + 0.5f;
                 geoPositions[i] = geoCoding.getGeoPos(pixelPos, null);
             }
         }
@@ -131,6 +192,10 @@ public class TransectProfileData {
         return sampleValues;
     }
 
+    public float[] getSampleSigmas() {
+        return sampleSigmas;
+    }
+
     public float getSampleMin() {
         return sampleMin;
     }
@@ -138,4 +203,5 @@ public class TransectProfileData {
     public float getSampleMax() {
         return sampleMax;
     }
+
 }

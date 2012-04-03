@@ -16,64 +16,67 @@
 
 package org.esa.beam.visat.toolviews.stat;
 
-import com.bc.ceres.swing.TableLayout;
+import com.bc.ceres.binding.*;
+import com.bc.ceres.swing.binding.BindingContext;
 import org.esa.beam.framework.datamodel.TransectProfileData;
-import org.esa.beam.framework.param.ParamChangeEvent;
-import org.esa.beam.framework.param.ParamChangeListener;
-import org.esa.beam.framework.param.ParamGroup;
-import org.esa.beam.framework.param.Parameter;
-import org.esa.beam.framework.param.validators.NumberValidator;
+import org.esa.beam.framework.datamodel.VectorDataNode;
 import org.esa.beam.framework.ui.GridBagUtils;
 import org.esa.beam.framework.ui.application.ToolView;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.LogarithmicAxis;
+import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.event.AxisChangeEvent;
 import org.jfree.chart.event.AxisChangeListener;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
-import org.jfree.data.xy.XYSeries;
-import org.jfree.data.xy.XYSeriesCollection;
+import org.jfree.chart.renderer.xy.DeviationRenderer;
+import org.jfree.data.xy.YIntervalSeries;
+import org.jfree.data.xy.YIntervalSeriesCollection;
 import org.jfree.ui.RectangleInsets;
+import org.opengis.feature.simple.SimpleFeature;
+import org.opengis.feature.type.AttributeDescriptor;
 
-import javax.swing.BorderFactory;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import java.awt.BorderLayout;
-import java.awt.GridBagConstraints;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.geom.Ellipse2D;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.IOException;
 
 /**
- * The profile plot pane within the statistcs window.
- *
+ * The profile plot pane within the statistics window.
  */
 class ProfilePlotPanel extends PagePanel {
 
     private static final String CHART_TITLE = "Profile Plot";
     private static final String TITLE_PREFIX = CHART_TITLE;
     private static final String NO_DATA_MESSAGE = "No profile plot computed yet. " +
-                                                  "It will be computed if a geometry is selected within the image view.\n" +
-                                                  ZOOM_TIP_MESSAGE;  
+            "It will be computed if a geometry is selected within the image view.\n" +
+            ZOOM_TIP_MESSAGE;
 
-    private static final int VAR1 = 0;
-    private static final int VAR2 = 1;
+    public static final String PROPERTY_NAME_MARK_SEGMENTS = "markSegments";
+    public static final String PROPERTY_NAME_LOG_SCALED = "logScaled";
 
-    private static final Parameter[] minParams = new Parameter[2];
-    private static final Parameter[] maxParams = new Parameter[2];
-    private Parameter markSegmentsParam;
+    private AxisRangeControl xAxisRangeControl;
+    private AxisRangeControl yAxisRangeControl;
+
     private static boolean isInitialized = false;
 
-    private ParamGroup paramGroup;
     private ChartPanel profilePlotDisplay;
     private JFreeChart chart;
-    private XYSeriesCollection dataset;
+    private YIntervalSeriesCollection dataset;
     private TransectProfileData profileData;
 
     private boolean axisAdjusting = false;
+    private CorrelativeFieldSelector correlativeFieldSelector;
+    private DataSourceConfig dataSourceConfig;
 
     ProfilePlotPanel(ToolView parentDialog, String helpId) {
         super(parentDialog, helpId);
+
     }
 
     @Override
@@ -83,118 +86,33 @@ class ProfilePlotPanel extends PagePanel {
 
     @Override
     protected void initContent() {
-        initParameters();
-        createUI();
-        updateContent();
-    }
+        xAxisRangeControl = new AxisRangeControl("X-Axis");
+        yAxisRangeControl = new AxisRangeControl("Y-Axis");
 
-    @Override
-    protected boolean mustUpdateContent() {
-        return super.mustUpdateContent() || isVectorDataNodeChanged();
-    }
-
-    @Override
-    protected void updateContent() {
-        if (!isInitialized) {
-            return;
-        }
-        try {
-            profileData = StatisticsUtils.TransectProfile.getTransectProfileData(getRaster());
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(getParent(),
-                                          "Failed to compute profile plot.\n" +
-                                          "An I/O error occurred:" + e.getMessage(),
-                                          "I/O error",
-                                          JOptionPane.ERROR_MESSAGE);   /*I18N*/
-            return;
-        }
-        chart.setTitle(getRaster() != null ? CHART_TITLE + " for " + getRaster().getName() : CHART_TITLE);
-        updateDataSet();
-        updateUIState();
-    }
-
-    private void updateDataSet() {
-        dataset.removeAllSeries();
-        if (profileData != null) {
-            final float[] sampleValues = profileData.getSampleValues();
-            if (profileData.getNumShapeVertices() <= 2 || !(Boolean) markSegmentsParam.getValue()) {
-                XYSeries series = new XYSeries("Sample Values");
-                for (int i = 0; i < sampleValues.length; i++) {
-                    series.add(i, sampleValues[i]);
-                }
-                dataset.addSeries(series);
-            } else {
-                final XYSeries[] xySerieses = new XYSeries[profileData.getNumShapeVertices() - 1];
-                for (int i = 0; i < xySerieses.length; i++) {
-                    final XYSeries series = new XYSeries(String.format("Sample Values Segment %d", i));
-                    for (int x = profileData.getShapeVertexIndexes()[i]; x <= profileData.getShapeVertexIndexes()[i + 1]; x++) {
-                        series.add(x, sampleValues[x]);
-                    }
-                    dataset.addSeries(series);
-                }
-            }
-            profilePlotDisplay.restoreAutoBounds();
-            markSegmentsParam.setUIEnabled(profileData.getShapeVertices().length > 2);
-        }
-    }
-
-
-    private void initParameters() {
-        paramGroup = new ParamGroup();
-        initParameters(VAR1);
-        initParameters(VAR2);
-        paramGroup.addParamChangeListener(new ParamChangeListener() {
-
+        final PropertyChangeListener changeListener = new PropertyChangeListener() {
             @Override
-            public void parameterValueChanged(ParamChangeEvent event) {
-                if(event.getParameter().equals(markSegmentsParam)) {
-                   updateDataSet();
+            public void propertyChange(PropertyChangeEvent evt) {
+                if (evt.getPropertyName().equals(PROPERTY_NAME_MARK_SEGMENTS)) {
+                    updateDataSet();
+                }
+                if (evt.getPropertyName().equals(PROPERTY_NAME_LOG_SCALED)) {
+                    updateScalingOfYAxis();
                 }
                 updateUIState();
             }
-        });
-    }
+        };
+        xAxisRangeControl.getBindingContext().addPropertyChangeListener(changeListener);
+        xAxisRangeControl.getBindingContext().getPropertySet().addProperty(Property.create(PROPERTY_NAME_MARK_SEGMENTS, false));
+        xAxisRangeControl.getBindingContext().getPropertySet().getDescriptor(PROPERTY_NAME_MARK_SEGMENTS).setDescription("Toggle whether to mark segments");
 
-    private void initParameters(int varIndex) {
+        yAxisRangeControl.getBindingContext().addPropertyChangeListener(changeListener);
+        yAxisRangeControl.getBindingContext().getPropertySet().addProperty(Property.create(PROPERTY_NAME_LOG_SCALED, false));
+        yAxisRangeControl.getBindingContext().getPropertySet().getDescriptor(PROPERTY_NAME_LOG_SCALED).setDescription("Toggle whether to use a logarithmic axis");
 
-        final String paramPrefix = "var" + varIndex + ".";
-        final String axis = (varIndex == VAR1) ? "X-Axis" : "Y-Axis";
-
-        Object paramValue = varIndex == VAR1 ? Integer.valueOf(0) : new Float(0.0f);
-        minParams[varIndex] = new Parameter(paramPrefix + "min", paramValue);
-        minParams[varIndex].getProperties().setLabel("Min:");
-        minParams[varIndex].getProperties().setDescription("Minimum display value for " + axis);    /*I18N*/
-        minParams[varIndex].getProperties().setNumCols(7);
-        if (varIndex == VAR1) {
-            minParams[varIndex].getProperties().setValidatorClass(NumberValidator.class);
-        }
-        paramGroup.addParameter(minParams[varIndex]);
-
-        paramValue = varIndex == VAR1 ? Integer.valueOf(100) : new Float(100.0f);
-        maxParams[varIndex] = new Parameter(paramPrefix + "max", paramValue);
-        maxParams[varIndex].getProperties().setLabel("Max:");
-        maxParams[varIndex].getProperties().setDescription("Maximum display value for " + axis);    /*I18N*/
-        maxParams[varIndex].getProperties().setNumCols(7);
-        if (varIndex == VAR1) {
-            maxParams[varIndex].getProperties().setValidatorClass(NumberValidator.class);
-        }
-        paramGroup.addParameter(maxParams[varIndex]);
-
-        if (varIndex == VAR1) {
-            markSegmentsParam = new Parameter(paramPrefix + "markSegments", false);
-            markSegmentsParam.getProperties().setLabel("Mark segments");
-            markSegmentsParam.getProperties().setDescription("Toggle whether or not to mark segements");    /*I18N*/
-            markSegmentsParam.setValue(false, null);
-            paramGroup.addParameter(markSegmentsParam);
-        }
-    }
-
-    private void createUI() {
-
-        dataset = new XYSeriesCollection();
+        dataset = new YIntervalSeriesCollection();
         chart = ChartFactory.createXYLineChart(
                 CHART_TITLE,
-                "Way (pixel)",
+                "Path (pixel)",
                 "Sample value",
                 dataset,
                 PlotOrientation.VERTICAL,
@@ -204,9 +122,25 @@ class ProfilePlotPanel extends PagePanel {
         );
         final XYPlot plot = chart.getXYPlot();
 
+        DeviationRenderer renderer = new DeviationRenderer();
+        renderer.setUseFillPaint(true);
+        renderer.setBaseToolTipGenerator(new XYPlotToolTipGenerator());
+
+        renderer.setSeriesShapesVisible(0, false);
+        renderer.setSeriesStroke(0, new BasicStroke(1.0f));
+        renderer.setSeriesPaint(0, new Color(0, 0, 200));
+        renderer.setSeriesFillPaint(0, new Color(150, 150, 255));
+
+        renderer.setSeriesShapesVisible(1, true);
+        renderer.setSeriesStroke(1, new BasicStroke(1.0f));
+        renderer.setSeriesLinesVisible(1, false);
+        renderer.setSeriesFillPaint(1, Color.white);
+        renderer.setSeriesShape(1, new Ellipse2D.Float(-4, -4, 8, 8));
+
         plot.setNoDataMessage(NO_DATA_MESSAGE);
         plot.setAxisOffset(new RectangleInsets(5, 5, 5, 5));
-        plot.getRenderer().setBaseToolTipGenerator(new XYPlotToolTipGenerator());
+        plot.setRenderer(renderer);
+
         profilePlotDisplay = new ChartPanel(chart);
         profilePlotDisplay.setInitialDelay(200);
         profilePlotDisplay.setDismissDelay(1500);
@@ -215,7 +149,7 @@ class ProfilePlotPanel extends PagePanel {
         final AxisChangeListener axisListener = new AxisChangeListener() {
             @Override
             public void axisChanged(AxisChangeEvent event) {
-                adjustAxisParameter();
+                adjustAxisControlComponents();
             }
         };
         final ValueAxis domainAxis = plot.getDomainAxis();
@@ -223,113 +157,259 @@ class ProfilePlotPanel extends PagePanel {
         domainAxis.addChangeListener(axisListener);
         rangeAxis.addChangeListener(axisListener);
 
-        final TableLayout rightPanelLayout = new TableLayout(1);
-        final JPanel rightPanel = new JPanel(rightPanelLayout);
-        rightPanelLayout.setTableFill(TableLayout.Fill.HORIZONTAL);
-        rightPanelLayout.setRowWeightY(2, 1.0);
-        rightPanelLayout.setRowAnchor(3, TableLayout.Anchor.EAST);
-        rightPanel.add(createOptionsPane());
-        rightPanel.add(createChartButtonPanel(profilePlotDisplay));
-        rightPanel.add(new JPanel());   // filler
-        final JPanel helpPanel = new JPanel(new BorderLayout());
-        helpPanel.add(getHelpButton(), BorderLayout.EAST);
-        rightPanel.add(helpPanel);
-        
+
+        final JLabel boxSizeLabel = new JLabel("Box size: ");
+        final JSpinner boxSizeSpinner = new JSpinner();
+        final JLabel roiMaskLabel = new JLabel("ROI mask: ");
+        final JComboBox roiMaskList = new JComboBox();
+        final JButton roiMaskButton = new JButton("..."); // todo - use action from mask manager
+        final JCheckBox computeInBetweenPoints = new JCheckBox("Compute in-between points");
+        final JCheckBox useCorrelativeData = new JCheckBox("Use correlative data");
+
+        dataSourceConfig = new DataSourceConfig();
+        final BindingContext bindingContext = new BindingContext(PropertyContainer.createObjectBacked(dataSourceConfig));
+
+        correlativeFieldSelector = new CorrelativeFieldSelector(bindingContext);
+        final PropertyDescriptor boxSizeDescriptor = bindingContext.getPropertySet().getProperty("boxSize").getDescriptor();
+        boxSizeDescriptor.setValueRange(new ValueRange(1, 101));
+        boxSizeDescriptor.setAttribute("stepSize", 2);
+        boxSizeDescriptor.setValidator(new Validator() {
+            @Override
+            public void validateValue(Property property, Object value) throws ValidationException {
+                if (((Number) value).intValue() % 2 == 0) {
+                    throw new ValidationException("Only uneven values allowed as box size.");
+                }
+            }
+        });
+        bindingContext.bind("boxSize", boxSizeSpinner);
+        bindingContext.bind("roiMask", roiMaskList);
+        bindingContext.getBinding("roiMask").addComponent(roiMaskLabel);
+        bindingContext.getBinding("roiMask").addComponent(roiMaskButton);
+        bindingContext.bind("computeInBetweenPoints", computeInBetweenPoints);
+        bindingContext.bind("useCorrelativeData", useCorrelativeData);
+        bindingContext.bindEnabledState("roiMask", true, new RoiMaskEnabledCondition());
+        bindingContext.bindEnabledState("pointDataSource", true, "useCorrelativeData", true);
+        bindingContext.bindEnabledState("dataField", true, "useCorrelativeData", true);
+
+        bindingContext.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                updateDataSource();
+                updateDataSet();
+                updateUIState();
+            }
+        });
+
+        JPanel dataSourceOptionsPanel = GridBagUtils.createPanel();
+        GridBagConstraints dataSourceOptionsConstraints = GridBagUtils.createConstraints("anchor=NORTHWEST,fill=HORIZONTAL,insets.top=2");
+        GridBagUtils.addToPanel(dataSourceOptionsPanel, boxSizeLabel, dataSourceOptionsConstraints, "gridwidth=1,gridy=0,gridx=0,weightx=0");
+        GridBagUtils.addToPanel(dataSourceOptionsPanel, boxSizeSpinner, dataSourceOptionsConstraints, "gridwidth=1,gridy=0,gridx=1,weightx=1");
+        GridBagUtils.addToPanel(dataSourceOptionsPanel, roiMaskLabel, dataSourceOptionsConstraints, "gridwidth=2,gridy=1,gridx=0");
+        GridBagUtils.addToPanel(dataSourceOptionsPanel, roiMaskList, dataSourceOptionsConstraints, "gridy=2");
+        GridBagUtils.addToPanel(dataSourceOptionsPanel, computeInBetweenPoints, dataSourceOptionsConstraints, "gridy=3");
+        GridBagUtils.addToPanel(dataSourceOptionsPanel, new JLabel(" "), dataSourceOptionsConstraints, "gridy=4");
+        GridBagUtils.addToPanel(dataSourceOptionsPanel, useCorrelativeData, dataSourceOptionsConstraints, "gridy=5");
+        GridBagUtils.addToPanel(dataSourceOptionsPanel, correlativeFieldSelector.pointDataSourceLabel, dataSourceOptionsConstraints, "gridy=6");
+        GridBagUtils.addToPanel(dataSourceOptionsPanel, correlativeFieldSelector.pointDataSourceList, dataSourceOptionsConstraints, "gridy=7");
+        GridBagUtils.addToPanel(dataSourceOptionsPanel, correlativeFieldSelector.dataFieldLabel, dataSourceOptionsConstraints, "gridy=8");
+        GridBagUtils.addToPanel(dataSourceOptionsPanel, correlativeFieldSelector.dataFieldList, dataSourceOptionsConstraints, "gridy=9");
+
+        xAxisRangeControl.getBindingContext().bind(PROPERTY_NAME_MARK_SEGMENTS, new JCheckBox("Mark segments"));
+        yAxisRangeControl.getBindingContext().bind(PROPERTY_NAME_LOG_SCALED, new JCheckBox("Log scaled"));
+
+        JPanel displayOptionsPanel = GridBagUtils.createPanel();
+        GridBagConstraints displayOptionsConstraints = GridBagUtils.createConstraints("anchor=SOUTH,fill=HORIZONTAL,weightx=1");
+        GridBagUtils.addToPanel(displayOptionsPanel, xAxisRangeControl.getPanel(), displayOptionsConstraints, "gridy=0");
+        GridBagUtils.addToPanel(displayOptionsPanel, xAxisRangeControl.getBindingContext().getBinding(PROPERTY_NAME_MARK_SEGMENTS).getComponents()[0], displayOptionsConstraints, "gridy=1");
+        GridBagUtils.addToPanel(displayOptionsPanel, yAxisRangeControl.getPanel(), displayOptionsConstraints, "gridy=2");
+        GridBagUtils.addToPanel(displayOptionsPanel, yAxisRangeControl.getBindingContext().getBinding(PROPERTY_NAME_LOG_SCALED).getComponents()[0], displayOptionsConstraints, "gridy=3");
+
+        JPanel rightPanel = GridBagUtils.createPanel();
+        GridBagConstraints rightPanelConstraints = GridBagUtils.createConstraints("anchor=NORTHWEST,fill=HORIZONTAL,insets.top=2,weightx=1");
+        GridBagUtils.addToPanel(rightPanel, dataSourceOptionsPanel, rightPanelConstraints, "gridy=0");
+        GridBagUtils.addToPanel(rightPanel, new JPanel(), rightPanelConstraints, "gridy=1,fill=VERTICAL,weighty=1");
+        GridBagUtils.addToPanel(rightPanel, displayOptionsPanel, rightPanelConstraints, "gridy=2,fill=HORIZONTAL,weighty=0");
+        GridBagUtils.addToPanel(rightPanel, new JSeparator(), rightPanelConstraints, "gridy=3");
+        GridBagUtils.addToPanel(rightPanel, createChartButtonPanel2(profilePlotDisplay), rightPanelConstraints, "gridy=4");
+
         add(profilePlotDisplay, BorderLayout.CENTER);
         add(rightPanel, BorderLayout.EAST);
-        isInitialized = true;
 
+        isInitialized = true;
+        updateContent();
+    }
+
+
+    @Override
+    protected boolean mustUpdateContent() {
+        return super.mustUpdateContent() || isVectorDataNodeChanged();
+    }
+
+
+    @Override
+    protected void updateContent() {
+        if (!isInitialized) {
+            return;
+        }
+
+        if (getRaster() != null) {
+            chart.setTitle(CHART_TITLE + " for " + getRaster().getName());
+        } else {
+            chart.setTitle(CHART_TITLE);
+        }
+
+        correlativeFieldSelector.updatePointDataSource(getProduct());
+
+        updateDataSource();
+        updateDataSet();
+        updateUIState();
+    }
+
+    private void updateDataSource() {
+
+        if (!isInitialized) {
+            return;
+        }
+
+        profileData = null;
+        if (getRaster() != null) {
+            try {
+                if (dataSourceConfig.useCorrelativeData
+                        && dataSourceConfig.pointDataSource != null) {
+                    profileData = TransectProfileData.create(getRaster(), dataSourceConfig.pointDataSource, dataSourceConfig.boxSize, null);
+                } else {
+                    Shape shape = StatisticsUtils.TransectProfile.getTransectShape(getRaster().getProduct());
+                    if (shape != null) {
+                        profileData = TransectProfileData.create(getRaster(), shape, dataSourceConfig.boxSize, null);
+                    }
+                }
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(getParent(),
+                                              "Failed to compute profile plot.\n" +
+                                                      "An I/O error occurred:" + e.getMessage(),
+                                              "I/O error",
+                                              JOptionPane.ERROR_MESSAGE);   /*I18N*/
+            }
+        }
+    }
+
+
+    private void updateDataSet() {
+        if (!isInitialized) {
+            return;
+        }
+
+        dataset.removeAllSeries();
+
+        if (profileData != null && profileData.getNumShapeVertices() >= 2) {
+            final float[] sampleValues = profileData.getSampleValues();
+            final float[] sampleSigmas = profileData.getSampleSigmas();
+            boolean markSegments = (Boolean) (xAxisRangeControl.getBindingContext().getPropertySet().getValue(PROPERTY_NAME_MARK_SEGMENTS));
+            if (profileData.getNumShapeVertices() == 2 || !markSegments) {
+                YIntervalSeries series = new YIntervalSeries("Sample Values");
+                for (int i = 0; i < sampleValues.length; i++) {
+                    series.add(i, sampleValues[i], sampleValues[i] - sampleSigmas[i], sampleValues[i] + sampleSigmas[i]);
+                }
+                dataset.addSeries(series);
+            } else {
+                for (int i = 0; i < profileData.getNumShapeVertices() - 1; i++) {
+                    final YIntervalSeries series = new YIntervalSeries(String.format("Sample Values Segment %d", i));
+                    for (int x = profileData.getShapeVertexIndexes()[i]; x <= profileData.getShapeVertexIndexes()[i + 1]; x++) {
+                        series.add(i, sampleValues[x], sampleValues[i] - sampleSigmas[i], sampleValues[i] + sampleSigmas[i]);
+                    }
+                    dataset.addSeries(series);
+                }
+            }
+
+            if (dataSourceConfig.useCorrelativeData
+                    && dataSourceConfig.pointDataSource != null
+                    && dataSourceConfig.dataField != null) {
+
+                YIntervalSeries corrSeries = new YIntervalSeries("Correlative Values");
+                int[] shapeVertexIndexes = profileData.getShapeVertexIndexes();
+                SimpleFeature[] simpleFeatures = dataSourceConfig.pointDataSource.getFeatureCollection().toArray(new SimpleFeature[0]);
+
+                if (shapeVertexIndexes.length == simpleFeatures.length) {
+                    String fieldName = dataSourceConfig.dataField.getLocalName();
+                    for (int i = 0; i < simpleFeatures.length; i++) {
+                        Number attribute = (Number) simpleFeatures[i].getAttribute(fieldName);
+                        final double y0 = attribute.doubleValue();
+                        corrSeries.add(shapeVertexIndexes[i], y0, y0, y0);
+                    }
+                } else {
+                    System.out.println("Weird things happened:");
+                    System.out.println("  shapeVertexIndexes.length = " + shapeVertexIndexes.length);
+                    System.out.println("  simpleFeatures.length     = " + simpleFeatures.length);
+                }
+
+                dataset.addSeries(corrSeries);
+            }
+
+            profilePlotDisplay.restoreAutoBounds();
+            xAxisRangeControl.getBindingContext().setComponentsEnabled(PROPERTY_NAME_MARK_SEGMENTS,
+                                                                       profileData.getShapeVertices().length > 2);
+        }
     }
 
     private void updateUIState() {
         if (!isInitialized) {
             return;
         }
-        markSegmentsParam.setUIEnabled(profileData != null && profileData.getShapeVertices().length > 2);
-        updateParamState(VAR1);
-        updateParamState(VAR2);
-        adjustAxis();
+
+        xAxisRangeControl.getBindingContext().setComponentsEnabled(PROPERTY_NAME_MARK_SEGMENTS,
+                                                                   profileData != null && profileData.getShapeVertices().length > 2);
+        xAxisRangeControl.setComponentsEnabled(profileData != null);
+        yAxisRangeControl.setComponentsEnabled(profileData != null);
+        adjustPlotAxes();
     }
 
-    private void adjustAxisParameter() {
+    private void adjustAxisControlComponents() {
         if (!axisAdjusting) {
             axisAdjusting = true;
             try {
-                final ValueAxis domainAxis = chart.getXYPlot().getDomainAxis();
-                minParams[VAR1].setValue((int) Math.floor(domainAxis.getLowerBound()), null);
-                maxParams[VAR1].setValue((int) Math.ceil(domainAxis.getUpperBound()), null);
-
-                final ValueAxis rangeAxis = chart.getXYPlot().getRangeAxis();
-                minParams[VAR2].setValueAsText(String.format("%7.2f", rangeAxis.getLowerBound()), null);
-                maxParams[VAR2].setValueAsText(String.format("%7.2f", rangeAxis.getUpperBound()), null);
+                if (xAxisRangeControl.isAutoMinMax()) {
+                    xAxisRangeControl.adjustComponents(chart.getXYPlot().getDomainAxis(), 0);
+                }
+                if (yAxisRangeControl.isAutoMinMax()) {
+                    yAxisRangeControl.adjustComponents(chart.getXYPlot().getRangeAxis(), 2);
+                }
             } finally {
                 axisAdjusting = false;
             }
         }
     }
 
-    private void adjustAxis() {
+    private void adjustPlotAxes() {
         if (!axisAdjusting) {
             axisAdjusting = true;
             try {
-                final ValueAxis domainAxis = chart.getXYPlot().getDomainAxis();
-                final int lowerDomain = ((Number) minParams[VAR1].getValue()).intValue();
-                final int upperDomain = ((Number) maxParams[VAR1].getValue()).intValue();
-                domainAxis.setRange(lowerDomain, upperDomain);
-
-                final ValueAxis rangeAxis = chart.getXYPlot().getRangeAxis();
-                final float lowerRange = ((Number) minParams[VAR2].getValue()).floatValue();
-                final float upperRnge = ((Number) maxParams[VAR2].getValue()).floatValue();
-                rangeAxis.setRange(lowerRange, upperRnge);
+                xAxisRangeControl.adjustAxis(chart.getXYPlot().getDomainAxis(), 0);
+                yAxisRangeControl.adjustAxis(chart.getXYPlot().getRangeAxis(), 2);
             } finally {
                 axisAdjusting = false;
             }
         }
     }
 
-    private void updateParamState(int varIndex) {
-        if (!isInitialized) {
-            return;
+    private void updateScalingOfYAxis() {
+        if ((Boolean) yAxisRangeControl.getBindingContext().getBinding(PROPERTY_NAME_LOG_SCALED).getPropertyValue()) {
+            ValueAxis oldAxis = chart.getXYPlot().getRangeAxis();
+            if (!(oldAxis instanceof LogarithmicAxis)) {
+                LogarithmicAxis logAxisX = new LogarithmicAxis(oldAxis.getLabel());
+                logAxisX.setAllowNegativesFlag(true);
+                logAxisX.setLog10TickLabelsFlag(true);
+                logAxisX.setMinorTickCount(10);
+                chart.getXYPlot().setRangeAxis(logAxisX);
+            }
+        } else {
+            ValueAxis oldAxis = chart.getXYPlot().getRangeAxis();
+            if (oldAxis instanceof LogarithmicAxis) {
+                NumberAxis xAxis = new NumberAxis(oldAxis.getLabel());
+                chart.getXYPlot().setRangeAxis(xAxis);
+            }
         }
-        minParams[varIndex].setUIEnabled(profileData != null);
-        maxParams[varIndex].setUIEnabled(profileData != null);
     }
 
-
-    private JPanel createOptionsPane() {
-        final JPanel optionsPane = GridBagUtils.createPanel();
-        final GridBagConstraints gbc = GridBagUtils.createConstraints("anchor=NORTHWEST,fill=BOTH");
-
-        GridBagUtils.addToPanel(optionsPane, createOptionsPane(VAR1), gbc, "gridy=0,insets.top=0");
-        GridBagUtils.addToPanel(optionsPane, createOptionsPane(VAR2), gbc, "gridy=1,insets.top=7,weightx=1");
-        return optionsPane;
-    }
-
-    private JPanel createOptionsPane(int varIndex) {
-
-        final JPanel optionsPane = GridBagUtils.createPanel();
-        final GridBagConstraints gbc = GridBagUtils.createConstraints("anchor=WEST,fill=HORIZONTAL");
-
-        GridBagUtils.setAttributes(gbc, "gridwidth=1,gridy=1,insets.top=2");
-        GridBagUtils.addToPanel(optionsPane, minParams[varIndex].getEditor().getLabelComponent(), gbc,
-                                "gridx=0,weightx=1");
-        GridBagUtils.addToPanel(optionsPane, minParams[varIndex].getEditor().getComponent(), gbc, "gridx=1,weightx=0");
-
-        GridBagUtils.setAttributes(gbc, "gridwidth=1,gridy=2,insets.top=2");
-        GridBagUtils.addToPanel(optionsPane, maxParams[varIndex].getEditor().getLabelComponent(), gbc,
-                                "gridx=0,weightx=1");
-        GridBagUtils.addToPanel(optionsPane, maxParams[varIndex].getEditor().getComponent(), gbc, "gridx=1,weightx=0");
-
-        if (varIndex == VAR1) {
-            GridBagUtils.setAttributes(gbc, "gridwidth=2,gridy=3,insets.top=4");
-            GridBagUtils.addToPanel(optionsPane, markSegmentsParam.getEditor().getComponent(), gbc,
-                                    "gridx=0,weightx=0");
-        }
-
-        optionsPane.setBorder(BorderFactory.createTitledBorder(varIndex == 0 ? "X-Axis" : "Y-Axis"));
-
-        return optionsPane;
-    }
 
     @Override
     protected String getDataAsText() {
@@ -348,5 +428,29 @@ class ProfilePlotPanel extends PagePanel {
     @Override
     public void handleViewSelectionChanged() {
         updateContent();
+    }
+
+    private static class DataSourceConfig {
+        private int boxSize = 3;
+        private String roiMask;
+        private boolean computeInBetweenPoints = true;
+        private boolean useCorrelativeData;
+        private VectorDataNode pointDataSource;
+        private AttributeDescriptor dataField;
+    }
+
+    private static class RoiMaskEnabledCondition extends BindingContext.Condition {
+        @Override
+        public boolean evaluate(BindingContext bindingContext) {
+            return true; // todo - be smarter
+        }
+
+        @Override
+        public void addPropertyChangeListener(BindingContext bindingContext, PropertyChangeListener listener) {
+        }
+
+        @Override
+        public void removePropertyChangeListener(BindingContext bindingContext, PropertyChangeListener listener) {
+        }
     }
 }
