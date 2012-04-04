@@ -1016,7 +1016,9 @@ public class ProductUtils {
      *
      * @param sourceProduct the source product
      * @param targetProduct the target product
+     * @deprecated since BEAM 4.10 (no replacement)
      */
+    @Deprecated
     public static void copyRoiMasks(Product sourceProduct, Product targetProduct) {
         for (RasterDataNode sourceNode : sourceProduct.getTiePointGrids()) {
             copyRoiMasks(sourceNode, targetProduct);
@@ -1036,6 +1038,10 @@ public class ProductUtils {
         }
     }
 
+    /*
+     * @deprecated since BEAM 4.10 (no replacement)
+     */
+    @Deprecated
     private static void copyRoiMasks(final RasterDataNode sourceNode, final Product targetProduct) {
         String[] maskNames = sourceNode.getRoiMaskGroup().getNodeNames();
         RasterDataNode targetNode = targetProduct.getRasterDataNode(sourceNode.getName());

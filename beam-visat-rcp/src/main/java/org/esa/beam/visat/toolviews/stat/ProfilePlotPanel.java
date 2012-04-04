@@ -18,7 +18,6 @@ package org.esa.beam.visat.toolviews.stat;
 
 import com.bc.ceres.binding.*;
 import com.bc.ceres.swing.binding.BindingContext;
-import com.bc.ceres.swing.binding.Enablement;
 import org.esa.beam.framework.datamodel.Mask;
 import org.esa.beam.framework.datamodel.TransectProfileData;
 import org.esa.beam.framework.datamodel.VectorDataNode;
@@ -32,11 +31,14 @@ import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.event.AxisChangeEvent;
 import org.jfree.chart.event.AxisChangeListener;
+import org.jfree.chart.plot.IntervalMarker;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.DeviationRenderer;
+import org.jfree.chart.renderer.xy.XYErrorRenderer;
 import org.jfree.data.xy.XYIntervalSeries;
 import org.jfree.data.xy.XYIntervalSeriesCollection;
+import org.jfree.ui.Layer;
 import org.jfree.ui.RectangleInsets;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.type.AttributeDescriptor;
@@ -47,6 +49,8 @@ import java.awt.geom.Ellipse2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * The profile plot pane within the statistics window.
@@ -73,8 +77,15 @@ class ProfilePlotPanel extends PagePanel {
     private TransectProfileData profileData;
 
     private boolean axisAdjusting = false;
+
+    private Set<IntervalMarker> intervalMarkers;
     private CorrelativeFieldSelector correlativeFieldSelector;
     private DataSourceConfig dataSourceConfig;
+    private RoiMaskSelector roiMaskSelector;
+    private DeviationRenderer profileDeviationRenderer;
+    private XYErrorRenderer profilePointRenderer;
+
+    private XYErrorRenderer correlativeDataRenderer;
 
     ProfilePlotPanel(ToolView parentDialog, String helpId) {
         super(parentDialog, helpId);
@@ -88,6 +99,8 @@ class ProfilePlotPanel extends PagePanel {
 
     @Override
     protected void initContent() {
+        intervalMarkers = new HashSet<IntervalMarker>();
+
         xAxisRangeControl = new AxisRangeControl("X-Axis");
         yAxisRangeControl = new AxisRangeControl("Y-Axis");
 
@@ -124,26 +137,41 @@ class ProfilePlotPanel extends PagePanel {
         );
         final XYPlot plot = chart.getXYPlot();
 
-        DeviationRenderer renderer = new DeviationRenderer();
-        renderer.setUseFillPaint(true);
-        renderer.setBaseToolTipGenerator(new XYPlotToolTipGenerator());
+        profileDeviationRenderer = new DeviationRenderer();
+        profileDeviationRenderer.setUseFillPaint(true);
+        profileDeviationRenderer.setBaseToolTipGenerator(new XYPlotToolTipGenerator());
+        profileDeviationRenderer.setSeriesLinesVisible(0, true);
+        profileDeviationRenderer.setSeriesShapesVisible(0, false);
+        profileDeviationRenderer.setSeriesStroke(0, new BasicStroke(1.0f));
+        profileDeviationRenderer.setSeriesPaint(0, new Color(0, 0, 200));
+        profileDeviationRenderer.setSeriesFillPaint(0, new Color(150, 150, 255));
 
-        renderer.setSeriesLinesVisible(0, true);
-        renderer.setSeriesShapesVisible(0, false);
-        renderer.setSeriesStroke(0, new BasicStroke(1.0f));
-        renderer.setSeriesPaint(0, new Color(0, 0, 200));
-        renderer.setSeriesFillPaint(0, new Color(150, 150, 255));
+        profilePointRenderer = new XYErrorRenderer();
+        profilePointRenderer.setUseFillPaint(true);
+        profilePointRenderer.setBaseToolTipGenerator(new XYPlotToolTipGenerator());
+        profilePointRenderer.setSeriesLinesVisible(0, false);
+        profilePointRenderer.setSeriesShapesVisible(0, true);
+        profilePointRenderer.setSeriesStroke(0, new BasicStroke(1.0f));
+        profilePointRenderer.setSeriesPaint(0, new Color(0, 0, 200));
+        profilePointRenderer.setSeriesFillPaint(0, new Color(150, 150, 255));
+        profilePointRenderer.setSeriesShape(0, new Ellipse2D.Float(-4, -4, 8, 8));
+        profilePointRenderer.setSeriesLinesVisible(0, false);
+        profilePointRenderer.setSeriesShapesVisible(0, true);
 
-        renderer.setSeriesLinesVisible(1, false);
-        renderer.setSeriesShapesVisible(1, true);
-        renderer.setSeriesStroke(1, new BasicStroke(1.0f));
-        renderer.setSeriesPaint(1, new Color(200, 0, 0));
-        renderer.setSeriesFillPaint(1, new Color(255, 150, 150));
-        renderer.setSeriesShape(1, new Ellipse2D.Float(-4, -4, 8, 8));
+        correlativeDataRenderer = new XYErrorRenderer();
+        correlativeDataRenderer.setUseFillPaint(true);
+        correlativeDataRenderer.setBaseToolTipGenerator(new XYPlotToolTipGenerator());
+        correlativeDataRenderer.setSeriesLinesVisible(1, false);
+        correlativeDataRenderer.setSeriesShapesVisible(1, true);
+        correlativeDataRenderer.setSeriesStroke(1, new BasicStroke(1.0f));
+        correlativeDataRenderer.setSeriesPaint(1, new Color(200, 0, 0));
+        correlativeDataRenderer.setSeriesFillPaint(1, new Color(255, 150, 150));
+        correlativeDataRenderer.setSeriesShape(1, new Ellipse2D.Float(-4, -4, 8, 8));
 
         plot.setNoDataMessage(NO_DATA_MESSAGE);
         plot.setAxisOffset(new RectangleInsets(5, 5, 5, 5));
-        plot.setRenderer(renderer);
+        plot.setRenderer(0, profileDeviationRenderer);
+        plot.setRenderer(1, correlativeDataRenderer);
 
         profilePlotDisplay = new ChartPanel(chart);
         profilePlotDisplay.setInitialDelay(200);
@@ -164,14 +192,13 @@ class ProfilePlotPanel extends PagePanel {
 
         final JLabel boxSizeLabel = new JLabel("Box size: ");
         final JSpinner boxSizeSpinner = new JSpinner();
-        final JLabel roiMaskLabel = new JLabel("ROI mask: ");
-        final JComboBox roiMaskList = new JComboBox();
-        final JButton roiMaskButton = new JButton("..."); // todo - use action from mask manager
         final JCheckBox computeInBetweenPoints = new JCheckBox("Compute in-between points");
         final JCheckBox useCorrelativeData = new JCheckBox("Use correlative data");
 
         dataSourceConfig = new DataSourceConfig();
         final BindingContext bindingContext = new BindingContext(PropertyContainer.createObjectBacked(dataSourceConfig));
+
+        roiMaskSelector = new RoiMaskSelector(bindingContext);
 
         correlativeFieldSelector = new CorrelativeFieldSelector(bindingContext);
         final PropertyDescriptor boxSizeDescriptor = bindingContext.getPropertySet().getProperty("boxSize").getDescriptor();
@@ -181,17 +208,13 @@ class ProfilePlotPanel extends PagePanel {
             @Override
             public void validateValue(Property property, Object value) throws ValidationException {
                 if (((Number) value).intValue() % 2 == 0) {
-                    throw new ValidationException("Only uneven values allowed as box size.");
+                    throw new ValidationException("Only odd values allowed as box size.");
                 }
             }
         });
         bindingContext.bind("boxSize", boxSizeSpinner);
-        bindingContext.bind("roiMask", roiMaskList);
-        bindingContext.getBinding("roiMask").addComponent(roiMaskLabel);
-        bindingContext.getBinding("roiMask").addComponent(roiMaskButton);
         bindingContext.bind("computeInBetweenPoints", computeInBetweenPoints);
         bindingContext.bind("useCorrelativeData", useCorrelativeData);
-        bindingContext.bindEnabledState("roiMask", true, new RoiMaskEnabledCondition());
         bindingContext.bindEnabledState("pointDataSource", true, "useCorrelativeData", true);
         bindingContext.bindEnabledState("dataField", true, "useCorrelativeData", true);
 
@@ -208,8 +231,7 @@ class ProfilePlotPanel extends PagePanel {
         GridBagConstraints dataSourceOptionsConstraints = GridBagUtils.createConstraints("anchor=NORTHWEST,fill=HORIZONTAL,insets.top=2");
         GridBagUtils.addToPanel(dataSourceOptionsPanel, boxSizeLabel, dataSourceOptionsConstraints, "gridwidth=1,gridy=0,gridx=0,weightx=0");
         GridBagUtils.addToPanel(dataSourceOptionsPanel, boxSizeSpinner, dataSourceOptionsConstraints, "gridwidth=1,gridy=0,gridx=1,weightx=1");
-        GridBagUtils.addToPanel(dataSourceOptionsPanel, roiMaskLabel, dataSourceOptionsConstraints, "gridwidth=2,gridy=1,gridx=0");
-        GridBagUtils.addToPanel(dataSourceOptionsPanel, roiMaskList, dataSourceOptionsConstraints, "gridy=2");
+        GridBagUtils.addToPanel(dataSourceOptionsPanel, roiMaskSelector.createPanel(), dataSourceOptionsConstraints, "gridwidth=2,gridy=1,gridx=0");
         GridBagUtils.addToPanel(dataSourceOptionsPanel, computeInBetweenPoints, dataSourceOptionsConstraints, "gridy=3");
         GridBagUtils.addToPanel(dataSourceOptionsPanel, new JLabel(" "), dataSourceOptionsConstraints, "gridy=4");
         GridBagUtils.addToPanel(dataSourceOptionsPanel, useCorrelativeData, dataSourceOptionsConstraints, "gridy=5");
@@ -267,17 +289,12 @@ class ProfilePlotPanel extends PagePanel {
         updateDataSource();
         updateDataSet();
         updateUIState();
+        roiMaskSelector.updateMaskSource(getProduct());
     }
 
     private void updateDataSource() {
-
         if (!isInitialized) {
             return;
-        }
-
-        // todo - remove !
-        if (getProduct() != null) {
-            dataSourceConfig.roiMask = getProduct().getMaskGroup().get("land");
         }
 
         profileData = null;
@@ -285,11 +302,11 @@ class ProfilePlotPanel extends PagePanel {
             try {
                 if (dataSourceConfig.useCorrelativeData
                         && dataSourceConfig.pointDataSource != null) {
-                    profileData = TransectProfileData.create(getRaster(), dataSourceConfig.pointDataSource, dataSourceConfig.boxSize, dataSourceConfig.roiMask);
+                    profileData = TransectProfileData.create(getRaster(), dataSourceConfig.pointDataSource, dataSourceConfig.boxSize, dataSourceConfig.useRoiMask, dataSourceConfig.roiMask);
                 } else {
                     Shape shape = StatisticsUtils.TransectProfile.getTransectShape(getRaster().getProduct());
                     if (shape != null) {
-                        profileData = TransectProfileData.create(getRaster(), shape, dataSourceConfig.boxSize, dataSourceConfig.roiMask);
+                        profileData = TransectProfileData.create(getRaster(), shape, dataSourceConfig.boxSize, dataSourceConfig.useRoiMask, dataSourceConfig.roiMask, dataSourceConfig.computeInBetweenPoints);
                     }
                 }
             } catch (IOException e) {
@@ -312,30 +329,16 @@ class ProfilePlotPanel extends PagePanel {
 
         double dx = 0.5 * dataSourceConfig.boxSize;
 
-        if (profileData != null && profileData.getNumShapeVertices() >= 2) {
+        if (profileData != null) {
             final float[] sampleValues = profileData.getSampleValues();
             final float[] sampleSigmas = profileData.getSampleSigmas();
-            boolean markSegments = (Boolean) (xAxisRangeControl.getBindingContext().getPropertySet().getValue(PROPERTY_NAME_MARK_SEGMENTS));
-            if (profileData.getNumShapeVertices() == 2 || !markSegments) {
-                XYIntervalSeries series = new XYIntervalSeries("Sample Values");
-                for (int x = 0; x < sampleValues.length; x++) {
-                    final float y = sampleValues[x];
-                    final float dy = sampleSigmas[x];
-                    series.add(x, x - dx, x + dx, y, y - dy, y + dy);
-                }
-                dataset.addSeries(series);
-            } else {
-                final int[] shapeVertexIndexes = profileData.getShapeVertexIndexes();
-                for (int i = 0; i < shapeVertexIndexes.length - 1; i++) {
-                    final XYIntervalSeries series = new XYIntervalSeries(String.format("Sample Values Segment %d", i));
-                    for (int x = shapeVertexIndexes[i]; x <= shapeVertexIndexes[i + 1]; x++) {
-                        final float y = sampleValues[x];
-                        final float dy = sampleSigmas[i];
-                        series.add(x, x - dx, x + dx, y, y - dy, y + dy);
-                    }
-                    dataset.addSeries(series);
-                }
+            XYIntervalSeries series = new XYIntervalSeries("Sample Values");
+            for (int x = 0; x < sampleValues.length; x++) {
+                final float y = sampleValues[x];
+                final float dy = sampleSigmas[x];
+                series.add(x, x - dx, x + dx, y, y - dy, y + dy);
             }
+            dataset.addSeries(series);
 
             if (dataSourceConfig.useCorrelativeData
                     && dataSourceConfig.pointDataSource != null
@@ -351,7 +354,7 @@ class ProfilePlotPanel extends PagePanel {
                         Number attribute = (Number) simpleFeatures[i].getAttribute(fieldName);
                         final double x = shapeVertexIndexes[i];
                         final double y = attribute.doubleValue();
-                        corrSeries.add(x, x, y, y, y, y);
+                        corrSeries.add(x, x, x, y, y, y);
                     }
                 } else {
                     System.out.println("Weird things happened:");
@@ -378,6 +381,36 @@ class ProfilePlotPanel extends PagePanel {
         xAxisRangeControl.setComponentsEnabled(profileData != null);
         yAxisRangeControl.setComponentsEnabled(profileData != null);
         adjustPlotAxes();
+
+        if (dataSourceConfig.computeInBetweenPoints) {
+            chart.getXYPlot().setRenderer(0, profileDeviationRenderer);
+        } else {
+            chart.getXYPlot().setRenderer(0, profilePointRenderer);
+        }
+
+        boolean markSegments = (Boolean) (xAxisRangeControl.getBindingContext().getPropertySet().getValue(PROPERTY_NAME_MARK_SEGMENTS));
+        if (markSegments && profileData != null && profileData.getNumShapeVertices() > 1) {
+            final int[] shapeVertexIndexes = profileData.getShapeVertexIndexes();
+            removeIntervalMarkers();
+            for (int i = 0; i < shapeVertexIndexes.length - 1; i++) {
+                if (i % 2 != 0) {
+                    final IntervalMarker marker = new IntervalMarker(shapeVertexIndexes[i], shapeVertexIndexes[i + 1]);
+                    marker.setPaint(new Color(120, 122, 125));
+                    marker.setAlpha(0.3F);
+                    chart.getXYPlot().addDomainMarker(marker, Layer.BACKGROUND);
+                    intervalMarkers.add(marker);
+                }
+            }
+        } else {
+            removeIntervalMarkers();
+        }
+    }
+
+    private void removeIntervalMarkers() {
+        for (IntervalMarker intervalMarker : intervalMarkers) {
+            chart.getXYPlot().removeDomainMarker(intervalMarker, Layer.BACKGROUND);
+        }
+        intervalMarkers.clear();
     }
 
     private void adjustAxisControlComponents() {
@@ -449,17 +482,11 @@ class ProfilePlotPanel extends PagePanel {
 
     private static class DataSourceConfig {
         private int boxSize = 3;
+        public boolean useRoiMask;
         private Mask roiMask;
         private boolean computeInBetweenPoints = true;
         private boolean useCorrelativeData;
         private VectorDataNode pointDataSource;
         private AttributeDescriptor dataField;
-    }
-
-    private static class RoiMaskEnabledCondition extends Enablement.Condition {
-        @Override
-        public boolean evaluate(BindingContext bindingContext) {
-            return true; // todo - be smarter
-        }
     }
 }
