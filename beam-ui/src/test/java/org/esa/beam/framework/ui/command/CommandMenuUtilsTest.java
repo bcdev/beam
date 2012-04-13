@@ -135,7 +135,7 @@ public class CommandMenuUtilsTest extends TestCase {
             commands[i] = commandAt;
         }
 
-        commands = CommandMenuUtils.sort(commands);
+        commands = CommandMenuUtils.sortAccordingToPlaceBeforeAndPlaceAfter(commands);
         assertEquals(11, commands.length);
         int sequenceStart = 0;
         for (int i = 0; i < commands.length; i++) {
@@ -150,6 +150,36 @@ public class CommandMenuUtilsTest extends TestCase {
         assertEquals("test3", commands[sequenceStart++].getCommandID());
         assertEquals("test4", commands[sequenceStart++].getCommandID());
         assertEquals("test5", commands[sequenceStart++].getCommandID());
+    }
+
+    public void testSortAlphabetically() {
+        DefaultCommandManager manager = new DefaultCommandManager();
+
+        createCommand("f", manager);
+        createCommand("a", manager);
+        createCommand("d", manager);
+        createCommand("c", manager);
+        createCommand("e", manager);
+        createCommand("b", manager);
+
+        Command[] commands = new Command[manager.getNumCommands()];
+        assertEquals(6, commands.length);
+        for (int i = 0; i < commands.length; i++) {
+            Command commandAt = manager.getCommandAt(i);
+            assertNotNull(commandAt);
+            commands[i] = commandAt;
+        }
+
+        commands = CommandMenuUtils.sortChildrenAlphabetically(commands);
+        assertEquals(6, commands.length);
+        int index = 0;
+
+        assertEquals("a", commands[index++].getCommandID());
+        assertEquals("b", commands[index++].getCommandID());
+        assertEquals("c", commands[index++].getCommandID());
+        assertEquals("d", commands[index++].getCommandID());
+        assertEquals("e", commands[index++].getCommandID());
+        assertEquals("f", commands[index].getCommandID());
     }
 
     public void testCorrectOrdering() {
@@ -177,7 +207,7 @@ public class CommandMenuUtilsTest extends TestCase {
                 beforeCommand,
                 betweenCommand,
         };
-        final Command[] sortedCommands = CommandMenuUtils.sort(commands);
+        final Command[] sortedCommands = CommandMenuUtils.sortAccordingToPlaceBeforeAndPlaceAfter(commands);
 
         final Command[] expectedOrder = new Command[]{
                 beforeCommand, openCommand, betweenCommand, reopenCommand, afterCommand

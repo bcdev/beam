@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -17,7 +17,12 @@
 package org.esa.beam.visat.toolviews.stat;
 
 import com.bc.ceres.swing.TableLayout;
-import org.esa.beam.framework.datamodel.*;
+import org.esa.beam.framework.datamodel.Product;
+import org.esa.beam.framework.datamodel.ProductNode;
+import org.esa.beam.framework.datamodel.ProductNodeEvent;
+import org.esa.beam.framework.datamodel.ProductNodeListener;
+import org.esa.beam.framework.datamodel.RasterDataNode;
+import org.esa.beam.framework.datamodel.VectorDataNode;
 import org.esa.beam.framework.help.HelpSys;
 import org.esa.beam.framework.ui.UIUtils;
 import org.esa.beam.framework.ui.application.ToolView;
@@ -26,8 +31,18 @@ import org.esa.beam.util.SystemUtils;
 import org.esa.beam.visat.VisatApp;
 import org.jfree.chart.ChartPanel;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.AbstractButton;
+import javax.swing.BorderFactory;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
+import java.awt.BorderLayout;
+import java.awt.Container;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -53,32 +68,27 @@ abstract class PagePanel extends JPanel implements ProductNodeListener {
 
     private final ToolView parentDialog;
     private final String helpId;
+    private final String titlePrefix;
 
-    PagePanel(ToolView parentDialog, String helpId) {
+    PagePanel(ToolView parentDialog, String helpId, String titlePrefix) {
         super(new BorderLayout(4, 4));
         this.parentDialog = parentDialog;
         this.helpId = helpId;
+        this.titlePrefix = titlePrefix;
         setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
         setPreferredSize(new Dimension(600, 320));
-        initContent();
-        updateCurrentSelection();
-        transferProductNodeListener(null, product);
+        setCurrentSelection();
     }
 
     protected Container getParentDialogContentPane() {
         return getParentDialog().getContext().getPane().getControl();
     }
 
-    public String getHelpId() {
-        return helpId;
-    }
-
-    void updateCurrentSelection() {
+    void setCurrentSelection() {
         final ProductNode selectedNode = VisatApp.getApp().getSelectedProductNode();
-        if (selectedNode != null) {
+        if (selectedNode != null && selectedNode.getProduct() != null) {
             setProduct(selectedNode.getProduct());
         }
-
         if (selectedNode instanceof RasterDataNode) {
             setRaster((RasterDataNode) selectedNode);
         } else if (selectedNode instanceof VectorDataNode) {
@@ -101,7 +111,9 @@ abstract class PagePanel extends JPanel implements ProductNodeListener {
         return getTitlePrefix() + " - " + getProductNodeDisplayName();
     }
 
-    protected abstract String getTitlePrefix();
+    protected final String getTitlePrefix() {
+        return titlePrefix;
+    }
 
     protected Product getProduct() {
         return product;
@@ -189,13 +201,13 @@ abstract class PagePanel extends JPanel implements ProductNodeListener {
     }
 
     protected AbstractButton getHelpButton() {
-        if (getHelpId() != null) {
+        if (helpId != null) {
             final AbstractButton helpButton = ToolButtonFactory.createButton(UIUtils.loadImageIcon("icons/Help24.gif"),
                                                                              false);
             helpButton.setToolTipText("Help.");
             helpButton.setName("helpButton");
-            HelpSys.enableHelpOnButton(helpButton, getHelpId());
-            HelpSys.enableHelpKey(getParentDialogContentPane(), getHelpId());
+            HelpSys.enableHelpOnButton(helpButton, helpId);
+            HelpSys.enableHelpKey(getParentDialogContentPane(), helpId);
             return helpButton;
         }
 
@@ -306,6 +318,56 @@ abstract class PagePanel extends JPanel implements ProductNodeListener {
         buttonPane.add(saveButton);
         buttonPane.add(printButton);
         return buttonPane;
+    }
+
+    protected JPanel createTopPanel(){
+        final AbstractButton refreshButton = ToolButtonFactory.createButton(
+            UIUtils.loadImageIcon("icons/ZoomAll24.gif"),
+                    false);
+        refreshButton.setToolTipText("Refresh View");
+        refreshButton.setName("refreshButton");
+        refreshButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+            }
+        });
+
+        final AbstractButton switchToTableButton = ToolButtonFactory.createButton(
+                UIUtils.loadImageIcon("icons/ZoomAll24.gif"),
+                false);
+        switchToTableButton.setToolTipText("Switch to Table View");
+        switchToTableButton.setName("switchToTableButton");
+        switchToTableButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+            }
+        });
+
+        final AbstractButton switchToChartButton = ToolButtonFactory.createButton(
+                UIUtils.loadImageIcon("icons/ZoomAll24.gif"),
+                false);
+        switchToChartButton.setToolTipText("Switch to Chart View");
+        switchToChartButton.setName("switchToChartButton");
+        switchToChartButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+            }
+        });
+
+        final TableLayout tableLayout = new TableLayout(6);
+        tableLayout.setColumnFill(4, TableLayout.Fill.HORIZONTAL);
+        tableLayout.setColumnWeightX(4, 1.0);
+        JPanel buttonPanel = new JPanel(tableLayout);
+        buttonPanel.add(refreshButton);
+        buttonPanel.add(switchToTableButton);
+        buttonPanel.add(new JPanel());
+        buttonPanel.add(new JPanel());
+        buttonPanel.add(new JPanel());
+
+        return buttonPanel;
     }
 
     protected JPanel createChartButtonPanel2(final ChartPanel chartPanel) {
@@ -419,7 +481,7 @@ abstract class PagePanel extends JPanel implements ProductNodeListener {
         }
     }
 
-    void invokeUpdateUI() {
+    private void invokeUpdateUI() {
         if (SwingUtilities.isEventDispatchThread()) {
             updateUI();
         } else {
@@ -433,9 +495,6 @@ abstract class PagePanel extends JPanel implements ProductNodeListener {
     }
 
     void handleLayerContentChanged() {
-    }
-
-    void handleViewSelectionChanged() {
     }
 
     /**

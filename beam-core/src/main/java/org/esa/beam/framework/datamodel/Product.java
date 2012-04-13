@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -250,7 +250,28 @@ public class Product extends ProductNode {
         };
         this.indexCodingGroup = new ProductNodeGroup<IndexCoding>(this, "indexCodingGroup", true);
         this.flagCodingGroup = new ProductNodeGroup<FlagCoding>(this, "flagCodingGroup", true);
-        this.maskGroup = new ProductNodeGroup<Mask>(this, "maskGroup", true);
+        this.maskGroup = new ProductNodeGroup<Mask>(this, "maskGroup", true) {
+            @Override
+            public boolean add(Mask mask) {
+                updateDescription(mask);
+                return super.add(mask);
+            }
+
+            @Override
+            public void add(int index, Mask mask) {
+                updateDescription(mask);
+                super.add(index, mask);
+            }
+
+            private void updateDescription(Mask mask) {
+                if (StringUtils.isNullOrEmpty(mask.getDescription())) {
+                    if (mask.getImageType() == Mask.BandMathsType.INSTANCE) {
+                        String expression = Mask.BandMathsType.getExpression(mask);
+                        mask.setDescription(getSuitableBitmaskDefDescription(expression));
+                    }
+                }
+            }
+        };
 
         setModified(false);
 
@@ -1121,7 +1142,7 @@ public class Product extends ProductNode {
         }
         if (create) {
             vectorDataNode = new VectorDataNode(GCP_GROUP_NAME, Placemark.createGcpFeatureType());
-            vectorDataNode.setDefaultCSS("symbol:plus; stroke:#ff8800; stroke-opacity:0.8; stroke-width:1.0");
+            vectorDataNode.setDefaultStyleCss("symbol:plus; stroke:#ff8800; stroke-opacity:0.8; stroke-width:1.0");
             this.vectorDataGroup.add(vectorDataNode);
             return vectorDataNode.getPlacemarkGroup();
         }
@@ -1155,7 +1176,7 @@ public class Product extends ProductNode {
         }
         if (create) {
             vectorDataNode = new VectorDataNode(PIN_GROUP_NAME, Placemark.createPinFeatureType());
-            vectorDataNode.setDefaultCSS("symbol:pin; fill:#0000ff; fill-opacity:0.7; stroke:#ffffff; stroke-opacity:1.0; stroke-width:0.5");
+            vectorDataNode.setDefaultStyleCss("symbol:pin; fill:#0000ff; fill-opacity:0.7; stroke:#ffffff; stroke-opacity:1.0; stroke-width:0.5");
             this.vectorDataGroup.add(vectorDataNode);
             return vectorDataNode.getPlacemarkGroup();
         }
@@ -1839,9 +1860,8 @@ public class Product extends ProductNode {
         return true;
     }
 
-    private String getSuitableBitmaskDefDescription(final BitmaskDef bitmaskDef) {
+    private String getSuitableBitmaskDefDescription(final String expr) {
 
-        final String expr = bitmaskDef.getExpr();
         if (StringUtils.isNullOrEmpty(expr)) {
             return null;
         }
@@ -2032,6 +2052,26 @@ public class Product extends ProductNode {
     }
 
     /**
+     * Creates a new mask using a band arithmetic expression
+     * and adds it to this product and returns it.
+     *
+     * @param maskName  the new mask's name
+     * @param description the mask's description
+     * @param expression the band arithmetic expression
+     * @param color the display color
+     * @param transparency the display transparency
+     * @return the new mask which has just been added
+     * @since BEAM 4.10
+     */
+    public Mask addMask(String maskName, String description, String expression, Color color, double transparency) {
+        final Mask mask = Mask.BandMathsType.create(maskName, description,
+                                                    sceneRasterWidth, sceneRasterHeight,
+                                                    expression, color, transparency);
+        getMaskGroup().add(mask);
+        return mask;
+    }
+
+    /**
      * AutoGrouping can be used by an application to auto-group a long list of product nodes (e.g. bands)
      * as a tree of product nodes.
      *
@@ -2206,7 +2246,7 @@ public class Product extends ProductNode {
     @Deprecated
     public void addBitmaskDef(final BitmaskDef bitmaskDef) {
         if (StringUtils.isNullOrEmpty(bitmaskDef.getDescription())) {
-            final String defaultDescription = getSuitableBitmaskDefDescription(bitmaskDef);
+            final String defaultDescription = getSuitableBitmaskDefDescription(bitmaskDef.getExpr());
             bitmaskDef.setDescription(defaultDescription);
         }
         bitmaskDefGroup.add(bitmaskDef);
@@ -2242,23 +2282,11 @@ public class Product extends ProductNode {
     @Deprecated
     public boolean removeBitmaskDef(final BitmaskDef bitmaskDef) {
         final boolean result = bitmaskDefGroup.remove(bitmaskDef);
-        removeBitmaskDef(getBands(), bitmaskDef);
-        removeBitmaskDef(getTiePointGrids(), bitmaskDef);
 
         Mask mask = getMaskGroup().get(bitmaskDef.getName());
         getMaskGroup().remove(mask);
 
         return result;
-    }
-
-    @Deprecated
-    private static void removeBitmaskDef(RasterDataNode[] bands, BitmaskDef bitmaskDef) {
-        for (RasterDataNode band : bands) {
-            final BitmaskOverlayInfo bitmaskOverlayInfo = band.getBitmaskOverlayInfo();
-            if (bitmaskOverlayInfo != null) {
-                bitmaskOverlayInfo.removeBitmaskDef(bitmaskDef);
-            }
-        }
     }
 
     /**

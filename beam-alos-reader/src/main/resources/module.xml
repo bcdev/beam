@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-alos-reader</symbolicName>
-    <version>1.2</version>
+    <version>1.3</version>
     <name>AVNIR-2/PRISM Product Reader</name>
 
     <description>
@@ -24,6 +24,8 @@
 
     <changelog>
         <![CDATA[
+        <p>Changes in Version 1.3<br/>
+        [BEAM-943] ProductIOException occures in VISAT by saving product as DIMAP, if some band names have been changed<br/>
         <p>Changes in Version 1.2<br/>
         [BEAM-1056] Statistics of ALOS/AVNIR2 are initially not correctly computed<br/>
         </p>
@@ -47,7 +49,7 @@
             <description>Import an ALOS/AVNIR-2 data product or product subset.</description>
             <largeIcon>icons/Import24.gif</largeIcon>
             <helpId>importAvnir2Product</helpId>
-            <placeAfter>importNetcdfProduct</placeAfter>
+            <!--<placeAfter>importNetcdfProduct</placeAfter>-->
         </action>
         <action>
             <id>importPrismProduct</id>
@@ -59,7 +61,7 @@
             <shortDescr>Import an ALOS/PRISM data product or product subset.</shortDescr>
             <description>Import an ALOS/PRISM data product or product subset.</description>
             <helpId>importPrismProduct</helpId>
-            <placeAfter>importAvnir2Product</placeAfter>
+            <!--<placeAfter>importAvnir2Product</placeAfter>-->
         </action>
     </extension>
 

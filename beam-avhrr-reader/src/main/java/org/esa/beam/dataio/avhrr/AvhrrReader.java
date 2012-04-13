@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -19,15 +19,22 @@ import com.bc.ceres.core.ProgressMonitor;
 import org.esa.beam.dataio.avhrr.noaa.NoaaAvhrrFile;
 import org.esa.beam.framework.dataio.AbstractProductReader;
 import org.esa.beam.framework.dataio.ProductReaderPlugIn;
-import org.esa.beam.framework.datamodel.*;
+import org.esa.beam.framework.datamodel.Band;
+import org.esa.beam.framework.datamodel.FlagCoding;
+import org.esa.beam.framework.datamodel.GeoCoding;
+import org.esa.beam.framework.datamodel.Product;
+import org.esa.beam.framework.datamodel.ProductData;
+import org.esa.beam.framework.datamodel.TiePointGeoCoding;
+import org.esa.beam.framework.datamodel.TiePointGrid;
+import org.esa.beam.framework.datamodel.VirtualBand;
 import org.esa.beam.framework.dataop.maptransf.Datum;
 
-import java.awt.*;
+import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
-import java.text.MessageFormat;
 
 /**
  * A reader for AVHRR/3 Level-1b data products.
@@ -271,14 +278,10 @@ public class AvhrrReader extends AbstractProductReader implements AvhrrConstants
                     avhrrFile.getProductHeight());
 
             final String cloudBandName = cloudReader.getBandName();
-            product.addBitmaskDef(new BitmaskDef("clear", "",
-                    cloudBandName + "==0", Color.LIGHT_GRAY, 0.4f));
-            product.addBitmaskDef(new BitmaskDef("probably_clear", "",
-                    cloudBandName + "==1", Color.YELLOW, 0.4f));
-            product.addBitmaskDef(new BitmaskDef("probably_cloudy", "",
-                    cloudBandName + "==2", Color.ORANGE, 0.4f));
-            product.addBitmaskDef(new BitmaskDef("cloudy", "",
-                    cloudBandName + "==3", Color.RED, 0.4f));
+            product.addMask("clear", "", cloudBandName + "==0", Color.LIGHT_GRAY, 0.4);
+            product.addMask("probably_clear", "", cloudBandName + "==1", Color.YELLOW, 0.4);
+            product.addMask("probably_cloudy", "", cloudBandName + "==2", Color.ORANGE, 0.4);
+            product.addMask("cloudy", "", cloudBandName + "==3", Color.RED, 0.4);
 
             product.addBand(cloudMaskBand);
             bandReaders.put(cloudMaskBand, cloudReader);
@@ -299,7 +302,7 @@ public class AvhrrReader extends AbstractProductReader implements AvhrrConstants
         final Color color = new Color(r, g, b);
 
         fc.addFlag(flagName, 1 << shift, flagDesc);
-        product.addBitmaskDef(new BitmaskDef(flagName, flagDesc, fc.getName() + "." + flagName, color, 0.4f));
+        product.addMask(flagName, flagDesc, fc.getName() + "." + flagName, color, 0.4);
     }
 
     protected void addTiePointGrids() throws IOException {

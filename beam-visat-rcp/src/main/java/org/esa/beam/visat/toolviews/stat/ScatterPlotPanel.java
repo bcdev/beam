@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -16,7 +16,12 @@
 
 package org.esa.beam.visat.toolviews.stat;
 
-import com.bc.ceres.binding.*;
+import com.bc.ceres.binding.Property;
+import com.bc.ceres.binding.PropertyContainer;
+import com.bc.ceres.binding.PropertyDescriptor;
+import com.bc.ceres.binding.ValidationException;
+import com.bc.ceres.binding.Validator;
+import com.bc.ceres.binding.ValueRange;
 import com.bc.ceres.core.ProgressMonitor;
 import com.bc.ceres.swing.binding.BindingContext;
 import com.bc.ceres.swing.progress.ProgressMonitorSwingWorker;
@@ -29,7 +34,6 @@ import org.esa.beam.framework.ui.application.ToolView;
 import org.geotools.feature.FeatureCollection;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.axis.LogarithmicAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.XYPlot;
@@ -48,8 +52,22 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JSeparator;
+import javax.swing.JSpinner;
+import javax.swing.JTextField;
+import java.awt.BasicStroke;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
@@ -72,7 +90,6 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
 
     private static final String NO_DATA_MESSAGE = "No scatter plot computed yet.\n" + ZOOM_TIP_MESSAGE;
     private static final String CHART_TITLE = "Scatter Plot";
-    private static final String TITLE_PREFIX = CHART_TITLE;
 
     private ChartPanel scatterPlotDisplay;
     private XYPlot plot;
@@ -90,7 +107,7 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
     private JButton recomputeButton;
 
     ScatterPlotPanel(ToolView parentDialog, String helpId) {
-        super(parentDialog, helpId);
+        super(parentDialog, helpId, CHART_TITLE);
     }
 
     @Override
@@ -441,6 +458,26 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
                 plot.setNotify(savedNotify);
             }
         };
+
+        MaskSelectionToolSupport maskSelectionToolSupport = new MaskSelectionToolSupport(this,
+                                                                                         scatterPlotDisplay,
+                                                                                         "scatter_plot_area",
+                                                                                         "Mask generated from selected scatter plot area",
+                                                                                         Color.RED,
+                                                                                         PlotAreaSelectionTool.AreaType.X_RANGE) {
+            @Override
+            protected String createMaskExpression(PlotAreaSelectionTool.AreaType areaType, double x0, double y0, double dx, double dy) {
+                return String.format("%s >= %s && %s <= %s",
+                                     getRaster().getName(),
+                                     x0,
+                                     getRaster().getName(),
+                                     x0 + dx);
+            }
+        };
+        scatterPlotDisplay.getPopupMenu().addSeparator();
+        scatterPlotDisplay.getPopupMenu().add(maskSelectionToolSupport.createMaskSelectionModeMenuItem());
+        scatterPlotDisplay.getPopupMenu().add(maskSelectionToolSupport.createDeleteMaskMenuItem());
+        scatterPlotDisplay.getPopupMenu().addSeparator();
         scatterPlotDisplay.getPopupMenu().add(createCopyDataToClipboardMenuItem());
 
         // UI arrangement
@@ -561,8 +598,9 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
     private void updateScalingOfXAxis() {
         if (scatterPlotModel.xAxisLogScaled) {
             ValueAxis oldAxis = plot.getDomainAxis();
-            if (!(oldAxis instanceof LogarithmicAxis)) {
-                LogarithmicAxis logAxisX = new LogarithmicAxis(oldAxis.getLabel());
+            if (!(oldAxis instanceof CustomLogarithmicAxis)) {
+                CustomLogarithmicAxis logAxisX = new CustomLogarithmicAxis(oldAxis.getLabel());
+//                LogarithmicAxis logAxisX = new MyLogarithmicAxis(oldAxis.getLabel());
                 logAxisX.setAllowNegativesFlag(true);
                 logAxisX.setLog10TickLabelsFlag(true);
                 logAxisX.setMinorTickCount(10);
@@ -570,20 +608,21 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
             }
         } else {
             ValueAxis oldAxis = plot.getDomainAxis();
-            if (oldAxis instanceof LogarithmicAxis) {
+            if (oldAxis instanceof CustomLogarithmicAxis) {
                 final NumberAxis numberAxis = createNumberAxis();
                 numberAxis.setLabel(oldAxis.getLabel());
                 plot.setDomainAxis(numberAxis);
             }
+            setAxisRanges(xAxisRangeControl, plot.getDomainAxis());
         }
-        setAxisRanges(xAxisRangeControl, plot.getDomainAxis());
+//        setAxisRanges(xAxisRangeControl, plot.getDomainAxis());
     }
 
     private void updateScalingOfYAxis() {
         if (scatterPlotModel.yAxisLogScaled) {
             ValueAxis oldAxis = plot.getRangeAxis();
-            if (!(oldAxis instanceof LogarithmicAxis)) {
-                LogarithmicAxis logAxisX = new LogarithmicAxis(oldAxis.getLabel());
+            if (!(oldAxis instanceof CustomLogarithmicAxis)) {
+                CustomLogarithmicAxis logAxisX = new CustomLogarithmicAxis(oldAxis.getLabel());
                 logAxisX.setAllowNegativesFlag(true);
                 logAxisX.setLog10TickLabelsFlag(true);
                 logAxisX.setAutoRange(yAxisRangeControl.isAutoMinMax());
@@ -592,7 +631,7 @@ class ScatterPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
             }
         } else {
             ValueAxis oldAxis = plot.getRangeAxis();
-            if (oldAxis instanceof LogarithmicAxis) {
+            if (oldAxis instanceof CustomLogarithmicAxis) {
                 final NumberAxis numberAxis = createNumberAxis();
                 numberAxis.setLabel(oldAxis.getLabel());
                 plot.setRangeAxis(numberAxis);

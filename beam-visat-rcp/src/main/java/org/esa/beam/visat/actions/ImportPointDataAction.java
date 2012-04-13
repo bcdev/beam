@@ -16,9 +16,10 @@
 
 package org.esa.beam.visat.actions;
 
-import org.esa.beam.dataio.geometry.VectorDataNodeReader;
+import org.esa.beam.dataio.geometry.VectorDataNodeReader2;
 import org.esa.beam.framework.datamodel.Product;
 import org.esa.beam.framework.datamodel.VectorDataNode;
+import org.esa.beam.framework.ui.ModalDialog;
 import org.esa.beam.framework.ui.command.CommandEvent;
 import org.esa.beam.framework.ui.command.ExecCommand;
 import org.esa.beam.jai.ImageManager;
@@ -56,13 +57,22 @@ public class ImportPointDataAction extends ExecCommand {
         // todo - always expect WGS-84 and convert all geometry coordinates into Model CRS of product. (nf,se 2012-03-29)
 
         final VectorDataNode vectorDataNode;
+        CoordinateReferenceSystem modelCrs;
         try {
-            CoordinateReferenceSystem modelCrs = product.getGeoCoding() != null ? ImageManager.getModelCrs(product.getGeoCoding()) : ImageManager.DEFAULT_IMAGE_CRS;
-            vectorDataNode = VectorDataNodeReader.read(file, modelCrs);
+            modelCrs = product.getGeoCoding() != null ? ImageManager.getModelCrs(product.getGeoCoding()) :
+                       ImageManager.DEFAULT_IMAGE_CRS;
+            vectorDataNode = VectorDataNodeReader2.read(file, modelCrs, product.getGeoCoding());
         } catch (IOException e) {
             visatApp.showErrorDialog(TITLE, "Failed to load csv file:\n" + e.getMessage());
             return;
         }
+
+        TypeDialog dialog = new TypeDialog(visatApp.getApplicationWindow(), modelCrs);
+        if (dialog.show() != ModalDialog.ID_OK) {
+            return;
+        }
+
+        vectorDataNode.getFeatureType().getUserData().put(dialog.getFeatureTypeName(), true);
 
         product.getVectorDataGroup().add(vectorDataNode);
     }
@@ -70,7 +80,6 @@ public class ImportPointDataAction extends ExecCommand {
     @Override
     public void updateState(final CommandEvent event) {
         setEnabled(VisatApp.getApp().getSelectedProduct() != null
-                           && VisatApp.getApp().getSelectedProduct().getGeoCoding() != null);
+                   && VisatApp.getApp().getSelectedProduct().getGeoCoding() != null);
     }
-
 }

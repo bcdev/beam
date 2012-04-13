@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -20,7 +20,13 @@ import com.bc.ceres.core.ProgressMonitor;
 import com.bc.ceres.core.SubProgressMonitor;
 import com.bc.ceres.swing.TableLayout;
 import com.bc.ceres.swing.progress.ProgressMonitorSwingWorker;
-import org.esa.beam.framework.datamodel.*;
+import org.esa.beam.framework.datamodel.Band;
+import org.esa.beam.framework.datamodel.Mask;
+import org.esa.beam.framework.datamodel.Product;
+import org.esa.beam.framework.datamodel.RasterDataNode;
+import org.esa.beam.framework.datamodel.Stx;
+import org.esa.beam.framework.datamodel.StxFactory;
+import org.esa.beam.framework.datamodel.TiePointGrid;
 import org.esa.beam.framework.param.ParamChangeEvent;
 import org.esa.beam.framework.param.ParamChangeListener;
 import org.esa.beam.framework.param.ParamGroup;
@@ -38,8 +44,12 @@ import org.jfree.chart.title.TextTitle;
 import org.jfree.chart.title.Title;
 import org.jfree.ui.RectangleInsets;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.BorderFactory;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.GridBagConstraints;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
@@ -60,7 +70,6 @@ class DensityPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
     private static final String NO_DATA_MESSAGE = "No density plot computed yet.\n" +
             ZOOM_TIP_MESSAGE;
     private static final String CHART_TITLE = "Density Plot";
-    private static final String TITLE_PREFIX = CHART_TITLE;
 
     private static final int X_VAR = 0;
     private static final int Y_VAR = 1;
@@ -76,19 +85,11 @@ class DensityPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
     private ChartPanel densityPlotDisplay;
     private boolean adjustingAutoMinMax;
     private XYImagePlot plot;
+    private PlotAreaSelectionTool plotAreaSelectionTool;
 
     DensityPlotPanel(ToolView parentDialog, String helpId) {
-        super(parentDialog, helpId);
-    }
+        super(parentDialog, helpId, CHART_TITLE);
 
-    @Override
-    public String getTitle() {
-        return getTitlePrefix();
-    }
-
-    @Override
-    protected String getTitlePrefix() {
-        return TITLE_PREFIX;
     }
 
     @Override
@@ -216,6 +217,29 @@ class DensityPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
 //         chart.addSubtitle(legend);
 
         densityPlotDisplay = new ChartPanel(chart);
+
+        MaskSelectionToolSupport maskSelectionToolSupport = new MaskSelectionToolSupport(this,
+                                                                                         densityPlotDisplay,
+                                                                                         "densitity_plot_area",
+                                                                                         "Mask generated from selected density plot area",
+                                                                                         Color.RED,
+                                                                                         PlotAreaSelectionTool.AreaType.ELLIPSE) {
+            @Override
+            protected String createMaskExpression(PlotAreaSelectionTool.AreaType areaType, double x0, double y0, double dx, double dy) {
+                double rr = Math.sqrt(dx * dx + dy * dy);
+                return String.format("distance(%s, %s, %s, %s) < %s",
+                                     rasterNameParams[0].getValue(),
+                                     rasterNameParams[1].getValue(),
+                                     x0,
+                                     y0,
+                                     rr);
+            }
+        };
+
+        densityPlotDisplay.getPopupMenu().addSeparator();
+        densityPlotDisplay.getPopupMenu().add(maskSelectionToolSupport.createMaskSelectionModeMenuItem());
+        densityPlotDisplay.getPopupMenu().add(maskSelectionToolSupport.createDeleteMaskMenuItem());
+        densityPlotDisplay.getPopupMenu().addSeparator();
         densityPlotDisplay.getPopupMenu().add(createCopyDataToClipboardMenuItem());
 
         final TableLayout rightPanelLayout = new TableLayout(1);
@@ -246,7 +270,6 @@ class DensityPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
         final String rasterName = rasterNameParams[varIndex].getValue().toString();
         RasterDataNode raster = product.getRasterDataNode(rasterName);
         if (raster == null) {
-            // todo - "if the product doesn't have the raster, take some other?" - this is stupid (nf - 18.12.2007)
             if (getRaster() != null && rasterName.equalsIgnoreCase(getRaster().getName())) {
                 raster = getRaster();
             }
@@ -363,17 +386,17 @@ class DensityPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
                     final Range rangeX = getRange(X_VAR, rasterX, selectedMask, SubProgressMonitor.create(pm, 15));
                     final Range rangeY = getRange(Y_VAR, rasterY, selectedMask, SubProgressMonitor.create(pm, 15));
                     final BufferedImage image = ProductUtils.createDensityPlotImage(rasterX,
-                            (float) rangeX.getMin(),
-                            (float) rangeX.getMax(),
-                            rasterY,
-                            (float) rangeY.getMin(),
-                            (float) rangeY.getMax(),
-                            selectedMask,
-                            512,
-                            512,
-                            new Color(255, 255, 255, 0),
-                            null,
-                            SubProgressMonitor.create(pm, 70));
+                                                                                    (float) rangeX.getMin(),
+                                                                                    (float) rangeX.getMax(),
+                                                                                    rasterY,
+                                                                                    (float) rangeY.getMin(),
+                                                                                    (float) rangeY.getMax(),
+                                                                                    selectedMask,
+                                                                                    512,
+                                                                                    512,
+                                                                                    new Color(255, 255, 255, 0),
+                                                                                    null,
+                                                                                    SubProgressMonitor.create(pm, 70));
                     return new DensityPlot(image, rangeX, rangeY);
                 } finally {
                     pm.done();
@@ -434,7 +457,7 @@ class DensityPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
                     e.printStackTrace();
                     JOptionPane.showMessageDialog(getParentDialogContentPane(),
                                                   "Failed to compute density plot.\n" +
-                                                          "An error occured:\n" +
+                                                          "An error occurred:\n" +
                                                           e.getCause().getMessage(),
                                                   CHART_TITLE, /*I18N*/
                                                   JOptionPane.ERROR_MESSAGE);
@@ -491,7 +514,7 @@ class DensityPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
                 availableBandList.add(grid.getName());
             }
         }
-        // if raster is only binded to the product and does not belong to it
+        // if raster is only bound to the product and does not belong to it
         final RasterDataNode raster = getRaster();
         if (raster != null && raster.getProduct() == product) {
             final String rasterName = raster.getName();
@@ -515,7 +538,7 @@ class DensityPlotPanel extends PagePanel implements SingleRoiComputePanel.Comput
                         + excelLimit + " rows in a sheet.\n";   /*I18N*/
             }
             final String message = MessageFormat.format(
-                    "This density plot diagram contains {0} non-empty bins.\n" +
+                    "This density plot contains {0} non-empty bins.\n" +
                             "For each bin, a text data row containing an x, y and z value will be created.\n" +
                             "{1}\nPress ''Yes'' if you really want to copy this amount of data to the system clipboard.\n",
                     numNonEmptyBins, excelNote);

@@ -19,7 +19,7 @@ import org.esa.beam.framework.processor.ProcessorException;
 import org.esa.beam.util.Guardian;
 
 /**
- * Implements a general baselin height algorithm with optional baseline slope calculation.
+ * Implements a general baseline height algorithm with optional baseline slope calculation.
  */
 public final class BaselineAlgorithm {
 
@@ -40,7 +40,7 @@ public final class BaselineAlgorithm {
     }
 
     /**
-     * Sets the center wavelengths of the low- and high baseline band and of the signal band to be used during
+     * Sets the center wavelengths of the low- and high baseline bands and of the signal band to be used during
      * calculation.
      *
      * @param low    lower band wavelength in nm
@@ -53,21 +53,21 @@ public final class BaselineAlgorithm {
 
         // check for correct wavelengths
         // -----------------------------
-        if ((low < 0.f) || (high < 0.f) || (signal < 0.f)) {
+        if (low < 0.f || high < 0.f || signal < 0.f) {
             throw new ProcessorException(FlhMciConstants.ERROR_MSG_NEGATIVE_WAVELENGTH);
         }
 
         // set numerator and check for validity
         // ------------------------------------
         num = signal - low;
-        if (num == 0.f) {
+        if (num == 0.0) {
             throw new ProcessorException(FlhMciConstants.ERROR_MSG_NUMERATOR_ZERO);
         }
 
         // set denominator and check for validity
         // --------------------------------------
         denom = high - low;
-        if (denom == 0.f) {
+        if (denom == 0.0) {
             throw new ProcessorException(FlhMciConstants.ERROR_MSG_DENOM_ZERO);
         }
         // inverse wavelength delta needed for baseline slope calculation
@@ -87,10 +87,10 @@ public final class BaselineAlgorithm {
     /**
      * Sets the value of the cloud correction factor to be used.
      *
-     * @param fFactor
+     * @param factor The cloud correction factor.
      */
-    public final void setCloudCorrectionFactor(float fFactor) {
-        cloudCorrectionFactor = fFactor;
+    public final void setCloudCorrectionFactor(float factor) {
+        cloudCorrectionFactor = factor;
     }
 
     /**
@@ -103,6 +103,8 @@ public final class BaselineAlgorithm {
      * @param recycle if not <code>null</code> and of correct size this array will be reused for the return values
      *
      * @return array of baseline height values
+     *
+     * @deprecated since BEAM 4.10 - no replacement.
      */
     @Deprecated
     public final float[] process(float[] low, float[] high, float[] signal, boolean[] process, float[] recycle) {
@@ -152,6 +154,8 @@ public final class BaselineAlgorithm {
      * @param recycle if not <code>null</code> and of correct size this array will be reused for the return values
      *
      * @return array of baseline height values
+     *
+     * @deprecated since BEAM 4.10 - no replacement.
      */
     @Deprecated
     public final float[] processSlope(float[] low, float[] high, boolean[] process, float[] recycle) {

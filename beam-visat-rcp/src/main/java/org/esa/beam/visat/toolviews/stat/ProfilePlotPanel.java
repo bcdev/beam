@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -16,19 +16,27 @@
 
 package org.esa.beam.visat.toolviews.stat;
 
-import com.bc.ceres.binding.*;
+import com.bc.ceres.binding.Property;
+import com.bc.ceres.binding.PropertyContainer;
+import com.bc.ceres.binding.PropertyDescriptor;
+import com.bc.ceres.binding.ValidationException;
+import com.bc.ceres.binding.Validator;
+import com.bc.ceres.binding.ValueRange;
 import com.bc.ceres.swing.binding.BindingContext;
 import com.bc.ceres.swing.binding.Enablement;
+import org.esa.beam.framework.datamodel.GeoPos;
 import org.esa.beam.framework.datamodel.Mask;
+import org.esa.beam.framework.datamodel.ProductNodeEvent;
 import org.esa.beam.framework.datamodel.TransectProfileData;
 import org.esa.beam.framework.datamodel.TransectProfileDataBuilder;
 import org.esa.beam.framework.datamodel.VectorDataNode;
 import org.esa.beam.framework.ui.GridBagUtils;
 import org.esa.beam.framework.ui.application.ToolView;
+import org.esa.beam.visat.VisatApp;
+import org.esa.beam.visat.toolviews.nav.CursorSynchronizer;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.axis.LogarithmicAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.event.AxisChangeEvent;
@@ -39,6 +47,7 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.DeviationRenderer;
 import org.jfree.chart.renderer.xy.XYErrorRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYIntervalSeries;
 import org.jfree.data.xy.XYIntervalSeriesCollection;
 import org.jfree.ui.Layer;
@@ -46,9 +55,19 @@ import org.jfree.ui.RectangleInsets;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.type.AttributeDescriptor;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JSeparator;
+import javax.swing.JSpinner;
+import java.awt.BasicStroke;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.GridBagConstraints;
+import java.awt.Shape;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Point2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
@@ -64,7 +83,6 @@ import java.util.Set;
 class ProfilePlotPanel extends PagePanel {
 
     private static final String CHART_TITLE = "Profile Plot";
-    private static final String TITLE_PREFIX = CHART_TITLE;
     private static final String NO_DATA_MESSAGE = "No profile plot computed yet. " +
             "It will be computed if a geometry is selected within the image view.\n" +
             ZOOM_TIP_MESSAGE;
@@ -92,14 +110,10 @@ class ProfilePlotPanel extends PagePanel {
     private XYErrorRenderer pointRenderer;
     private Enablement pointDataSourceEnablement;
     private Enablement dataFieldEnablement;
+    private CursorSynchronizer cursorSynchronizer;
 
     ProfilePlotPanel(ToolView parentDialog, String helpId) {
-        super(parentDialog, helpId);
-    }
-
-    @Override
-    protected String getTitlePrefix() {
-        return TITLE_PREFIX;
+        super(parentDialog, helpId, CHART_TITLE);
     }
 
     @Override
@@ -169,10 +183,57 @@ class ProfilePlotPanel extends PagePanel {
         plot.setRenderer(deviationRenderer);
 
         profilePlotDisplay = new ChartPanel(chart);
+
+        MaskSelectionToolSupport maskSelectionToolSupport = new MaskSelectionToolSupport(this,
+                                                                                         profilePlotDisplay,
+                                                                                         "profile_plot_area",
+                                                                                         "Mask generated from selected profile plot area",
+                                                                                         Color.RED,
+                                                                                         PlotAreaSelectionTool.AreaType.Y_RANGE) {
+            @Override
+            protected String createMaskExpression(PlotAreaSelectionTool.AreaType areaType, double x0, double y0, double dx, double dy) {
+                return String.format("%s >= %s && %s <= %s",
+                                     getRaster().getName(),
+                                     y0,
+                                     getRaster().getName(),
+                                     y0 + dy);
+            }
+        };
+
+
+        profilePlotDisplay.addChartMouseListener(new XYPlotMarker(profilePlotDisplay, new XYPlotMarker.Listener() {
+            @Override
+            public void pointSelected(XYDataset xyDataset, int seriesIndex, Point2D dataPoint) {
+                if (profileData != null) {
+                    GeoPos[] geoPositions = profileData.getGeoPositions();
+                    int index = (int) dataPoint.getX();
+                    if (index >= 0 && index < geoPositions.length) {
+                        if (cursorSynchronizer == null) {
+                            cursorSynchronizer = new CursorSynchronizer(VisatApp.getApp());
+                        }
+                        if (!cursorSynchronizer.isEnabled()) {
+                            cursorSynchronizer.setEnabled(true);
+                        }
+                        cursorSynchronizer.updateCursorOverlays(geoPositions[index]);
+                    }
+                }
+            }
+
+            @Override
+            public void pointDeselected() {
+                cursorSynchronizer.setEnabled(false);
+            }
+        }));
         profilePlotDisplay.setInitialDelay(200);
         profilePlotDisplay.setDismissDelay(1500);
         profilePlotDisplay.setReshowDelay(200);
+        profilePlotDisplay.setZoomTriggerDistance(5);
+        profilePlotDisplay.getPopupMenu().addSeparator();
+        profilePlotDisplay.getPopupMenu().add(maskSelectionToolSupport.createMaskSelectionModeMenuItem());
+        profilePlotDisplay.getPopupMenu().add(maskSelectionToolSupport.createDeleteMaskMenuItem());
+        profilePlotDisplay.getPopupMenu().addSeparator();
         profilePlotDisplay.getPopupMenu().add(createCopyDataToClipboardMenuItem());
+
         final AxisChangeListener axisListener = new AxisChangeListener() {
             @Override
             public void axisChanged(AxisChangeEvent event) {
@@ -279,7 +340,7 @@ class ProfilePlotPanel extends PagePanel {
 
     @Override
     protected void updateContent() {
-        if (!isInitialized) {
+        if (!isInitialized || !isVisible()) {
             return;
         }
 
@@ -368,12 +429,17 @@ class ProfilePlotPanel extends PagePanel {
                 SimpleFeature[] simpleFeatures = dataSourceConfig.pointDataSource.getFeatureCollection().toArray(new SimpleFeature[0]);
 
                 if (shapeVertexIndexes.length == simpleFeatures.length) {
-                    String fieldName = dataSourceConfig.dataField.getLocalName();
-                    for (int i = 0; i < simpleFeatures.length; i++) {
-                        Number attribute = (Number) simpleFeatures[i].getAttribute(fieldName);
-                        final double x = shapeVertexIndexes[i];
-                        final double y = attribute.doubleValue();
-                        corrSeries.add(x, x, x, y, y, y);
+                    // todo - use this code also in ScatterPlotPanel (nf)
+                    int fieldIndex = getAttributeIndex(dataSourceConfig.pointDataSource, dataSourceConfig.dataField);
+                    if (fieldIndex != -1) {
+                        for (int i = 0; i < simpleFeatures.length; i++) {
+                            Number attribute = (Number) simpleFeatures[i].getAttribute(fieldIndex);
+                            if (attribute != null) {
+                                final double x = shapeVertexIndexes[i];
+                                final double y = attribute.doubleValue();
+                                corrSeries.add(x, x, x, y, y, y);
+                            }
+                        }
                     }
                 } else {
                     System.out.println("Weird things happened:");
@@ -388,6 +454,11 @@ class ProfilePlotPanel extends PagePanel {
             xAxisRangeControl.getBindingContext().setComponentsEnabled(PROPERTY_NAME_MARK_SEGMENTS,
                                                                        profileData.getShapeVertices().length > 2);
         }
+    }
+
+    private int getAttributeIndex(VectorDataNode pointDataSource, AttributeDescriptor dataField) {
+        String fieldName = dataField.getLocalName();
+        return pointDataSource.getFeatureType().indexOf(fieldName);
     }
 
     private void updateUIState() {
@@ -468,8 +539,8 @@ class ProfilePlotPanel extends PagePanel {
     private void updateScalingOfYAxis() {
         if ((Boolean) yAxisRangeControl.getBindingContext().getBinding(PROPERTY_NAME_LOG_SCALED).getPropertyValue()) {
             ValueAxis oldAxis = chart.getXYPlot().getRangeAxis();
-            if (!(oldAxis instanceof LogarithmicAxis)) {
-                LogarithmicAxis logAxisX = new LogarithmicAxis(oldAxis.getLabel());
+            if (!(oldAxis instanceof CustomLogarithmicAxis)) {
+                CustomLogarithmicAxis logAxisX = new CustomLogarithmicAxis(oldAxis.getLabel());
                 logAxisX.setAllowNegativesFlag(true);
                 logAxisX.setLog10TickLabelsFlag(true);
                 logAxisX.setMinorTickCount(10);
@@ -477,13 +548,32 @@ class ProfilePlotPanel extends PagePanel {
             }
         } else {
             ValueAxis oldAxis = chart.getXYPlot().getRangeAxis();
-            if (oldAxis instanceof LogarithmicAxis) {
+            if (oldAxis instanceof CustomLogarithmicAxis) {
                 NumberAxis xAxis = new NumberAxis(oldAxis.getLabel());
                 chart.getXYPlot().setRangeAxis(xAxis);
             }
         }
     }
 
+    @Override
+    public void nodeAdded(ProductNodeEvent event) {
+        if (event.getSourceNode() instanceof VectorDataNode) {
+            updateContent();
+        }
+    }
+
+    @Override
+    public void nodeRemoved(ProductNodeEvent event) {
+        if (event.getSourceNode() instanceof VectorDataNode) {
+            updateContent();
+        }
+    }
+
+    @Override
+    public void setVisible(boolean aFlag) {
+        super.setVisible(aFlag);
+        updateContent();
+    }
 
     @Override
     protected String getDataAsText() {

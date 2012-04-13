@@ -47,7 +47,7 @@ import java.awt.image.Raster;
  * @author Tom Block
  * @author Ralf Quast
  */
-@OperatorMetadata(alias = "FLH_MCI", authors = "Tom Block, Ralf Quast", copyright = "Brockmann Consult GmbH",
+@OperatorMetadata(alias = "FlhMci", authors = "Tom Block, Ralf Quast", copyright = "Brockmann Consult GmbH",
                   version = "2.0",
                   description = "Computes fluorescence line height (FLH) or maximum chlorophyll index (MCI).")
 public class FlhMciOp extends PixelOperator {
@@ -67,7 +67,7 @@ public class FlhMciOp extends PixelOperator {
     private boolean slope;
     @Parameter(validator = NodeNameValidator.class)
     private String slopeBandName;
-    @Parameter(description = "Mask expression used to identify valid pixels") // todo - use ExpressionEditor
+    @Parameter(description = "A ROI-mask expression used to identify pixels of interest") // todo - use ExpressionEditor
     private String maskExpression;
     @Parameter(defaultValue = "1.005")
     private float cloudCorrectionFactor;
