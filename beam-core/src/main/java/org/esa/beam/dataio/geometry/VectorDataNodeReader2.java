@@ -21,6 +21,9 @@ import com.bc.ceres.binding.Converter;
 import com.bc.ceres.binding.ConverterRegistry;
 import com.thoughtworks.xstream.core.util.OrderRetainingMap;
 import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.CoordinateSequence;
+import com.vividsolutions.jts.geom.CoordinateSequenceFilter;
+import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
 import org.esa.beam.framework.datamodel.GeoCoding;
@@ -55,6 +58,12 @@ public class VectorDataNodeReader2 {
     private final GeoCoding geoCoding;
     private int latIndex = -1;
     private int lonIndex = -1;
+    private int geometryIndex = -1;
+    private boolean hasFeatureTypeName = false;
+
+    private static final String[] LONGITUDE_IDENTIFIERS = new String[]{"lon", "long", "longitude"};
+    private static final String[] LATITUDE_IDENTIFIERS = new String[]{"lat", "latitude"};
+    public static final String[] GEOMETRY_IDENTIFIERS = new String[]{"geometry", "geom"};
 
     public VectorDataNodeReader2(GeoCoding geoCoding, String path, CoordinateReferenceSystem modelCrs) {
         this.geoCoding = geoCoding;
@@ -142,15 +151,13 @@ public class VectorDataNodeReader2 {
         DefaultFeatureCollection fc = new DefaultFeatureCollection("?", simpleFeatureType);
         SimpleFeatureBuilder builder = new SimpleFeatureBuilder(simpleFeatureType);
         PixelPos pixelPos = new PixelPos();
+        int count = 0;
         while (true) {
             String[] tokens = csvReader.readRecord();
             if (tokens == null) {
                 break;
             }
-            final int expectedTokenCount = 1 + simpleFeatureType.getAttributeCount() - 2;
-            if (tokens.length != expectedTokenCount) {
-                BeamLogManager.getSystemLogger().warning(String.format("Problem in '%s': unexpected number of columns: expected %d, but got %d",
-                                                                       location, expectedTokenCount, tokens.length));
+            if (!isLineValid(simpleFeatureType, tokens)) {
                 continue;
             }
             builder.reset();
@@ -160,7 +167,7 @@ public class VectorDataNodeReader2 {
             int attributeIndex = 0;
             for (int columnIndex = 0; columnIndex < tokens.length; columnIndex++) {
                 String token = tokens[columnIndex];
-                if (columnIndex == 0) {
+                if (columnIndex == 0 && hasFeatureTypeName) {
                     fid = token;
                 } else if (columnIndex == latIndex) {
                     lat = Double.parseDouble(token);
@@ -189,13 +196,35 @@ public class VectorDataNodeReader2 {
                     attributeIndex++;
                 }
             }
-            builder.set("geoPos", new GeometryFactory().createPoint(new Coordinate(lon, lat)));
-            geoCoding.getPixelPos(new GeoPos((float) lat, (float) lon), pixelPos);
-            builder.set("pixelPos", new GeometryFactory().createPoint(new Coordinate(pixelPos.x, pixelPos.y)));
+            if (hasLatLon()) {
+                builder.set("geoPos", new GeometryFactory().createPoint(new Coordinate(lon, lat)));
+                geoCoding.getPixelPos(new GeoPos((float) lat, (float) lon), pixelPos);
+                builder.set("pixelPos", new GeometryFactory().createPoint(new Coordinate(pixelPos.x, pixelPos.y)));
+            }
+            // todo - clarify
+            if (!hasFeatureTypeName) {
+                fid = "feature" + count++;
+            }
             SimpleFeature simpleFeature = builder.buildFeature(fid);
+            if (hasGeometry()) {
+                Geometry defaultGeometry = (Geometry) simpleFeature.getDefaultGeometry();
+                defaultGeometry.apply(new GeoPosToPixelPosFilter(defaultGeometry.getCoordinates().length));
+            }
             fc.add(simpleFeature);
         }
         return fc;
+    }
+
+    private boolean isLineValid(SimpleFeatureType simpleFeatureType, String[] tokens) {
+        int expectedTokenCount = simpleFeatureType.getAttributeCount();
+        expectedTokenCount -= (hasLatLon() ? 2 : 0);
+        expectedTokenCount += hasFeatureTypeName ? 1 : 0;
+        if (tokens.length != expectedTokenCount) {
+            BeamLogManager.getSystemLogger().warning(String.format("Problem in '%s': unexpected number of columns: expected %d, but got %d",
+                                                                   location, expectedTokenCount, tokens.length));
+            return false;
+        }
+        return true;
     }
 
     SimpleFeatureType readFeatureType(CsvReader csvReader) throws IOException {
@@ -208,10 +237,12 @@ public class VectorDataNodeReader2 {
 
     private SimpleFeatureType createFeatureType(String[] tokens) throws IOException {
         SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
+        String geometryName = null;
         builder.setCRS(modelCrs);
         JavaTypeConverter jtc = new JavaTypeConverter();
         for (int i = 0; i < tokens.length; i++) {
-            if (i == 0) {
+            if (i == 0 && tokens[0].startsWith("org.esa.beam")) {
+                hasFeatureTypeName = true;
                 builder.setName(tokens[0]);
             } else {
                 String token = tokens[i];
@@ -231,19 +262,78 @@ public class VectorDataNodeReader2 {
                             String.format("Unknown type in attribute descriptor '%s'", token), e);
                 }
 
-                if (attributeName.toLowerCase().equals("lon") || attributeName.toLowerCase().equals("long") ||
-                    attributeName.toLowerCase().equals("longitude")) {
+                if (contains(LONGITUDE_IDENTIFIERS, attributeName)) {
                     lonIndex = i;
-                } else if (attributeName.toLowerCase().equals("lat") ||
-                           attributeName.toLowerCase().equals("latitude")) {
+                } else if (contains(LATITUDE_IDENTIFIERS, attributeName)) {
                     latIndex = i;
+                } else if (contains(GEOMETRY_IDENTIFIERS, attributeName)) {
+                    geometryIndex = i;
+                    geometryName = attributeName;
                 }
                 builder.add(attributeName, attributeType);
             }
         }
-        builder.add("geoPos", Point.class);
-        builder.add("pixelPos", Point.class);
-        builder.setDefaultGeometry("pixelPos");
+        if (hasLatLon()) {
+            builder.add("geoPos", Point.class);
+            builder.add("pixelPos", Point.class);
+            builder.setDefaultGeometry("pixelPos");
+        } else if (hasGeometry()) {
+            builder.setDefaultGeometry(geometryName);
+        } else {
+            throw new IOException("Unable to create feature type: " +
+                                  "either a geometry or lat/lon fields are needed.");
+        }
+        if (!hasFeatureTypeName) {
+            // todo - clarify
+            builder.setName("DefaultFeatureType");
+        }
         return builder.buildFeatureType();
+    }
+
+    private boolean hasGeometry() {
+        return geometryIndex != -1;
+    }
+
+    private boolean hasLatLon() {
+        return latIndex != -1 && lonIndex != -1;
+    }
+
+    private static boolean contains(String[] possibleStrings, String s) {
+        for (String possibleString : possibleStrings) {
+            if (possibleString.toLowerCase().equals(s.toLowerCase())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private class GeoPosToPixelPosFilter implements CoordinateSequenceFilter {
+
+        public int count = 0;
+        private int numCoordinates;
+
+        public GeoPosToPixelPosFilter(int numCoordinates) {
+            this.numCoordinates = numCoordinates;
+        }
+
+        @Override
+        public void filter(CoordinateSequence seq, int i) {
+            Coordinate coord = seq.getCoordinate(i);
+            PixelPos pixelPos = geoCoding.getPixelPos(new GeoPos((float) coord.y, (float) coord.x), null);
+            double x = Math.round(pixelPos.x * 10000) / 10000;
+            double y = Math.round(pixelPos.y * 10000) / 10000;
+            coord.setCoordinate(new Coordinate(x, y));
+            count++;
+        }
+
+        @Override
+        public boolean isDone() {
+            return numCoordinates == count;
+        }
+
+        @Override
+        public boolean isGeometryChanged() {
+            return numCoordinates == count;
+        }
     }
 }

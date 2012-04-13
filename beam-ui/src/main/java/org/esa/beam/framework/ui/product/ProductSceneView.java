@@ -477,6 +477,7 @@ public class ProductSceneView extends BasicView
     public void setImageInfo(ImageInfo imageInfo) {
         final ImageInfo oldImageInfo = getImageInfo();
         getSceneImage().setImageInfo(imageInfo);
+        updateImage();
         firePropertyChange(PROPERTY_NAME_IMAGE_INFO, oldImageInfo, imageInfo);
     }
 
@@ -586,6 +587,22 @@ public class ProductSceneView extends BasicView
     public void setMaskOverlayEnabled(boolean enabled) {
         if (isMaskOverlayEnabled() != enabled) {
             getMaskCollectionLayer(true).setVisible(enabled);
+        }
+    }
+
+    /**
+     * @param vectorDataNodes The vector data nodes whose layer shall be made visible.
+     * @since BEAM 4.10
+     */
+    public void setLayersVisible(VectorDataNode... vectorDataNodes) {
+        for (VectorDataNode vectorDataNode : vectorDataNodes) {
+            final LayerFilter nodeFilter = VectorDataLayerFilterFactory.createNodeFilter(vectorDataNode);
+            Layer vectorDataLayer = LayerUtils.getChildLayer(getRootLayer(),
+                                                             LayerUtils.SEARCH_DEEP,
+                                                             nodeFilter);
+            if (vectorDataLayer != null) {
+                vectorDataLayer.setVisible(true);
+            }
         }
     }
 
