@@ -302,7 +302,8 @@ class ScatterPlotPanel extends ChartPagePanel{
 
     @Override
     protected String getTitlePrefix() {
-        return TITLE_PREFIX;
+//        return TITLE_PREFIX;
+        return "prefix_";
     }
 
     @Override

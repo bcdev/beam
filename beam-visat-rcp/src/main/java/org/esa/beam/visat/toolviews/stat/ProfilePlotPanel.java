@@ -596,7 +596,7 @@ class ProfilePlotPanel extends ChartPagePanel {
         updateContent();
     }
 
-    @Override
+    //@Override
     public void handleViewSelectionChanged() {
         updateContent();
     }
