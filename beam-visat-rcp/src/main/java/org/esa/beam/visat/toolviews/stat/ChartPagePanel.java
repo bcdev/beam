@@ -18,7 +18,7 @@ package org.esa.beam.visat.toolviews.stat;
 
 import com.bc.ceres.swing.TableLayout;
 import com.bc.ceres.swing.binding.BindingContext;
-import com.jidesoft.swing.JideScrollPane;
+import com.jidesoft.swing.SimpleScrollPane;
 import org.esa.beam.framework.ui.GridBagUtils;
 import org.esa.beam.framework.ui.UIUtils;
 import org.esa.beam.framework.ui.application.ToolView;
@@ -26,8 +26,7 @@ import org.esa.beam.framework.ui.tool.ToolButtonFactory;
 import org.jfree.chart.ChartPanel;
 
 import javax.swing.*;
-import java.awt.BorderLayout;
-import java.awt.GridBagConstraints;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
@@ -71,7 +70,7 @@ abstract class ChartPagePanel extends PagePanel {
         });
 
         final AbstractButton switchToTableButton = ToolButtonFactory.createButton(
-                UIUtils.loadImageIcon("icons/ZoomAll24.gif"),
+                UIUtils.loadImageIcon("icons/Table24.png"),
                 false);
         switchToTableButton.setToolTipText("Switch to Table View");
         switchToTableButton.setName("switchToTableButton");
@@ -98,7 +97,7 @@ abstract class ChartPagePanel extends PagePanel {
     private JPanel createChartBottomPanel(final ChartPanel chartPanel) {
 
         final AbstractButton zoomAllButton = ToolButtonFactory.createButton(
-                UIUtils.loadImageIcon("icons/ZoomAll24.gif"),
+                UIUtils.loadImageIcon("/com/bc/ceres/swing/actions/icons_22x22/view-fullscreen.png"),
                 false);
         zoomAllButton.setToolTipText("Zoom all.");
         zoomAllButton.setName("zoomAllButton.");
@@ -168,20 +167,27 @@ abstract class ChartPagePanel extends PagePanel {
 
     void createUI(final ChartPanel chartPanel, final JPanel optionsPanel, BindingContext bindingContext) {
         roiMaskSelector = new RoiMaskSelector(bindingContext);
-        final JPanel roiMaskPanel = roiMaskSelector.createPanel();
 
-        final JPanel rightPanel = GridBagUtils.createPanel();
-        GridBagConstraints rightPanelConstraints = GridBagUtils.createConstraints("anchor=NORTHWEST,fill=HORIZONTAL,insets.top=2,weightx=1");
-        GridBagUtils.addToPanel(rightPanel, createTopPanel(), rightPanelConstraints, "gridy=0");
-        GridBagUtils.addToPanel(rightPanel, new JSeparator(), rightPanelConstraints, "gridy=1");
-        GridBagUtils.addToPanel(rightPanel, roiMaskPanel, rightPanelConstraints, "gridy=2");
-        GridBagUtils.addToPanel(rightPanel, optionsPanel, rightPanelConstraints, "gridy=3,fill=VERTICAL,fill=HORIZONTAL,weighty=1");
-        GridBagUtils.addToPanel(rightPanel, new JSeparator(), rightPanelConstraints, "gridy=4,fill=HORIZONTAL,weighty=0");
-        GridBagUtils.addToPanel(rightPanel, createChartBottomPanel(chartPanel), rightPanelConstraints, "gridy=5,");
+        final JPanel extendedOptionsPanel = GridBagUtils.createPanel();
+        GridBagConstraints extendedOptionsPanelConstraints = GridBagUtils.createConstraints("anchor=NORTHWEST,fill=HORIZONTAL,insets.top=2,weightx=1");
+        GridBagUtils.addToPanel(extendedOptionsPanel, new JSeparator(), extendedOptionsPanelConstraints, "gridy=0");
+        GridBagUtils.addToPanel(extendedOptionsPanel, roiMaskSelector.createPanel(), extendedOptionsPanelConstraints, "gridy=1");
+        GridBagUtils.addToPanel(extendedOptionsPanel, optionsPanel, extendedOptionsPanelConstraints, "gridy=2, fill=VERTICAL,fill=HORIZONTAL,weighty=1");
+        GridBagUtils.addToPanel(extendedOptionsPanel, new JSeparator(), extendedOptionsPanelConstraints, "gridy=4,fill=HORIZONTAL,weighty=0");
 
-        final ImageIcon collapseIcon = UIUtils.loadImageIcon("icons/PanelCollapseHorizontal24.png");
+        final JScrollPane optionsScrollPane = new JScrollPane(extendedOptionsPanel,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        optionsScrollPane.setBorder(null);
+
+        final JPanel rightPanel = new JPanel(new BorderLayout());
+        rightPanel.add(createTopPanel(), BorderLayout.NORTH);
+        rightPanel.add(optionsScrollPane, BorderLayout.CENTER);
+        rightPanel.add(createChartBottomPanel(chartPanel), BorderLayout.SOUTH);
+
+        final ImageIcon collapseIcon = UIUtils.loadImageIcon("icons/PanelRight12.png");
         final ImageIcon collapseRolloverIcon = ToolButtonFactory.createRolloverIcon(collapseIcon);
-        final ImageIcon expandIcon = UIUtils.loadImageIcon("icons/PanelExpandHorizontal24.png");
+        final ImageIcon expandIcon = UIUtils.loadImageIcon("icons/PanelLeft12.png");
         final ImageIcon expandRolloverIcon = ToolButtonFactory.createRolloverIcon(expandIcon);
 
         hideAndShowButton = ToolButtonFactory.createButton(collapseIcon, false);
@@ -219,9 +225,9 @@ abstract class ChartPagePanel extends PagePanel {
 
     @Override
     public void doLayout() {
+        super.doLayout();
         backgroundPanel.setBounds(0, 0, getWidth() - 8, getHeight() - 8);
         hideAndShowButton.setBounds(getWidth() - hideAndShowButton.getWidth() - 12, 4, 24, 24);
-        super.doLayout();
     }
 
 }
