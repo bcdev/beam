@@ -596,11 +596,6 @@ class ProfilePlotPanel extends ChartPagePanel {
         updateContent();
     }
 
-    //@Override
-    public void handleViewSelectionChanged() {
-        updateContent();
-    }
-
     @SuppressWarnings("UnusedDeclaration")
     private static class DataSourceConfig {
 

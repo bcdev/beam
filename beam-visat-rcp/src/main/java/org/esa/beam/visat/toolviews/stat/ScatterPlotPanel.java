@@ -294,20 +294,9 @@ class ScatterPlotPanel extends ChartPagePanel {
     }
 
     @Override
-    public String getTitle() {
-        return getTitlePrefix();
-    }
-
-    @Override
     protected String getDataAsText() {
 //        todo
         return "Must be implemented";
-    }
-
-    @Override
-    protected String getTitlePrefix() {
-//        return TITLE_PREFIX;
-        return "prefix_";
     }
 
     @Override
