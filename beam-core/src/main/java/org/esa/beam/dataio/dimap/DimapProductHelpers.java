@@ -1421,7 +1421,6 @@ public class DimapProductHelpers {
         }
 
         // needed for backward compatibility
-
         private void addBitmaskDefinitions(Product product) {
             final Element bitmaskDefs = getRootElement().getChild(DimapProductConstants.TAG_BITMASK_DEFINITIONS);
             List bitmaskDefList;
