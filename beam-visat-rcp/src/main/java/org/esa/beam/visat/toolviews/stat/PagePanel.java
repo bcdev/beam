@@ -81,7 +81,7 @@ abstract class PagePanel extends JPanel implements ProductNodeListener {
         return getTitlePrefix() + " - " + getProductNodeDisplayName();
     }
 
-    protected String getTitlePrefix() {
+    protected final String getTitlePrefix() {
         return titlePrefix;
     }
 
