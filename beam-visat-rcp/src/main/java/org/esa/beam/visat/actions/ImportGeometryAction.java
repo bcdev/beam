@@ -244,6 +244,8 @@ public class ImportGeometryAction extends ExecCommand {
                                                        vectorDataGroup);
             if (styles.length > 0) {
                 SimpleFeatureType featureType = SLDUtils.createStyledFeatureType(featureCollection.getSchema());
+
+
                 VectorDataNode vectorDataNode = new VectorDataNode(name, featureType);
                 FeatureCollection<SimpleFeatureType, SimpleFeature> styledCollection = vectorDataNode.getFeatureCollection();
                 String defaultCSS = vectorDataNode.getDefaultStyleCss();
@@ -265,7 +267,7 @@ public class ImportGeometryAction extends ExecCommand {
             }
 
             @Override
-            public CoordinateReferenceSystem getCrs(final Product product, final FeatureCollection<SimpleFeatureType, SimpleFeature> featureCollection) {
+            public CoordinateReferenceSystem getFeatureCrs(final Product product) {
                 final CoordinateReferenceSystem[] featureCrsBuffer = new CoordinateReferenceSystem[1];
                 Runnable runnable = new Runnable() {
                     @Override
@@ -478,6 +480,8 @@ public class ImportGeometryAction extends ExecCommand {
             findUniqueVectorDataNodeName(name, product.getVectorDataGroup());
             SimpleFeatureType simpleFeatureType = PlainFeatureFactory.createDefaultFeatureType(modelCrs);
             DefaultFeatureCollection featureCollection = new DefaultFeatureCollection(name, simpleFeatureType);
+
+
 
             VectorDataNode vectorDataNode = new VectorDataNode(name, featureCollection);
             String style = vectorDataNode.getDefaultStyleCss();
