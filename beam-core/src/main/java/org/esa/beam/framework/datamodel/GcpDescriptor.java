@@ -16,9 +16,12 @@
 
 package org.esa.beam.framework.datamodel;
 
+import com.vividsolutions.jts.geom.*;
+import org.esa.beam.framework.dataio.DecodeQualification;
 import org.opengis.feature.simple.SimpleFeatureType;
 
 import java.awt.*;
+import java.awt.Point;
 
 public class GcpDescriptor extends AbstractPlacemarkDescriptor {
 
@@ -29,10 +32,17 @@ public class GcpDescriptor extends AbstractPlacemarkDescriptor {
     }
 
     @Override
-    public boolean isCompatibleWith(SimpleFeatureType featureType) {
-        return featureType.getTypeName().equals("org.esa.beam.GroundControlPoint");
-        // todo - comment in next line
-//        return featureType.getGeometryDescriptor().getType().getBinding().isAssignableFrom(com.vividsolutions.jts.geom.Point.class);
+    public DecodeQualification getQualification(SimpleFeatureType featureType) {
+        if (featureType.getTypeName().equals("org.esa.beam.GroundControlPoint")) {
+            return DecodeQualification.INTENDED;
+        }
+        return DecodeQualification.UNABLE;
+    }
+
+    @Override
+    public void setUserData(SimpleFeatureType featureType) {
+        super.setUserData(featureType);
+        featureType.getUserData().put("defaultGeometry", DEFAULT_FEATURE_TYPE.getGeometryDescriptor().getLocalName());
     }
 
     @Override

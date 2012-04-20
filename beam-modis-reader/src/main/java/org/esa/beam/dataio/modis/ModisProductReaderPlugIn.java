@@ -16,9 +16,9 @@
 package org.esa.beam.dataio.modis;
 
 import ncsa.hdf.hdflib.HDFConstants;
-import ncsa.hdf.hdflib.HDFException;
 import org.esa.beam.dataio.modis.hdf.HdfAttributes;
 import org.esa.beam.dataio.modis.hdf.HdfUtils;
+import org.esa.beam.dataio.modis.hdf.IHDF;
 import org.esa.beam.dataio.modis.hdf.lib.HDF;
 import org.esa.beam.dataio.modis.productdb.ModisProductDb;
 import org.esa.beam.framework.dataio.DecodeQualification;
@@ -26,8 +26,10 @@ import org.esa.beam.framework.dataio.ProductReader;
 import org.esa.beam.framework.dataio.ProductReaderPlugIn;
 import org.esa.beam.util.SystemUtils;
 import org.esa.beam.util.io.BeamFileFilter;
+import org.esa.beam.util.logging.BeamLogManager;
 
 import java.io.File;
+import java.text.MessageFormat;
 import java.util.Locale;
 
 public class ModisProductReaderPlugIn implements ProductReaderPlugIn {
@@ -35,10 +37,11 @@ public class ModisProductReaderPlugIn implements ProductReaderPlugIn {
     // This is here just to keep the property name
 //    private static final String HDF4_PROPERTY_KEY = "ncsa.hdf.hdflib.HDFLibrary.hdflib";
 
+    private static final String _H4_CLASS_NAME = "ncsa.hdf.hdflib.HDFLibrary";
     private static boolean hdfLibAvailable = false;
 
     static {
-        hdfLibAvailable = SystemUtils.loadHdf4Lib(ModisProductReaderPlugIn.class) != null;
+        hdfLibAvailable = loadHdf4Lib(ModisProductReaderPlugIn.class) != null;
     }
 
     /**
@@ -64,15 +67,16 @@ public class ModisProductReaderPlugIn implements ProductReaderPlugIn {
             file = (File) input;
         }
 
-        if (file != null && file.exists() &&  file.isFile() && file.getPath().toLowerCase().endsWith(ModisConstants.DEFAULT_FILE_EXTENSION)) {
+        if (file != null && file.exists() && file.isFile() && file.getPath().toLowerCase().endsWith(ModisConstants.DEFAULT_FILE_EXTENSION)) {
             try {
                 String path = file.getPath();
-                if (HDF.getWrap().Hishdf(path)) {
+                final IHDF ihdf = HDF.getWrap();
+                if (ihdf.Hishdf(path)) {
                     int fileId = HDFConstants.FAIL;
                     int sdStart = HDFConstants.FAIL;
                     try {
-                        fileId = HDF.getWrap().Hopen(path, HDFConstants.DFACC_RDONLY);
-                        sdStart = HDF.getWrap().SDstart(path, HDFConstants.DFACC_RDONLY);
+                        fileId = ihdf.Hopen(path, HDFConstants.DFACC_RDONLY);
+                        sdStart = ihdf.SDstart(path, HDFConstants.DFACC_RDONLY);
                         HdfAttributes globalAttrs = HdfUtils.readAttributes(sdStart);
 
                         // check wheter daac or imapp
@@ -86,13 +90,12 @@ public class ModisProductReaderPlugIn implements ProductReaderPlugIn {
                         if (ModisProductDb.getInstance().isSupportedProduct(productType)) {
                             return DecodeQualification.INTENDED;
                         }
-                    } catch (HDFException ignore) {
                     } finally {
                         if (sdStart != HDFConstants.FAIL) {
-                            HDF.getWrap().Hclose(sdStart);
+                            ihdf.Hclose(sdStart);
                         }
                         if (fileId != HDFConstants.FAIL) {
-                            HDF.getWrap().Hclose(fileId);
+                            ihdf.Hclose(fileId);
                         }
                     }
                 }
@@ -164,7 +167,6 @@ public class ModisProductReaderPlugIn implements ProductReaderPlugIn {
      * <p> In a GUI, the description returned could be used as tool-tip text.
      *
      * @param locale the local for the given decription string, if <code>null</code> the default locale is used
-     *
      * @return a textual description of this product reader/writer
      */
     public String getDescription(Locale locale) {
@@ -182,5 +184,28 @@ public class ModisProductReaderPlugIn implements ProductReaderPlugIn {
         }
 
         return new String[]{ModisConstants.FORMAT_NAME};
+    }
+
+    private static Class<?> loadHdf4Lib(Class<?> callerClass) {
+        return loadClassWithNativeDependencies(callerClass,
+                _H4_CLASS_NAME,
+                "{0}: HDF-4 library not available: {1}: {2}");
+    }
+
+    private static Class<?> loadClassWithNativeDependencies(Class<?> callerClass, String className, String warningPattern) {
+        ClassLoader classLoader = callerClass.getClassLoader();
+
+        String classResourceName = "/" + className.replace('.', '/') + ".class";
+        SystemUtils.class.getResource(classResourceName);
+        if (callerClass.getResource(classResourceName) != null) {
+            try {
+                return Class.forName(className, true, classLoader);
+            } catch (Throwable error) {
+                BeamLogManager.getSystemLogger().warning(MessageFormat.format(warningPattern, callerClass, error.getClass(), error.getMessage()));
+                return null;
+            }
+        } else {
+            return null;
+        }
     }
 }

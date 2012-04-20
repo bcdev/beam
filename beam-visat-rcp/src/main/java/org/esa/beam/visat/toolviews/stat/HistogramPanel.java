@@ -27,6 +27,7 @@ import org.esa.beam.framework.datamodel.Mask;
 import org.esa.beam.framework.datamodel.RasterDataNode;
 import org.esa.beam.framework.datamodel.Stx;
 import org.esa.beam.framework.datamodel.StxFactory;
+import org.esa.beam.framework.dataop.barithm.BandArithmetic;
 import org.esa.beam.framework.ui.GridBagUtils;
 import org.esa.beam.framework.ui.application.ToolView;
 import org.esa.beam.util.math.MathUtils;
@@ -44,6 +45,7 @@ import org.jfree.ui.RectangleInsets;
 import javax.media.jai.Histogram;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
@@ -165,15 +167,24 @@ class HistogramPanel extends ChartPagePanel {
         PropertyChangeListener changeListener = new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
+                if (evt.getPropertyName().equals(PROPERTY_NAME_LOGARITHMIC_HISTOGRAM)) {
+                    if (evt.getNewValue().equals(Boolean.TRUE)) {
+                        xAxisRangeControl.getBindingContext().getBinding(PROPERTY_NAME_LOG_SCALED).setPropertyValue(Boolean.FALSE);
+                    }
+                }
                 updateUIState();
             }
         };
 
         xAxisRangeControl.getBindingContext().addPropertyChangeListener(changeListener);
         xAxisRangeControl.getBindingContext().getPropertySet().addProperty(
-                Property.create(PROPERTY_NAME_LOG_SCALED, false));
+                bindingContext.getPropertySet().getProperty(PROPERTY_NAME_LOGARITHMIC_HISTOGRAM));
+        xAxisRangeControl.getBindingContext().getPropertySet().addProperty(
+                bindingContext.getPropertySet().getProperty(PROPERTY_NAME_LOG_SCALED));
         xAxisRangeControl.getBindingContext().getPropertySet().getDescriptor(PROPERTY_NAME_LOG_SCALED).setDescription(
                 "Toggle whether to use a logarithmic X-axis");
+        xAxisRangeControl.getBindingContext().bindEnabledState(PROPERTY_NAME_LOG_SCALED, false,
+                                                               PROPERTY_NAME_LOGARITHMIC_HISTOGRAM, true);
 
         JPanel dataSourceOptionsPanel = GridBagUtils.createPanel();
         GridBagConstraints dataSourceOptionsConstraints = GridBagUtils.createConstraints(
@@ -221,14 +232,20 @@ class HistogramPanel extends ChartPagePanel {
                                                                                          "Mask generated from selected histogram plot area",
                                                                                          Color.RED,
                                                                                          PlotAreaSelectionTool.AreaType.X_RANGE) {
+
             @Override
-            protected String createMaskExpression(PlotAreaSelectionTool.AreaType areaType, double x0, double y0,
-                                                  double dx, double dy) {
+            protected String createMaskExpression(PlotAreaSelectionTool.AreaType areaType, Shape shape) {
+                Rectangle2D bounds = shape.getBounds2D();
+                return createMaskExpression(bounds.getMinX(), bounds.getMaxX());
+            }
+
+            protected String createMaskExpression(double x1, double x2) {
+                String bandName = BandArithmetic.createExternalName(getRaster().getName());
                 return String.format("%s >= %s && %s <= %s",
-                                     getRaster().getName(),
-                                     stx != null ? stx.getHistogramScaling().scaleInverse(x0) : x0,
-                                     getRaster().getName(),
-                                     stx != null ? stx.getHistogramScaling().scaleInverse(x0 + dx) : x0 + dx);
+                                     bandName,
+                                     stx != null ? stx.getHistogramScaling().scaleInverse(x1) : x1,
+                                     bandName,
+                                     stx != null ? stx.getHistogramScaling().scaleInverse(x2) : x2);
             }
         };
 
@@ -365,26 +382,9 @@ class HistogramPanel extends ChartPagePanel {
         chart.fireChartChanged();
     }
 
-    // Check how we can draw an axis label that uses a sub-scripted "10" in "log10". (ts,nf)
     private String getAxisLabel() {
         boolean logScaled = (Boolean) bindingContext.getBinding(PROPERTY_NAME_LOGARITHMIC_HISTOGRAM).getPropertyValue();
-        RasterDataNode raster = getRaster();
-        if (raster != null) {
-            if (logScaled) {
-                return "log(" + raster.getName() + ")";
-            }
-            final String unit = raster.getUnit();
-            if (unit != null && !unit.isEmpty()) {
-                return raster.getName() + " (" + unit + ")";
-            }
-            return raster.getName();
-        } else {
-            if (logScaled) {
-                return "log(x)";
-            } else {
-                return "x";
-            }
-        }
+        return StatisticChartStyling.getAxisLabel(getRaster(), "X", logScaled);
     }
 
     private Container getParentComponent() {
@@ -436,7 +436,8 @@ class HistogramPanel extends ChartPagePanel {
     }
 
     private void updateXAxis() {
-        final boolean logScaled = (Boolean) xAxisRangeControl.getBindingContext().getBinding(PROPERTY_NAME_LOG_SCALED).getPropertyValue();
+        final boolean logScaled = (Boolean) xAxisRangeControl.getBindingContext().getBinding(
+                PROPERTY_NAME_LOG_SCALED).getPropertyValue();
         final XYPlot plot = chart.getXYPlot();
         plot.setDomainAxis(StatisticChartStyling.updateScalingOfAxis(logScaled, plot.getDomainAxis(), true));
         plot.getDomainAxis().setLabel(getAxisLabel());

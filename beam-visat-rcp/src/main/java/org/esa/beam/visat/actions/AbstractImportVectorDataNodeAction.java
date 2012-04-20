@@ -1,6 +1,11 @@
 package org.esa.beam.visat.actions;
 
 import com.bc.ceres.swing.TableLayout;
+import org.esa.beam.dataio.geometry.VectorDataNodeReader2;
+import org.esa.beam.framework.dataio.DecodeQualification;
+import org.esa.beam.framework.datamodel.GeometryDescriptor;
+import org.esa.beam.framework.datamodel.PlacemarkDescriptor;
+import org.esa.beam.framework.datamodel.PlacemarkDescriptorRegistry;
 import org.esa.beam.framework.datamodel.Product;
 import org.esa.beam.framework.ui.ModalDialog;
 import org.esa.beam.framework.ui.command.ExecCommand;
@@ -11,9 +16,7 @@ import org.esa.beam.framework.ui.crs.ProductCrsForm;
 import org.esa.beam.util.FeatureUtils;
 import org.esa.beam.util.ProductUtils;
 import org.esa.beam.visat.VisatApp;
-import org.geotools.feature.FeatureCollection;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
-import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -29,25 +32,35 @@ import java.lang.reflect.InvocationTargetException;
  */
 abstract class AbstractImportVectorDataNodeAction extends ExecCommand {
     protected FeatureUtils.FeatureCrsProvider crsProvider;
+    protected VectorDataNodeReader2.PlacemarkDescriptorProvider placemarkDescriptorProvider;
 
     protected AbstractImportVectorDataNodeAction() {
-        crsProvider = new FeatureUtils.FeatureCrsProvider() {
+        crsProvider = new MyFeatureCrsProvider(getHelpId());
+        placemarkDescriptorProvider = new MyPlacemarkDescriptorProvider();
+    }
 
-            @Override
-            public CoordinateReferenceSystem getFeatureCrs(Product product) {
-                return DefaultGeographicCRS.WGS84;  //To change body of implemented methods use File | Settings | File Templates.
+    private static class MyPlacemarkDescriptorProvider implements VectorDataNodeReader2.PlacemarkDescriptorProvider {
+        @Override
+        public PlacemarkDescriptor getPlacemarkDescriptor(SimpleFeatureType simpleFeatureType) {
+            final PlacemarkDescriptor placemarkDescriptor = PlacemarkDescriptorRegistry.getInstance().getPlacemarkDescriptor(simpleFeatureType);
+            if (placemarkDescriptor != null && placemarkDescriptor.getQualification(simpleFeatureType) == DecodeQualification.INTENDED) {
+                return placemarkDescriptor;
             }
-        };
-//        crsProvider = new MyFeatureCrsProvider(VisatApp.getApp(), getHelpId());
+
+            TypeDialog typeDialog = new TypeDialog(VisatApp.getApp().getApplicationWindow(), simpleFeatureType);
+            if (typeDialog.show() != ModalDialog.ID_OK) {
+                return PlacemarkDescriptorRegistry.getInstance().getPlacemarkDescriptor(GeometryDescriptor.class);
+            }
+
+            return typeDialog.getPlacemarkDescriptor();
+        }
     }
 
     private class MyFeatureCrsProvider implements FeatureUtils.FeatureCrsProvider {
 
-        private final VisatApp visatApp;
         private final String helpId;
 
-        public MyFeatureCrsProvider(VisatApp visatApp, String helpId) {
-            this.visatApp = visatApp;
+        public MyFeatureCrsProvider(String helpId) {
             this.helpId = helpId;
         }
 
@@ -57,7 +70,7 @@ abstract class AbstractImportVectorDataNodeAction extends ExecCommand {
             Runnable runnable = new Runnable() {
                 @Override
                 public void run() {
-                    featureCrsBuffer[0] = promptForFeatureCrs(visatApp, product);
+                    featureCrsBuffer[0] = promptForFeatureCrs(VisatApp.getApp(), product);
                 }
             };
             if (!SwingUtilities.isEventDispatchThread()) {
@@ -94,7 +107,7 @@ abstract class AbstractImportVectorDataNodeAction extends ExecCommand {
             final JPanel contentPanel = new JPanel(tableLayout);
             final JLabel label = new JLabel();
             label.setText("<html><b>" +
-                                  "This Shapefile does not define a coordinate reference system (CRS).<br/>" +
+                                  "These vector data does not define a coordinate reference system (CRS).<br/>" +
                                   "Please specify a CRS so that coordinates can interpreted correctly.</b>");
 
             contentPanel.add(label);
@@ -108,10 +121,10 @@ abstract class AbstractImportVectorDataNodeAction extends ExecCommand {
                                              "Can not create Coordinate Reference System.\n" + e.getMessage());
                 }
             }
-            return null;
+            return DefaultGeographicCRS.WGS84;
         }
     }
 
-    protected abstract String getDialogTitle();
+        protected abstract String getDialogTitle();
 
-}
+    }

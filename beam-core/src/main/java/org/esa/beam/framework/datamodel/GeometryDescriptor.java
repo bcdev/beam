@@ -1,5 +1,6 @@
 package org.esa.beam.framework.datamodel;
 
+import org.esa.beam.framework.dataio.DecodeQualification;
 import org.opengis.feature.simple.SimpleFeatureType;
 
 import java.awt.*;
@@ -16,13 +17,24 @@ public class GeometryDescriptor extends AbstractPlacemarkDescriptor {
     private static final SimpleFeatureType DEFAULT_FEATURE_TYPE = PlainFeatureFactory.createDefaultFeatureType();
 
     @Override
-    public boolean isCompatibleWith(SimpleFeatureType featureType) {
-        return featureType.getTypeName().equals("org.esa.beam.Geometry");
+    public DecodeQualification getQualification(SimpleFeatureType featureType) {
+        if (featureType.getTypeName().equals("org.esa.beam.Geometry")) {
+            return DecodeQualification.INTENDED;
+        } else if (featureType.getGeometryDescriptor() != null) {
+            return DecodeQualification.SUITABLE;
+        }
+        return DecodeQualification.UNABLE;
     }
 
     @Override
     public SimpleFeatureType getBaseFeatureType() {
         return DEFAULT_FEATURE_TYPE;
+    }
+
+    @Override
+    public void setUserData(SimpleFeatureType featureType) {
+        super.setUserData(featureType);
+        featureType.getUserData().put("defaultGeometry", featureType.getGeometryDescriptor().getLocalName());
     }
 
     @Override
