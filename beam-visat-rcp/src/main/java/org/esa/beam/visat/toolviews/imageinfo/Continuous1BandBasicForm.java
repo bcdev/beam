@@ -16,14 +16,15 @@
 
 package org.esa.beam.visat.toolviews.imageinfo;
 
-import org.esa.beam.framework.datamodel.ProductNodeEvent;
-import org.esa.beam.framework.datamodel.RasterDataNode;
+import org.esa.beam.framework.datamodel.*;
 import org.esa.beam.framework.ui.ImageInfoEditorModel;
 import org.esa.beam.framework.ui.product.ProductSceneView;
 
 import javax.swing.*;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 /**
  * This class is added to implement Basic Color Manipulation. Its design pattern is similar to Continuous1BandGraphicalForm, which implements the Sliders.
@@ -37,6 +38,9 @@ class Continuous1BandBasicForm implements ColorManipulationChildForm {
     private final MoreOptionsForm moreOptionsForm;
     private ChangeListener applyEnablerCL;
 
+    private final AbstractButton logDisplayButton;
+    private final AbstractButton evenDistButton;
+
     Continuous1BandBasicForm(final ColorManipulationForm parentForm) {
         this.parentForm = parentForm;
         imageInfoEditor = new ImageInfoEditor2(parentForm);
@@ -44,6 +48,27 @@ class Continuous1BandBasicForm implements ColorManipulationChildForm {
         contentPanel = new JPanel(new BorderLayout(2, 2));
         contentPanel.add(basicColorEditor, BorderLayout.CENTER);
         moreOptionsForm = new MoreOptionsForm(parentForm, true);
+
+        logDisplayButton = ImageInfoEditorSupport.createToggleButton("icons/LogDisplay24.png");
+        logDisplayButton.setName("logDisplayButton");
+        logDisplayButton.setToolTipText("Switch to logarithmic display"); /*I18N*/
+        logDisplayButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                setLogarithmicDisplay(parentForm.getProductSceneView().getRaster(), logDisplayButton.isSelected());
+            }
+        });
+
+        evenDistButton = ImageInfoEditorSupport.createButton("icons/EvenDistribution24.gif");
+        evenDistButton.setName("evenDistButton");
+        evenDistButton.setToolTipText("Distribute sliders evenly between first and last slider"); /*I18N*/
+        evenDistButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                distributeSlidersEvenly();
+            }
+        });
+
         applyEnablerCL = parentForm.createApplyEnablerChangeListener();
     }
 
@@ -92,12 +117,20 @@ class Continuous1BandBasicForm implements ColorManipulationChildForm {
         parentForm.revalidateToolViewPaneControl();
     }
 
+    public AbstractButton[] getToolButtons() {
+        return new AbstractButton[]{
+                logDisplayButton,
+                evenDistButton,
+
+        };
+    }
+
     @Override
     public void resetFormModel(ProductSceneView productSceneView) {
-         basicColorEditor.resetToDataDefault();
-         updateFormModel(productSceneView);
-         imageInfoEditor.computeZoomOutToFullHistogramm();
-         parentForm.revalidateToolViewPaneControl();
+        basicColorEditor.resetToDataDefault();
+        updateFormModel(productSceneView);
+        imageInfoEditor.computeZoomOutToFullHistogramm();
+        parentForm.revalidateToolViewPaneControl();
     }
 
     @Override
@@ -112,10 +145,10 @@ class Continuous1BandBasicForm implements ColorManipulationChildForm {
 
     }
 
-    @Override
-    public AbstractButton[] getToolButtons() {
-        return new AbstractButton[0];
-    }
+//    @Override
+//    public AbstractButton[] getToolButtons() {
+//        return new AbstractButton[0];
+//    }
 
     @Override
     public RasterDataNode[] getRasters() {
@@ -131,5 +164,26 @@ class Continuous1BandBasicForm implements ColorManipulationChildForm {
     static void setDisplayProperties(ImageInfoEditorModel model, RasterDataNode raster) {
         model.setDisplayProperties(raster.getName(), raster.getUnit(), raster.getStx(), raster);
     }
+
+    private void setLogarithmicDisplay(final RasterDataNode raster, final boolean logarithmicDisplay) {
+        final ImageInfoEditorModel model = imageInfoEditor.getModel();
+        if (logarithmicDisplay) {
+            final StxFactory stxFactory = new StxFactory();
+            final Stx stx = stxFactory
+                    .withHistogramBinCount(raster.getStx().getHistogramBinCount())
+                    .withLogHistogram(logarithmicDisplay)
+                    .withResolutionLevel(raster.getSourceImage().getModel().getLevelCount() - 1)
+                    .create(raster, com.bc.ceres.core.ProgressMonitor.NULL);
+            model.setDisplayProperties(raster.getName(), raster.getUnit(), stx, Continuous1BandGraphicalForm.POW10_SCALING);
+        } else {
+            model.setDisplayProperties(raster.getName(), raster.getUnit(), raster.getStx(), Scaling.IDENTITY);
+        }
+        model.getImageInfo().setLogScaled(logarithmicDisplay);
+    }
+
+    private void distributeSlidersEvenly() {
+        imageInfoEditor.distributeSlidersEvenly();
+    }
+
 
 }

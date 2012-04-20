@@ -23,7 +23,6 @@ package org.esa.beam.visat.toolviews.imageinfo;
  * with this program; if not, see http://www.gnu.org/licenses/
  */
 
-import org.esa.beam.framework.datamodel.RasterDataNode;
 import org.esa.beam.framework.ui.ImageInfoEditor;
 import org.esa.beam.util.math.MathUtils;
 
@@ -42,7 +41,7 @@ import java.text.NumberFormat;
 /**
  * This class implements the Basic Color Manipulation GUI. It's design concept is similar to the ImageInfoEditor2 class that implements the "Sliders" option in BEAM.
  */
-class BasicColorEditor extends ImageInfoEditor  {
+class BasicColorEditor extends ImageInfoEditor {
 
     private final ColorManipulationForm parentForm;
     private boolean showExtraInfo;
@@ -51,13 +50,13 @@ class BasicColorEditor extends ImageInfoEditor  {
     private double minVal;
     private JFormattedTextField maxValField;
     private JFormattedTextField minValField;
-    private JButton fileDefaultButton;
+    private JCheckBox fileDefaultCheckBox;
     private JButton dataDefaultButton;
     private JRadioButton logButton;
     private JRadioButton linearButton;
     private ButtonGroup buttonGroup;
     private NumberFormat valFormat;
-    private boolean logScaled;
+    //private boolean logScaled;
 
 
     BasicColorEditor(final ColorManipulationForm parentForm) {
@@ -66,7 +65,7 @@ class BasicColorEditor extends ImageInfoEditor  {
         minVal = parentForm.getMinValueData();
         setLayout(new BorderLayout());
         setShowExtraInfo(true);
-        logScaled = false;
+        //logScaled = false;
         valFormat = NumberFormat.getNumberInstance();
         valFormat.setMaximumFractionDigits(4);
     }
@@ -97,21 +96,22 @@ class BasicColorEditor extends ImageInfoEditor  {
      * Has two text fields for receiving user input for min and max.
      * Has two radio buttons for choosing scaling options, log or linear.
      * All the above fields has listeners for the following logic:
-     *
+     * <p/>
      * When "File Default" button is pressed, min and max should be loaded with the min/max sample values of the current color palette file.
-     *                     If color palette file is not loaded, a dialog will be displayed with such message and min/max will not be changed.
+     * If color palette file is not loaded, a dialog will be displayed with such message and min/max will not be changed.
      * When "Data Default" button is pressed, min and max should be loaded with the min/max sample values of the product data file.
      * Max should be greater or equal to Min.
      * When "log" scale is chosen, min and max cannot be zero or negative.
      * When a new file is loaded, the current min, max sample values should be in effect.
-     *
+     * <p/>
      * Used the existing "Apply", "Reset", "Import", "Export" buttons.
+     *
      * @return
      */
-    private JPanel createSimpleColorRampEditorComponent(){
+    private JPanel createSimpleColorRampEditorComponent() {
 
         JPanel simpleColorEditorPanel = new JPanel();
-        simpleColorEditorPanel.setLayout(new GridLayout(0,1)  );
+        simpleColorEditorPanel.setLayout(new GridLayout(0, 1));
 
         final JPanel minPanel = new JPanel();
         minPanel.setLayout(new FlowLayout());
@@ -167,16 +167,15 @@ class BasicColorEditor extends ImageInfoEditor  {
                 try {
                     String textValue = minValField.getText();
                     value = Double.parseDouble(textValue);
-                }
-                catch (NumberFormatException nfe){
-                    JOptionPane.showMessageDialog(minPanel, "Please enter valid number." );
+                } catch (NumberFormatException nfe) {
+                    JOptionPane.showMessageDialog(minPanel, "Please enter valid number.");
                     minValField.requestFocusInWindow();
                     return;
                 }
 
                 boolean valid = validateMinMax(value, maxVal);
-                if (valid ) {
-                    minVal = value ;
+                if (valid) {
+                    minVal = value;
                     recomputeSamplePoints();
                     activateApply();
                 } else {
@@ -238,20 +237,19 @@ class BasicColorEditor extends ImageInfoEditor  {
             @Override
             public void mouseExited(MouseEvent mouseEvent) {
 
-               double value;
+                double value;
                 try {
                     String textValue = maxValField.getText();
                     value = Double.parseDouble(textValue);
-                }
-                catch (NumberFormatException nfe){
-                    JOptionPane.showMessageDialog(minPanel, "Please enter valid number." );
+                } catch (NumberFormatException nfe) {
+                    JOptionPane.showMessageDialog(minPanel, "Please enter valid number.");
                     maxValField.requestFocusInWindow();
                     return;
                 }
 
                 boolean valid = validateMinMax(minVal, value);
-                if (valid ) {
-                    maxVal = value ;
+                if (valid) {
+                    maxVal = value;
                     recomputeSamplePoints();
                     activateApply();
                 } else {
@@ -264,7 +262,6 @@ class BasicColorEditor extends ImageInfoEditor  {
         maxPanel.add(maxValField);
 
 
-
         final JPanel minMaxPanel = new JPanel();
 
         minMaxPanel.setLayout(new GridBagLayout());
@@ -272,108 +269,129 @@ class BasicColorEditor extends ImageInfoEditor  {
         minMaxPanel.setBorder(new TitledBorder(new EtchedBorder(), ""));
 
         //c.fill = GridBagConstraints.HORIZONTAL;
-	    c.weightx = 0;
+        c.weightx = 0;
         c.gridx = 0;
-	    c.gridy = 0;
+        c.gridy = 0;
         c.gridwidth = 2;
         c.anchor = GridBagConstraints.CENTER;
 
-        minMaxPanel.add(minPanel,c);
+        minMaxPanel.add(minPanel, c);
 
         c.gridy = 1;
 
-        minMaxPanel.add(maxPanel,c);
+        minMaxPanel.add(maxPanel, c);
 
 
-
-        JPanel scalePanel = new JPanel();
-        scalePanel.setLayout(new BoxLayout(scalePanel, BoxLayout.Y_AXIS));
-        scalePanel.setBorder(new TitledBorder(new EtchedBorder(), ""));
-
-        buttonGroup = new ButtonGroup();
-        logButton  = new JRadioButton("Log");
-        logButton.setSelected(logScaled);
-        buttonGroup.add(logButton);
-        scalePanel.add(logButton);
-
-        linearButton = new JRadioButton("Linear");
-        linearButton.setSelected(!logScaled);
-        buttonGroup.add(linearButton);
-        scalePanel.add(linearButton);
-
-        logButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                logScaled = true;
-                validateMinMax(minVal, maxVal);     ///?? is this needed?
-                recomputeSamplePoints();
-            }
-        });
-
-        linearButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                logScaled = false;
-                recomputeSamplePoints();
-            }
-        });
+//        JPanel scalePanel = new JPanel();
+//        scalePanel.setLayout(new BoxLayout(scalePanel, BoxLayout.Y_AXIS));
+//        scalePanel.setBorder(new TitledBorder(new EtchedBorder(), ""));
+//
+//        buttonGroup = new ButtonGroup();
+//        logButton = new JRadioButton("Log");
+//        logButton.setSelected(logScaled);
+//        buttonGroup.add(logButton);
+//        scalePanel.add(logButton);
+//
+//        linearButton = new JRadioButton("Linear");
+//        linearButton.setSelected(!logScaled);
+//        buttonGroup.add(linearButton);
+//        scalePanel.add(linearButton);
+//
+//        logButton.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent actionEvent) {
+//                logScaled = true;
+//                validateMinMax(minVal, maxVal);     ///?? is this needed?
+//                recomputeSamplePoints();
+//            }
+//        });
+//
+//        linearButton.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent actionEvent) {
+//                logScaled = false;
+//                recomputeSamplePoints();
+//            }
+//        });
 
         //final JPanel buttonPanel = new JPanel();
         //buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
 
-        fileDefaultButton = new JButton("File Default");
-        fileDefaultButton.addActionListener(new ActionListener() {
+        fileDefaultCheckBox = new JCheckBox("File Default");
+        fileDefaultCheckBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                if ( !parentForm.isColorPaletteFileLoaded() ) {
-                    JOptionPane.showMessageDialog(minMaxPanel, "Color Palette File has not been loaded." );
+                if (!parentForm.isColorPaletteFileLoaded()) {
+                    JOptionPane.showMessageDialog(minMaxPanel, "Color Palette File has not been loaded.");
+                    fileDefaultCheckBox.setSelected(false);
                     return;
                 }
-                maxVal = parentForm.getMaxValueFile();
-                minVal = parentForm.getMinValueFile();
-                validateMinMax(minVal, maxVal );
-                recomputeSamplePoints();
-                if (minVal > ((Number)maxValField.getValue()).doubleValue()){
+
+                AbstractButton abstractButton = (AbstractButton) actionEvent
+                        .getSource();
+                boolean selected = abstractButton.getModel().isSelected();
+
+                if (selected) {
+                    maxVal = parentForm.getMaxValueFile();
+                    minVal = parentForm.getMinValueFile();
+                    validateMinMax(minVal, maxVal);
+//                recomputeSamplePoints();
+                    //         if (minVal > ((Number) maxValField.getValue()).doubleValue()) {
                     maxValField.setValue(maxVal);
                     minValField.setValue(minVal);
+
+
+                    minValField.setEditable(false);
+                    maxValField.setEditable(false);
+                    minValField.setEnabled(false);
+                    maxValField.setEnabled(false);
+                    minValField.setDisabledTextColor(Color.GRAY);
+                    maxValField.setDisabledTextColor(Color.GRAY);
+                } else {
+
+                    minValField.setEnabled(true);
+                    maxValField.setEnabled(true);
+                    minValField.setEditable(true);
+                    maxValField.setEditable(true);
                 }
-                minValField.setValue(minVal);
-                maxValField.setValue(maxVal);
-                }
+
+            }
         });
         c.weightx = 1.0;
         c.gridx = 0;
         c.gridy = 2;
-        c.gridwidth =1;
-        minMaxPanel.add(fileDefaultButton,c);
+        c.gridwidth = 1;
+        minMaxPanel.add(fileDefaultCheckBox, c);
 
         dataDefaultButton = new JButton("Data Default");
         dataDefaultButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
+                fileDefaultCheckBox.setSelected(false);
                 minVal = parentForm.getMinValueData();
                 maxVal = parentForm.getMaxValueData();
-                validateMinMax(minVal, maxVal );
+                validateMinMax(minVal, maxVal);
                 recomputeSamplePoints();
-                if (minVal > ((Number)maxValField.getValue()).doubleValue()){
+                if (minVal > ((Number) maxValField.getValue()).doubleValue()) {
                     maxValField.setValue(maxVal);
                     minValField.setValue(minVal);
                 }
                 minValField.setValue(minVal);
                 maxValField.setValue(maxVal);
+                minValField.setEditable(true);
+                maxValField.setEditable(true);
+
             }
         });
         c.gridx = 1;
         c.gridy = 2;
         c.gridwidth = 1;
-        minMaxPanel.add(dataDefaultButton,c);
+        minMaxPanel.add(dataDefaultButton, c);
 
         JPanel simpleColorManipulationPanel = new JPanel();
-        //simpleColorManipulationPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 10, 1 ));
-        simpleColorManipulationPanel.setLayout(new BoxLayout(simpleColorManipulationPanel, BoxLayout.Y_AXIS ));
-                //simpleColorManipulationPanel.add(buttonPanel);
-                simpleColorManipulationPanel.add(minMaxPanel);
-        simpleColorManipulationPanel.add(scalePanel);
+        simpleColorManipulationPanel.setLayout(new BoxLayout(simpleColorManipulationPanel, BoxLayout.Y_AXIS));
+        simpleColorManipulationPanel.add(minMaxPanel);
+        //simpleColorManipulationPanel.add(scalePanel);
 
 
         simpleColorEditorPanel.add(simpleColorManipulationPanel);
@@ -387,78 +405,81 @@ class BasicColorEditor extends ImageInfoEditor  {
         return minSample;
     }
 
-    private void activateApply(){
+    private void activateApply() {
         parentForm.setCurrentMaxValue(maxVal);
         parentForm.setCurrentMinValue(minVal);
 //        parentForm.getProductSceneView().getRaster().setLog10ScaledDisplay(logScaled);
         parentForm.setApplyEnabled(true);
     }
 
-    private void deactivateApply(){
+    private void deactivateApply() {
         parentForm.setApplyEnabled(false);
     }
 
-    protected void resetToDataDefault(){
+    protected void resetToDataDefault() {
         dataDefaultButton.doClick();
     }
 
-    protected void resetToFileDefault(){
-        fileDefaultButton.doClick();
+    protected void resetToFileDefault() {
+        fileDefaultCheckBox.doClick();
     }
-    protected void resetMinMax(){
+
+    protected void resetMinMax() {
         minVal = parentForm.getCurrentMinValue();
         maxVal = parentForm.getCurrentMaxValue();
         minValField.setValue(MathUtils.round((new Double(minVal)).doubleValue(), 1000));
         maxValField.setValue(MathUtils.round((new Double(maxVal)).doubleValue(), 1000));
     }
-    protected void recomputeSamplePoints(){
-        //validateMinMax(minVal, maxVal);
-        RasterDataNode  rasterDataNode = parentForm.getProductSceneView().getRaster();
-//        rasterDataNode.setLog10ScaledDisplay(logScaled);
-        if (!logScaled) {
-            //rasterDataNode.resetValidMask();
-        }
-        parentForm.getImageInfo().getColorPaletteDef().computeSamplePoints(minVal, maxVal, logScaled);
-    //    super.setColorPalette(parentForm.getImageInfo().getColorPaletteDef().getColors());
+
+    protected void recomputeSamplePoints() {
+//        //validateMinMax(minVal, maxVal);
+//        RasterDataNode rasterDataNode = parentForm.getProductSceneView().getRaster();
+////        rasterDataNode.setLog10ScaledDisplay(logScaled);
+//        if (!logScaled) {
+//            //rasterDataNode.resetValidMask();
+//        }
+        parentForm.getImageInfo().getColorPaletteDef().computeSamplePoints(minVal, maxVal);
+        //    super.setColorPalette(parentForm.getImageInfo().getColorPaletteDef().getColors());
         activateApply();
     }
 
-    private void showErrorMessage(String errorMessage){
-        JOptionPane.showMessageDialog(this, errorMessage );
+    private void showErrorMessage(String errorMessage) {
+        JOptionPane.showMessageDialog(this, errorMessage);
 
     }
-    protected boolean isLogScaled() {
-        return logScaled;
-    }
-    private boolean validateMinMax(double min, double max){
+
+//    protected boolean isLogScaled() {
+//        return logScaled;
+//    }
+
+    private boolean validateMinMax(double min, double max) {
 
         String errorMessage = new String();
         boolean valid = true;
 
-        if ( min > max) {
+        if (min > max) {
             errorMessage = "Min cannot be greater than Max";
             valid = false;
             deactivateApply();
-        } else if (logScaled) {
-            if (min < 0 || max < 0 ){
-
-                errorMessage = "Log cannot be applied to negative values. Will apply linear scale.";
-                valid = false;
-
-            } else if (min == 0 || max == 0 ) {
-                errorMessage = "Log cannot be applied to zero. Will apply linear scale.";
-                valid = false;
-            }
-            if (!valid) {
-                logButton.setSelected(false);
-                linearButton.setSelected(true);
-                logScaled = false;
-
-            }
-
+//        } else if (logScaled) {
+//            if (min < 0 || max < 0) {
+//
+//                errorMessage = "Log cannot be applied to negative values. Will apply linear scale.";
+//                valid = false;
+//
+//            } else if (min == 0 || max == 0) {
+//                errorMessage = "Log cannot be applied to zero. Will apply linear scale.";
+//                valid = false;
+//            }
+//            if (!valid) {
+//                logButton.setSelected(false);
+//                linearButton.setSelected(true);
+//                logScaled = false;
+//
+//            }
+//
         }
-        if (errorMessage.length() != 0 )
-        {
+        if (errorMessage.length() != 0) {
             showErrorMessage(errorMessage);
         }
 
