@@ -24,19 +24,13 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LinearRing;
 import com.vividsolutions.jts.geom.Polygon;
+import org.esa.beam.util.FeatureUtils;
 import org.esa.beam.visat.toolviews.layermanager.layersrc.shapefile.FeatureLayer;
 import org.esa.beam.visat.toolviews.layermanager.layersrc.shapefile.FeatureLayerType;
-import org.esa.beam.visat.toolviews.layermanager.layersrc.shapefile.ShapefileUtils;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
-import org.geotools.styling.FeatureTypeStyle;
-import org.geotools.styling.Fill;
-import org.geotools.styling.PolygonSymbolizer;
-import org.geotools.styling.Rule;
-import org.geotools.styling.Style;
-import org.geotools.styling.StyleFactory;
-import org.geotools.styling.Symbolizer;
+import org.geotools.styling.*;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.filter.FilterFactory;
@@ -72,7 +66,7 @@ public class FeatureLayerConfigurationPersistencyTest extends AbstractLayerConfi
         configuration.setValue(FeatureLayerType.PROPERTY_NAME_SLD_STYLE, createStyle());
         FeatureCollection<SimpleFeatureType, SimpleFeature> fc;
         try {
-            fc = ShapefileUtils.createFeatureCollection(
+            fc = FeatureUtils.createFeatureCollection(
                     shapefileUrl, DefaultGeographicCRS.WGS84, clipGeometry);
         } catch (IOException e) {
             throw new IllegalArgumentException(e);

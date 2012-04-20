@@ -32,20 +32,40 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.List;
+import java.util.Map;
 
 public class VectorDataNodeReaderTest extends TestCase {
-    static final String CONTENTS_1 =
-            "FT1\tname:String\tgeom:Geometry\tpixel:Integer\tdescription:String\n"
-                    + "ID65\tmark1\tPOINT (12.3 45.6)\t0\tThis is mark1.\n"
-                    + "ID66\tmark2\tPOINT (78.9 10.1)\t1\t[null]\n"
-                    + "ID67\tmark3\tPOINT (23.4 56.7)\t2\tThis is mark3.\n";
 
-    static final String CONTENTS_2 =
-            "FT2\tname:String\tgeom:Point\tweight:Float\n"
-                    + "ID65\tmark1\tPOINT (12.3 45.6)\t0.4\n";
+    static final String INPUT_1 =
+            "# This is a test comment\n" +
+            "# separator=TAB\n" +
+            "# styleCss=color:0,0,255\n" +
+            "\n" +
+            "org.esa.beam.FT1\tname:String\tgeom:Geometry\tpixel:Integer\tdescription:String\n"
+            + "ID65\tmark1\tPOINT (12.3 45.6)\t0\tThis is mark1.\n"
+            + "ID66\tmark2\tPOINT (78.9 10.1)\t1\t[null]\n"
+            + "ID67\tmark3\tPOINT (23.4 56.7)\t2\tThis is mark3.\n";
 
-    public void testContents1() throws IOException {
-        StringReader reader = new StringReader(CONTENTS_1);
+    static final String INPUT_2 =
+            "#beam.placemarkDescriptor.class=GeometryDescriptor\n"
+            + "#defaultGeometry=geom\n"
+            + "org.esa.beam.FT2\tname:String\tgeom:Point\tweight:Float\n"
+            + "ID65\tmark1\tPOINT (12.3 45.6)\t0.4\n";
+
+    public void testReadPropertiesInInput1() throws IOException {
+        StringReader reader = new StringReader(INPUT_1);
+
+        VectorDataNodeReader vectorDataNodeReader = new VectorDataNodeReader("mem", null);
+        Map<String, String> properties = vectorDataNodeReader.readProperties(reader);
+
+        assertNotNull(properties);
+        assertEquals(2, properties.size());
+        assertEquals("color:0,0,255", properties.get("styleCss"));
+        assertEquals("TAB", properties.get("separator"));
+    }
+
+    public void testReadFeaturesInInput1() throws IOException {
+        StringReader reader = new StringReader(INPUT_1);
 
         VectorDataNodeReader vectorDataNodeReader = new VectorDataNodeReader("mem", null);
         FeatureCollection<SimpleFeatureType, SimpleFeature> fc = vectorDataNodeReader.readFeatures(reader);
@@ -53,7 +73,7 @@ public class VectorDataNodeReaderTest extends TestCase {
 
         assertNotNull(simpleFeatureType);
         assertNull(simpleFeatureType.getCoordinateReferenceSystem());
-        assertEquals("FT1", simpleFeatureType.getTypeName());
+        assertEquals("org.esa.beam.FT1", simpleFeatureType.getTypeName());
         assertEquals(4, simpleFeatureType.getAttributeCount());
 
         List<AttributeDescriptor> list = simpleFeatureType.getAttributeDescriptors();
@@ -104,15 +124,15 @@ public class VectorDataNodeReaderTest extends TestCase {
         assertEquals("This is mark3.", f3.getAttribute(3));
     }
 
-    public void testContents2() throws IOException {
-        StringReader reader = new StringReader(CONTENTS_2);
+    public void testReadFeaturesInInput2() throws IOException {
+        StringReader reader = new StringReader(INPUT_2);
 
         VectorDataNodeReader vectorDataNodeReader = new VectorDataNodeReader("mem", null);
         FeatureCollection<SimpleFeatureType, SimpleFeature> fc = vectorDataNodeReader.readFeatures(reader);
         SimpleFeatureType simpleFeatureType = fc.getSchema();
 
         assertNotNull(simpleFeatureType);
-        assertEquals("FT2", simpleFeatureType.getTypeName());
+        assertEquals("org.esa.beam.FT2", simpleFeatureType.getTypeName());
         assertEquals(3, simpleFeatureType.getAttributeCount());
 
         List<AttributeDescriptor> list = simpleFeatureType.getAttributeDescriptors();
@@ -131,7 +151,7 @@ public class VectorDataNodeReaderTest extends TestCase {
     }
 
     public void testCRS() throws Exception {
-        StringReader reader = new StringReader(CONTENTS_2);
+        StringReader reader = new StringReader(INPUT_2);
 
         VectorDataNodeReader vectorDataNodeReader = new VectorDataNodeReader("mem", DefaultGeographicCRS.WGS84);
         FeatureCollection<SimpleFeatureType, SimpleFeature> fc = vectorDataNodeReader.readFeatures(reader);
@@ -171,7 +191,7 @@ public class VectorDataNodeReaderTest extends TestCase {
 
         try {
             String source = "FT\ta:Integer\n" +
-                    "ID1\tX\n";
+                            "ID1\tX\n";
             FeatureCollection<SimpleFeatureType, SimpleFeature> fc = new VectorDataNodeReader("mem", null).readFeatures(new StringReader(source));
             assertEquals(1, fc.size());
             assertEquals(null, fc.features().next().getAttribute("a"));
@@ -181,7 +201,7 @@ public class VectorDataNodeReaderTest extends TestCase {
 
         try {
             String source = "FT\ta:Integer\n" +
-                    "ID1\t1234\tABC\n";
+                            "ID1\t1234\tABC\n";
             FeatureCollection<SimpleFeatureType, SimpleFeature> fc = new VectorDataNodeReader("mem", null).readFeatures(new StringReader(source));
             assertEquals(0, fc.size());
         } catch (IOException e) {

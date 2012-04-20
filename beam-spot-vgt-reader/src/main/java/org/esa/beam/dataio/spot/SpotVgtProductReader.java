@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -23,12 +23,12 @@ import org.esa.beam.framework.dataio.AbstractProductReader;
 import org.esa.beam.framework.datamodel.Band;
 import org.esa.beam.framework.datamodel.FlagCoding;
 import org.esa.beam.framework.datamodel.GeoCoding;
-import org.esa.beam.framework.datamodel.Mask;
 import org.esa.beam.framework.datamodel.MetadataAttribute;
 import org.esa.beam.framework.datamodel.MetadataElement;
 import org.esa.beam.framework.datamodel.Product;
 import org.esa.beam.framework.datamodel.ProductData;
 import org.esa.beam.util.ImageUtils;
+import org.esa.beam.util.jai.JAIUtils;
 import ucar.ma2.Array;
 import ucar.ma2.DataType;
 import ucar.ma2.InvalidRangeException;
@@ -36,12 +36,14 @@ import ucar.nc2.NetcdfFile;
 import ucar.nc2.Variable;
 
 import javax.media.jai.BorderExtender;
+import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 import javax.media.jai.RenderedOp;
 import javax.media.jai.operator.CropDescriptor;
 import javax.media.jai.operator.ScaleDescriptor;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.image.RenderedImage;
@@ -54,7 +56,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.esa.beam.dataio.spot.SpotVgtProductReaderPlugIn.*;
+import static org.esa.beam.dataio.spot.SpotVgtProductReaderPlugIn.getBandName;
+import static org.esa.beam.dataio.spot.SpotVgtProductReaderPlugIn.getFileInput;
 
 /**
  * Reader for SPOT VGT products.
@@ -110,6 +113,8 @@ public class SpotVgtProductReader extends AbstractProductReader {
                                       physVolDescriptor.getFormatReference(),
                                       targetWidth,
                                       targetHeight, this);
+        Dimension tileSize = JAIUtils.computePreferredTileSize(targetWidth, targetHeight, 1);
+        product.setPreferredTileSize(tileSize);
         product.setFileLocation(new File(virtualDir.getBasePath()));
         addGeoCoding(product, logVolDescriptor);
         addTimeCoding(product, logVolDescriptor);
@@ -153,7 +158,7 @@ public class SpotVgtProductReader extends AbstractProductReader {
                                 try {
                                     ProductData data = readData(variable, bandDataType, sourceWidth, sourceHeight);
                                     RenderedOp dstImg = createScaledImage(targetWidth, targetHeight, sourceWidth,
-                                                                          sourceHeight, sampling, data);
+                                                                          sourceHeight, sampling, data, tileSize);
                                     Band band = addBand(product, bandDataType, bandInfo, netcdfFile, variable);
                                     band.setSourceImage(dstImg);
                                 } catch (IOException e) {
@@ -204,7 +209,7 @@ public class SpotVgtProductReader extends AbstractProductReader {
     }
 
     private static RenderedOp createScaledImage(int targetWidth, int targetHeight, int sourceWidth, int sourceHeight,
-                                                int sourceSampling, ProductData data) {
+                                                int sourceSampling, ProductData data, Dimension tileSize) {
         int tempW = sourceWidth * sourceSampling + 1;
         int tempH = sourceHeight * sourceSampling + 1;
         float xScale = (float) tempW / (float) sourceWidth;
@@ -212,6 +217,9 @@ public class SpotVgtProductReader extends AbstractProductReader {
         RenderingHints renderingHints = new RenderingHints(JAI.KEY_BORDER_EXTENDER,
                                                            BorderExtender.createInstance(BorderExtender.BORDER_COPY));
         RenderedImage srcImg = ImageUtils.createRenderedImage(sourceWidth, sourceHeight, data);
+        ImageLayout imageLayout = new ImageLayout(0, 0, targetWidth, targetHeight,
+                0, 0, tileSize.width, tileSize.height, null, null);
+        renderingHints.put(JAI.KEY_IMAGE_LAYOUT, imageLayout);
         RenderedOp tempImg = ScaleDescriptor.create(srcImg, xScale, yScale,
                                                     -0.5f * sourceSampling + 1,
                                                     -0.5f * sourceSampling + 1,
@@ -347,54 +355,39 @@ public class SpotVgtProductReader extends AbstractProductReader {
                 }
             }
 
-            product.getMaskGroup().add(Mask.BandMathsType.create("B0_BAD", "Radiometric quality for band B0 is bad.",
-                                                                 product.getSceneRasterWidth(),
-                                                                 product.getSceneRasterHeight(), "!SM.B0_GOOD",
-                                                                 Color.RED, 0.2));
-            product.getMaskGroup().add(Mask.BandMathsType.create("B2_BAD", "Radiometric quality for band B2 is bad.",
-                                                                 product.getSceneRasterWidth(),
-                                                                 product.getSceneRasterHeight(), "!SM.B2_GOOD",
-                                                                 Color.RED, 0.2));
-            product.getMaskGroup().add(Mask.BandMathsType.create("B3_BAD", "Radiometric quality for band B3 is bad.",
-                                                                 product.getSceneRasterWidth(),
-                                                                 product.getSceneRasterHeight(), "!SM.B3_GOOD",
-                                                                 Color.RED, 0.2));
-            product.getMaskGroup().add(Mask.BandMathsType.create("MIR_BAD", "Radiometric quality for band MIR is bad.",
-                                                                 product.getSceneRasterWidth(),
-                                                                 product.getSceneRasterHeight(), "!SM.MIR_GOOD",
-                                                                 Color.RED, 0.2));
-            product.getMaskGroup().add(Mask.BandMathsType.create("LAND", "Land mask.",
-                                                                 product.getSceneRasterWidth(),
-                                                                 product.getSceneRasterHeight(), "SM.LAND",
-                                                                 Color.GREEN, 0.5));
-            product.getMaskGroup().add(Mask.BandMathsType.create("WATER", "Water mask.",
-                                                                 product.getSceneRasterWidth(),
-                                                                 product.getSceneRasterHeight(), "!SM.LAND",
-                                                                 Color.BLUE, 0.5));
-            product.getMaskGroup().add(Mask.BandMathsType.create("ICE_SNOW", "Ice/snow mask.",
-                                                                 product.getSceneRasterWidth(),
-                                                                 product.getSceneRasterHeight(), "SM.ICE_SNOW",
-                                                                 Color.MAGENTA, 0.5));
-            product.getMaskGroup().add(Mask.BandMathsType.create("CLEAR", "Clear sky.",
-                                                                 product.getSceneRasterWidth(),
-                                                                 product.getSceneRasterHeight(),
-                                                                 "!SM.CLOUD_1 && !SM.CLOUD_2",
-                                                                 Color.ORANGE, 0.5));
-            product.getMaskGroup().add(Mask.BandMathsType.create("CLOUD_SHADOW", "Cloud shadow.",
-                                                                 product.getSceneRasterWidth(),
-                                                                 product.getSceneRasterHeight(),
-                                                                 "SM.CLOUD_1 && !SM.CLOUD_2",
-                                                                 Color.CYAN, 0.5));
-            product.getMaskGroup().add(Mask.BandMathsType.create("CLOUD_UNCERTAIN", "Cloud uncertain.",
-                                                                 product.getSceneRasterWidth(),
-                                                                 product.getSceneRasterHeight(),
-                                                                 "!SM.CLOUD_1 && SM.CLOUD_2",
-                                                                 Color.ORANGE, 0.5));
-            product.getMaskGroup().add(Mask.BandMathsType.create("CLOUD", "Cloud certain.",
-                                                                 product.getSceneRasterWidth(),
-                                                                 product.getSceneRasterHeight(),
-                                                                 "SM.CLOUD_1 && SM.CLOUD_2",
-                                                                 Color.YELLOW, 0.5));
+            product.addMask("B0_BAD", "Radiometric quality for band B0 is bad.",
+                            "!SM.B0_GOOD",
+                            Color.RED, 0.2);
+            product.addMask("B2_BAD", "Radiometric quality for band B2 is bad.",
+                            "!SM.B2_GOOD",
+                            Color.RED, 0.2);
+            product.addMask("B3_BAD", "Radiometric quality for band B3 is bad.",
+                            "!SM.B3_GOOD",
+                            Color.RED, 0.2);
+            product.addMask("MIR_BAD", "Radiometric quality for band MIR is bad.",
+                            "!SM.MIR_GOOD",
+                            Color.RED, 0.2);
+            product.addMask("LAND", "Land mask.",
+                            "SM.LAND",
+                            Color.GREEN, 0.5);
+            product.addMask("WATER", "Water mask.",
+                            "!SM.LAND",
+                            Color.BLUE, 0.5);
+            product.addMask("ICE_SNOW", "Ice/snow mask.",
+                            "SM.ICE_SNOW",
+                            Color.MAGENTA, 0.5);
+            product.addMask("CLEAR", "Clear sky.",
+                            "!SM.CLOUD_1 && !SM.CLOUD_2",
+                            Color.ORANGE, 0.5);
+            product.addMask("CLOUD_SHADOW", "Cloud shadow.",
+                            "SM.CLOUD_1 && !SM.CLOUD_2",
+                            Color.CYAN, 0.5);
+            product.addMask("CLOUD_UNCERTAIN", "Cloud uncertain.",
+                            "!SM.CLOUD_1 && SM.CLOUD_2",
+                            Color.ORANGE, 0.5);
+            product.addMask("CLOUD", "Cloud certain.",
+                            "SM.CLOUD_1 && SM.CLOUD_2",
+                            Color.YELLOW, 0.5);
         }
     }
 

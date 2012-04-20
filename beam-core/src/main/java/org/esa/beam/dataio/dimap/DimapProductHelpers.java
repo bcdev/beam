@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -18,11 +18,50 @@ package org.esa.beam.dataio.dimap;
 import org.esa.beam.dataio.dimap.spi.DimapPersistable;
 import org.esa.beam.dataio.dimap.spi.DimapPersistence;
 import org.esa.beam.dataio.placemark.PlacemarkIO;
-import org.esa.beam.framework.datamodel.*;
-import org.esa.beam.framework.dataop.maptransf.*;
+import org.esa.beam.framework.datamodel.Band;
+import org.esa.beam.framework.datamodel.BitmaskDef;
+import org.esa.beam.framework.datamodel.ColorPaletteDef;
+import org.esa.beam.framework.datamodel.CrsGeoCoding;
+import org.esa.beam.framework.datamodel.FXYGeoCoding;
+import org.esa.beam.framework.datamodel.FlagCoding;
+import org.esa.beam.framework.datamodel.GcpDescriptor;
+import org.esa.beam.framework.datamodel.GcpGeoCoding;
+import org.esa.beam.framework.datamodel.GeoCoding;
+import org.esa.beam.framework.datamodel.ImageInfo;
+import org.esa.beam.framework.datamodel.IndexCoding;
+import org.esa.beam.framework.datamodel.MapGeoCoding;
+import org.esa.beam.framework.datamodel.Mask;
+import org.esa.beam.framework.datamodel.MetadataAttribute;
+import org.esa.beam.framework.datamodel.MetadataElement;
+import org.esa.beam.framework.datamodel.PinDescriptor;
+import org.esa.beam.framework.datamodel.PixelGeoCoding;
+import org.esa.beam.framework.datamodel.Placemark;
+import org.esa.beam.framework.datamodel.PlacemarkGroup;
+import org.esa.beam.framework.datamodel.PointingFactory;
+import org.esa.beam.framework.datamodel.PointingFactoryRegistry;
+import org.esa.beam.framework.datamodel.Product;
+import org.esa.beam.framework.datamodel.ProductData;
+import org.esa.beam.framework.datamodel.ProductNodeGroup;
+import org.esa.beam.framework.datamodel.SampleCoding;
+import org.esa.beam.framework.datamodel.Stx;
+import org.esa.beam.framework.datamodel.StxFactory;
+import org.esa.beam.framework.datamodel.TiePointGeoCoding;
+import org.esa.beam.framework.datamodel.TiePointGrid;
+import org.esa.beam.framework.datamodel.VirtualBand;
+import org.esa.beam.framework.dataop.maptransf.Datum;
+import org.esa.beam.framework.dataop.maptransf.Ellipsoid;
+import org.esa.beam.framework.dataop.maptransf.MapInfo;
+import org.esa.beam.framework.dataop.maptransf.MapProjection;
+import org.esa.beam.framework.dataop.maptransf.MapProjectionRegistry;
+import org.esa.beam.framework.dataop.maptransf.MapTransform;
+import org.esa.beam.framework.dataop.maptransf.MapTransformDescriptor;
 import org.esa.beam.framework.dataop.resamp.Resampling;
 import org.esa.beam.framework.dataop.resamp.ResamplingFactory;
-import org.esa.beam.util.*;
+import org.esa.beam.util.Debug;
+import org.esa.beam.util.Guardian;
+import org.esa.beam.util.StringUtils;
+import org.esa.beam.util.SystemUtils;
+import org.esa.beam.util.XmlWriter;
 import org.esa.beam.util.io.FileUtils;
 import org.esa.beam.util.logging.BeamLogManager;
 import org.esa.beam.util.math.FXYSum;
@@ -40,14 +79,19 @@ import javax.swing.filechooser.FileFilter;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 /**
@@ -836,14 +880,6 @@ public class DimapProductHelpers {
                     overlayNames = StringUtils.csvToArray(overlayNamesCSV);
                 }
             }
-            final Element roiNamesElem = usageElem.getChild(DimapProductConstants.TAG_ROI);
-            String[] roiNames = null;
-            if (roiNamesElem != null) {
-                final String roiNamesCSV = roiNamesElem.getAttributeValue(DimapProductConstants.ATTRIB_NAMES);
-                if (roiNamesCSV != null && roiNamesCSV.length() != 0) {
-                    roiNames = StringUtils.csvToArray(roiNamesCSV);
-                }
-            }
 
             final Element bandIndexElem = usageElem.getChild(DimapProductConstants.TAG_BAND_INDEX);
             if (bandIndexElem != null) {
@@ -853,7 +889,6 @@ public class DimapProductHelpers {
                     if (band != null) {
                         ProductNodeGroup<Mask> maskGroup = product.getMaskGroup();
                         addMasksToGroup(maskGroup, band.getOverlayMaskGroup(), overlayNames);
-                        addMasksToGroup(maskGroup, band.getRoiMaskGroup(), roiNames);
                     }
                 }
             }
@@ -865,7 +900,6 @@ public class DimapProductHelpers {
                     if (tiePointGrid != null) {
                         ProductNodeGroup<Mask> maskGroup = product.getMaskGroup();
                         addMasksToGroup(maskGroup, tiePointGrid.getOverlayMaskGroup(), overlayNames);
-                        addMasksToGroup(maskGroup, tiePointGrid.getRoiMaskGroup(), roiNames);
                     }
                 }
             }
@@ -1128,76 +1162,7 @@ public class DimapProductHelpers {
             for (Object child : imageDisplayElems) {
                 final Element imageDisplayElem = (Element) child;
                 addBandStatistics(imageDisplayElem, product);
-                addBitmaskOverlays(imageDisplayElem, product);
-                addRoiDefinitions(imageDisplayElem, product);
             }
-        }
-
-        private void addRoiDefinitions(Element imageDisplayElem, Product product) {
-            final List roiDefinitions = imageDisplayElem.getChildren(DimapProductConstants.TAG_ROI_DEFINITION);
-            for (Object child : roiDefinitions) {
-                final Element roiDefinitionElem = (Element) child;
-                final ROIDefinition roiDefinition = new ROIDefinition();
-                roiDefinition.initFromJDOMElem(roiDefinitionElem);
-                final String index = roiDefinitionElem.getChildTextTrim(DimapProductConstants.TAG_BAND_INDEX);
-                final String bandName = getBandName(getRootElement(), index);
-                final Band band = product.getBand(bandName);
-                if (band != null) {
-                    band.setROIDefinition(roiDefinition);
-                }
-            }
-        }
-
-        private void addBitmaskOverlays(Element imageDisplayElem, Product product) {
-            final List<Element> overlays = imageDisplayElem.getChildren(DimapProductConstants.TAG_BITMASK_OVERLAY);
-
-            for (final Element overlayElem : overlays) {
-                final Element bitmaskNamesElem = overlayElem.getChild(DimapProductConstants.TAG_BITMASK);
-                if (bitmaskNamesElem == null) {
-                    continue;
-                }
-                final String namesCSV = bitmaskNamesElem.getAttributeValue(DimapProductConstants.ATTRIB_NAMES);
-                if (namesCSV == null || namesCSV.length() == 0) {
-                    continue;
-                }
-                final String[] names = StringUtils.csvToArray(namesCSV);
-                final Element bandIndexElem = overlayElem.getChild(DimapProductConstants.TAG_BAND_INDEX);
-                if (bandIndexElem != null) {
-                    final String bandName = getBandName(getRootElement(), bandIndexElem.getTextTrim());
-                    if (bandName != null) {
-                        final Band band = product.getBand(bandName);
-                        if (band != null) {
-                            setBitmaskOverlayInfo(band, names);
-                        }
-                    }
-                }
-                final Element tpgIndexElem = overlayElem.getChild(DimapProductConstants.TAG_TIE_POINT_GRID_INDEX);
-                if (tpgIndexElem != null) {
-                    final String tpgName = getTiePointGridName(getRootElement(), tpgIndexElem.getTextTrim());
-                    if (tpgName != null) {
-                        final TiePointGrid tiePointGrid = product.getTiePointGrid(tpgName);
-                        if (tiePointGrid != null) {
-                            setBitmaskOverlayInfo(tiePointGrid, names);
-                        }
-                    }
-                }
-            }
-        }
-
-        private void setBitmaskOverlayInfo(RasterDataNode rasterDataNode, String[] bitmaskNames) {
-            final BitmaskOverlayInfo overlayInfo = new BitmaskOverlayInfo();
-            if (rasterDataNode.getBitmaskOverlayInfo() != null) {
-                for (final BitmaskDef def : rasterDataNode.getBitmaskOverlayInfo().getBitmaskDefs()) {
-                    overlayInfo.addBitmaskDef(def);
-                }
-            }
-            for (final String name : bitmaskNames) {
-                final BitmaskDef def = rasterDataNode.getProduct().getBitmaskDef(name);
-                if (def != null) {
-                    overlayInfo.addBitmaskDef(def);
-                }
-            }
-            rasterDataNode.setBitmaskOverlayInfo(overlayInfo);
         }
 
         private void addBandStatistics(Element imageDisplayElem, Product product) {
@@ -1226,14 +1191,16 @@ public class DimapProductHelpers {
             final Double stdDev = getElemDouble(bandStatisticsElem, DimapProductConstants.TAG_STX_STDDEV);
             final Integer level = getElemInt(bandStatisticsElem, DimapProductConstants.TAG_STX_LEVEL);
             final int[] bins = getHistogramBins(bandStatisticsElem);
+            boolean intHistogram = !ProductData.isFloatingPointType(band.getGeophysicalDataType());
             if (minSample != null && maxSample != null) {
-                return new Stx(band.scaleInverse(minSample),
-                               band.scaleInverse(maxSample),
-                               mean != null ? band.scaleInverse(mean) : Double.NaN,
-                               stdDev != null ? band.scaleInverse(stdDev) : Double.NaN,
-                               ProductData.isIntType(band.getDataType()),
-                               bins == null ? new int[0] : bins,
-                               level == null ? 0 : level);
+                return new StxFactory()
+                        .withMinimum(minSample)
+                        .withMaximum(maxSample)
+                        .withMean(mean)
+                        .withStandardDeviation(stdDev)
+                        .withIntHistogram(intHistogram)
+                        .withHistogramBins(bins == null ? new int[0] : bins)
+                        .withResolutionLevel(level).create();
             }
             return null;
         }
@@ -1454,7 +1421,6 @@ public class DimapProductHelpers {
         }
 
         // needed for backward compatibility
-
         private void addBitmaskDefinitions(Product product) {
             final Element bitmaskDefs = getRootElement().getChild(DimapProductConstants.TAG_BITMASK_DEFINITIONS);
             List bitmaskDefList;

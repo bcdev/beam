@@ -16,38 +16,37 @@
 
 package org.esa.beam.dataio.geometry;
 
+import com.bc.ceres.core.ProgressMonitor;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.GeometryFactory;
-
-import org.esa.beam.framework.datamodel.Placemark;
-import org.esa.beam.framework.datamodel.VectorDataNode;
+import org.esa.beam.framework.datamodel.*;
+import org.esa.beam.util.FeatureUtils;
 import org.geotools.feature.DefaultFeatureCollection;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
+import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.feature.simple.SimpleFeatureImpl;
+import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.filter.identity.FeatureIdImpl;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.junit.Before;
 import org.junit.Test;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.LineNumberReader;
-import java.io.StringReader;
-import java.io.StringWriter;
+import java.io.*;
 
 import static org.junit.Assert.*;
 
 public class VectorDataNodeIOTest {
 
     private static final String ATTRIBUTE_NAME_LABEL = "LABEL";
-    
+
     private StringWriter stringWriter;
     private DefaultFeatureCollection testCollection;
-    
+    private VectorDataNodeReader2.PlacemarkDescriptorProvider placemarkDescriptorProvider;
+
     @Before
     public void setUp() throws IOException {
         testCollection = createTestCollection();
@@ -55,6 +54,12 @@ public class VectorDataNodeIOTest {
         stringWriter = new StringWriter(300);
         final VectorDataNodeWriter writer = new VectorDataNodeWriter();
         writer.writeFeatures(testCollection, stringWriter);
+        placemarkDescriptorProvider = new VectorDataNodeReader2.PlacemarkDescriptorProvider() {
+            @Override
+            public PlacemarkDescriptor getPlacemarkDescriptor(SimpleFeatureType simpleFeatureType) {
+                return PlacemarkDescriptorRegistry.getInstance().getPlacemarkDescriptor(org.esa.beam.framework.datamodel.GeometryDescriptor.class);
+            }
+        };
     }
 
     @Test
@@ -65,17 +70,22 @@ public class VectorDataNodeIOTest {
         assertTrue(linesOut[2].endsWith("with     spaces"));
         assertTrue(linesOut[3].endsWith("with \\\\t escaped tab"));
     }
-    
+
     @Test
-    public void testDecodingDelimiter() throws IOException {        
-        final VectorDataNodeReader reader = new VectorDataNodeReader("mem", DefaultGeographicCRS.WGS84);
-        final FeatureCollection<SimpleFeatureType,SimpleFeature> readCollection = reader.readFeatures(
-                new StringReader(stringWriter.toString()));
+    public void testDecodingDelimiter() throws IOException {
+        final FeatureCollection<SimpleFeatureType, SimpleFeature> readCollection =
+                VectorDataNodeReader2.read("mem", new StringReader(stringWriter.toString()),
+                                           createDummyProduct(), new FeatureUtils.FeatureCrsProvider() {
+                    @Override
+                    public CoordinateReferenceSystem getFeatureCrs(Product product) {
+                        return DefaultGeographicCRS.WGS84;
+                    }
+                }, placemarkDescriptorProvider, DefaultGeographicCRS.WGS84, ProgressMonitor.NULL).getFeatureCollection();
 
         assertEquals(testCollection.size(), readCollection.size());
         final FeatureIterator<SimpleFeature> expectedIterator = testCollection.features();
         final FeatureIterator<SimpleFeature> actualIterator = readCollection.features();
-        while(expectedIterator.hasNext()) {
+        while (expectedIterator.hasNext()) {
             final SimpleFeature expectedFeature = expectedIterator.next();
             final SimpleFeature actualFeature = actualIterator.next();
             final Object expectedAttribute = expectedFeature.getAttribute(ATTRIBUTE_NAME_LABEL);
@@ -99,7 +109,7 @@ public class VectorDataNodeIOTest {
         collection.add(f3);
         return collection;
     }
-    
+
     @Test
     public void testEncodeTabString() {
         assertEquals("with\\tTab", VectorDataNodeIO.encodeTabString("with\tTab"));
@@ -109,7 +119,7 @@ public class VectorDataNodeIOTest {
         assertEquals("with \\d other char", VectorDataNodeIO.encodeTabString("with \\d other char"));
         assertEquals("with \\\\d other char", VectorDataNodeIO.encodeTabString("with \\\\d other char"));
     }
-    
+
     @Test
     public void testDecodeTabString() {
         assertEquals("with\tTab", VectorDataNodeIO.decodeTabString("with\\tTab"));
@@ -119,34 +129,93 @@ public class VectorDataNodeIOTest {
         assertEquals("with \\d other char", VectorDataNodeIO.encodeTabString("with \\d other char"));
         assertEquals("with \\\\d other char", VectorDataNodeIO.encodeTabString("with \\\\d other char"));
     }
-    
+
     @Test
     public void testProperties() throws Exception {
         VectorDataNode vectorDataNode = new VectorDataNode("aName", Placemark.createGeometryFeatureType());
         vectorDataNode.setDescription("Contains a set of pins");
-        vectorDataNode.setDefaultCSS("stroke:#ff0000");
+        vectorDataNode.setDefaultStyleCss("stroke:#ff0000");
 
         VectorDataNodeWriter vectorDataNodeWriter = new VectorDataNodeWriter();
         File tempFile = File.createTempFile("VectorDataNodeWriterTest_testProperties", "csv");
         tempFile.deleteOnExit();
         vectorDataNodeWriter.write(vectorDataNode, tempFile);
-        
+
         FileReader fileReader = new FileReader(tempFile);
         LineNumberReader lineNumberReader = new LineNumberReader(fileReader);
-        
+
         String firstLine = lineNumberReader.readLine();
         assertNotNull(firstLine);
         assertEquals("#description=Contains a set of pins", firstLine);
-        
+
         String secondLine = lineNumberReader.readLine();
         assertNotNull(secondLine);
         assertEquals("#defaultCSS=stroke:#ff0000", secondLine);
-        
-        VectorDataNodeReader vectorDataNodeReader = new VectorDataNodeReader("mem", null);
-        VectorDataNode vectorDataNode2 = vectorDataNodeReader.read(tempFile);
-        
+
+        VectorDataNode vectorDataNode2 = VectorDataNodeReader2.read("mem", new FileReader(tempFile), createDummyProduct(), new FeatureUtils.FeatureCrsProvider() {
+            @Override
+            public CoordinateReferenceSystem getFeatureCrs(Product product) {
+                return DefaultGeographicCRS.WGS84;
+            }
+        }, placemarkDescriptorProvider, DefaultGeographicCRS.WGS84, ProgressMonitor.NULL);
+
         assertNotNull(vectorDataNode2);
         assertEquals(vectorDataNode.getDescription(), vectorDataNode2.getDescription());
-        assertEquals(vectorDataNode.getDefaultCSS(), vectorDataNode2.getDefaultCSS());
+        assertEquals(vectorDataNode.getDefaultStyleCss(), vectorDataNode2.getDefaultStyleCss());
     }
+
+    @Test
+    public void testGetVectorDataNodes() throws Exception {
+        SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
+        builder.setName("sft");
+        builder.add("CAPITAL", String.class);
+        SimpleFeatureType featureType = builder.buildFeatureType();
+        VectorDataNode vectorDataNode = new VectorDataNode("originalName", featureType);
+        SimpleFeatureBuilder simpleFeatureBuilder = new SimpleFeatureBuilder(featureType);
+        simpleFeatureBuilder.set("CAPITAL", "Moscow");
+
+        vectorDataNode.getFeatureCollection().add(simpleFeatureBuilder.buildFeature("0"));
+
+        simpleFeatureBuilder.set("CAPITAL", "Coruscant");
+
+        vectorDataNode.getFeatureCollection().add(simpleFeatureBuilder.buildFeature("1"));
+
+        VectorDataNode[] vectorDataNodes = VectorDataNodeIO.getVectorDataNodes(vectorDataNode, true, "CAPITAL");
+        assertEquals(2, vectorDataNodes.length);
+        assertEquals("Moscow", vectorDataNodes[0].getName());
+        assertEquals("Coruscant", vectorDataNodes[1].getName());
+
+        vectorDataNodes = VectorDataNodeIO.getVectorDataNodes(vectorDataNode, false, "CAPITAL");
+        assertEquals(1, vectorDataNodes.length);
+        assertEquals("originalName", vectorDataNodes[0].getName());
+    }
+
+    @Test
+    public void testGetVectorDataNodesWithEmptyAttribute() throws Exception {
+        SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
+        builder.setName("sft");
+        builder.add("CAPITAL", String.class);
+        SimpleFeatureType featureType = builder.buildFeatureType();
+        VectorDataNode vectorDataNode = new VectorDataNode("originalName", featureType);
+        SimpleFeatureBuilder simpleFeatureBuilder = new SimpleFeatureBuilder(featureType);
+        simpleFeatureBuilder.set("CAPITAL", "");
+
+        vectorDataNode.getFeatureCollection().add(simpleFeatureBuilder.buildFeature("0"));
+
+        simpleFeatureBuilder.set("CAPITAL", "Coruscant");
+
+        vectorDataNode.getFeatureCollection().add(simpleFeatureBuilder.buildFeature("1"));
+
+        VectorDataNode[] vectorDataNodes = VectorDataNodeIO.getVectorDataNodes(vectorDataNode, true, "CAPITAL");
+        assertEquals(2, vectorDataNodes.length);
+        assertEquals("originalName_1", vectorDataNodes[0].getName());
+        assertEquals("Coruscant", vectorDataNodes[1].getName());
+    }
+
+    private static Product createDummyProduct() {
+        Product dummyProduct = new Product("blah", "blahType", 360, 180);
+        dummyProduct.setGeoCoding(new VectorDataNodeReader2Test.DummyGeoCoding());
+        return dummyProduct;
+    }
+
 }

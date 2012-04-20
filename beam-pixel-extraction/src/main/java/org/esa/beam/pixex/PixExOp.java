@@ -56,7 +56,7 @@ import org.esa.beam.util.math.MathUtils;
 
 import javax.media.jai.PlanarImage;
 import javax.media.jai.operator.ConstantDescriptor;
-import java.awt.*;
+import java.awt.Rectangle;
 import java.awt.geom.Point2D;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
@@ -80,7 +80,7 @@ import java.util.zip.ZipOutputStream;
 import static java.lang.Math.*;
 
 /**
- * This operator is used to extracts pixels from given locations and source products.
+ * This operator is used to extract pixels from given locations and source products.
  * It can also create sub-scenes containing all locations found in the source products and create
  * KMZ files which contain the locations found in a source product
  *
@@ -123,9 +123,10 @@ public class PixExOp extends Operator implements Output {
     private Coordinate[] coordinates;
 
     @Parameter(description = "The acceptable time difference compared to the time given for a coordinate.\n" +
-            "The format is a number followed by (D)ay, (H)our or (M)inute.",
-            defaultValue = "1D")
-    private String timeDifference;
+            "The format is a number followed by (D)ay, (H)our or (M)inute. If no time difference is provided, " +
+            "all input products are considered regardless of their time.",
+            defaultValue = "")
+    private String timeDifference = "";
 
     @Parameter(description = "Path to a file containing geo-coordinates. BEAM's placemark files can be used.")
     private File coordinatesFile;
@@ -133,7 +134,6 @@ public class PixExOp extends Operator implements Output {
     @Parameter(description = "Side length of surrounding window (uneven)", defaultValue = "1",
             validator = WindowSizeValidator.class)
     private Integer windowSize;
-
 
     @Parameter(description = "The output directory.", notNull = true)
     private File outputDir;
@@ -161,7 +161,7 @@ public class PixExOp extends Operator implements Output {
             defaultValue = "false")
     private boolean exportKmz;
 
-    @Parameter(description = "If set to true, a the sensing start ans sensing stop should be extracted from the filename " +
+    @Parameter(description = "If set to true, the sensing start and sensing stop should be extracted from the filename " +
             "of each input product.",
             defaultValue = "false",
             label = "Extract time from product filename")
@@ -190,22 +190,9 @@ public class PixExOp extends Operator implements Output {
     private ArrayList<String> knownKmzPlacemarks;
     private TimeStampExtractor timeStampExtractor;
 
-
-    int getTimeDelta() {
-        return timeDelta;
-    }
-
-    int getCalendarField() {
-        return calendarField;
-    }
-
-    Iterator<Measurement> getMeasurements() {
-        return measurements;
-    }
-
     @Override
     public void initialize() throws OperatorException {
-        if (coordinatesFile == null && coordinates == null) {
+        if (coordinatesFile == null && (coordinates == null || coordinates.length == 0)) {
             throw new OperatorException("No coordinates specified.");
         }
         if (outputDir != null && !outputDir.exists() && !outputDir.mkdirs()) {
@@ -295,6 +282,17 @@ public class PixExOp extends Operator implements Output {
         super.dispose();
     }
 
+    int getTimeDelta() {
+        return timeDelta;
+    }
+
+    int getCalendarField() {
+        return calendarField;
+    }
+
+    Iterator<Measurement> getMeasurements() {
+        return measurements;
+    }
 
     private boolean extractMeasurement(Product product, Coordinate coordinate,
                                        int coordinateID, RenderedImage validMaskImage) throws IOException {
@@ -302,8 +300,8 @@ public class PixExOp extends Operator implements Output {
         if (!product.containsPixel(centerPos)) {
             return false;
         }
-        final ProductData.UTC scanLineTime = ProductUtils.getScanLineTime(product, centerPos.y);
         if (coordinate.getDateTime() != null) {
+            final ProductData.UTC scanLineTime = ProductUtils.getScanLineTime(product, centerPos.y);
             if (scanLineTime == null || !isPixelInTimeSpan(coordinate, timeDelta, calendarField, scanLineTime)) {
                 return false;
             }
@@ -354,6 +352,10 @@ public class PixExOp extends Operator implements Output {
 
     private boolean isPixelInTimeSpan(Coordinate coordinate, int timeDiff, int calendarField,
                                       ProductData.UTC timeAtPixel) {
+        if(timeDifference.isEmpty()) {
+            return true;
+        }
+
         final Calendar currentDate = timeAtPixel.getAsCalendar();
 
         final Calendar lowerTimeBound = (Calendar) currentDate.clone();
@@ -367,7 +369,10 @@ public class PixExOp extends Operator implements Output {
         return lowerTimeBound.compareTo(coordinateCal) <= 0 && upperTimeBound.compareTo(coordinateCal) >= 0;
     }
 
-    void parseTimeDelta(String timeDelta) {
+    private void parseTimeDelta(String timeDelta) {
+        if(timeDifference.isEmpty()) {
+            return;
+        }
         this.timeDelta = Integer.parseInt(timeDelta.substring(0, timeDelta.length() - 1));
         final String s = timeDelta.substring(timeDelta.length() - 1).toUpperCase();
         if ("D".equals(s)) {
@@ -444,15 +449,20 @@ public class PixExOp extends Operator implements Output {
         Product product = null;
         try {
             product = ProductIO.readProduct(file);
+            if(product == null) {
+                getLogger().warning("Unable to read product from file '" + file.getAbsolutePath() + "'.");
+                return false;
+            }
             if (extractTimeFromFilename) {
-//                final ProductData.UTC[] startEnd = timeStampExtractor.extractTimeStamp(file.getName());
-//                product.setStartTime(startEnd[0]);
-//                product.setEndTime(startEnd[1]);
+                final ProductData.UTC[] timeStamps = timeStampExtractor.extractTimeStamps(file.getName());
+                product.setStartTime(timeStamps[0]);
+                product.setEndTime(timeStamps[1]);
             }
-            if (product != null) {
-                return extractMeasurements(product);
-            }
-        } catch (Exception ignore) {
+            return extractMeasurements(product);
+        } catch (ValidationException e) {
+            throw new OperatorException(e);
+        } catch (IOException e) {
+            getLogger().warning("Unable to read product from file '" + file.getAbsolutePath() + "'.");
         } finally {
             if (product != null) {
                 product.dispose();
@@ -512,8 +522,6 @@ public class PixExOp extends Operator implements Output {
         return coordinatesFound;
     }
 
-    private ArrayList<Product> products;
-
     private void exportSubScene(Product product, List<Coordinate> coordinates) throws IOException {
         final ProductSubsetDef subsetDef = new ProductSubsetDef(product.getName() + "_subScene");
 
@@ -547,7 +555,7 @@ public class PixExOp extends Operator implements Output {
         setTargetProduct(product);
     }
 
-    static File[] getParsedInputPaths(File[] filePaths) {
+    public static File[] getParsedInputPaths(File[] filePaths) {
         final ArrayList<File> directoryList = new ArrayList<File>();
         for (File file : filePaths) {
             String trimmedPath = file.getPath().trim();
@@ -599,9 +607,10 @@ public class PixExOp extends Operator implements Output {
             }
             final GeoCoding geoCoding = product.getGeoCoding();
             if (geoCoding == null) {
-                final String msgPattern = "Product [%s] refused. Cause: Product is not geo-coded.";
-                logger.warning(String.format(msgPattern, product.getFileLocation()));
-                return false;
+                throw new OperatorException("geoCoding == null");
+//                final String msgPattern = "Product [%s] refused. Cause: Product is not geo-coded.";
+//                logger.warning(String.format(msgPattern, product.getFileLocation()));
+//                return false;
             }
             if (!geoCoding.canGetPixelPos()) {
                 final String msgPattern = "Product [%s] refused. Cause: Pixel position can not be determined.";

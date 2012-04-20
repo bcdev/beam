@@ -16,6 +16,7 @@
 
 package org.esa.beam.framework.datamodel;
 
+import org.esa.beam.framework.dataio.DecodeQualification;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
@@ -37,6 +38,13 @@ import java.awt.*;
 public interface PlacemarkDescriptor {
 
     /**
+     * Asks the descriptor to set any application specific information in the feature type's user data.
+     *
+     * @param featureType The feature type whose user data may or may not be altered.
+     */
+    void setUserData(SimpleFeatureType featureType);
+
+    /**
      * Creates a new placemark by wrapping the given feature.
      *
      * @param feature The feature to be wrapped.
@@ -49,10 +57,11 @@ public interface PlacemarkDescriptor {
      * The method shall only return {@code true}, if the {@link #createPlacemark(org.opengis.feature.simple.SimpleFeature)}
      * method can successfully create a new placemark from a feature having the compatible {@code featureType}.
      *
+     *
      * @param featureType The feature type to be tested.
      * @return {@code true}, if the {@code featureType} is compatible.
      */
-    boolean isCompatibleWith(SimpleFeatureType featureType);
+    DecodeQualification getQualification(SimpleFeatureType featureType);
 
     /**
      * Gets the feature type that provides the minimum set of attributes

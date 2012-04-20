@@ -18,473 +18,374 @@ package org.esa.beam.framework.datamodel;
 
 import com.bc.ceres.core.Assert;
 import com.bc.ceres.core.ProgressMonitor;
-import com.bc.ceres.core.SubProgressMonitor;
-import com.bc.ceres.jai.NoDataRaster;
-import org.esa.beam.jai.ImageManager;
 
 import javax.media.jai.Histogram;
-import javax.media.jai.ImageLayout;
-import javax.media.jai.JAI;
-import javax.media.jai.PixelAccessor;
-import javax.media.jai.PlanarImage;
-import javax.media.jai.operator.MinDescriptor;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
-import java.awt.Shape;
-import java.awt.geom.Area;
-import java.awt.image.DataBuffer;
-import java.awt.image.Raster;
-import java.awt.image.RenderedImage;
-import java.awt.image.SampleModel;
-import java.util.concurrent.CancellationException;
 
 /**
- * Instances of the <code>Stx</code> class provide statistics for a band.
- * Preliminary API. Use at your own risk.
+ * Provides statistic information for a raster data node at a given image resolution level.
+ * Instances of the <code>Stx</code> class are created using the {@link StxFactory}.
+ * <p/>
+ * <i>Important note: This class has been revised in BEAM 4.10. All behaviour has been moved to {@link StxFactory}
+ * leaving behind this class as a pure data container. Statistics are now furthermore derived upon
+ * geo-physically interpreted image data (before it operated on the raw, unscaled data). Thus, it is
+ * not required to scale the returned statistical properties, e.g. we used to write
+ * {@code band.scale(stx.getMean())}. This is not required anymore.</i>
  *
- * @since BEAM 4.2
+ * @author Norman Fomferra
+ * @author Marco Peters
+ * @author Ralf Quast
+ * @since BEAM 4.2, full revision in 4.10
  */
 public class Stx {
 
     public static final int DEFAULT_BIN_COUNT = 512;
+    public static final Scaling LOG10_SCALING = new Log10Scaling();
 
-    private final double min;
-    private final double max;
-    private final double stdDev;
     private final long sampleCount;
-    private final int resolutionLevel;
-    private final Histogram histogram;
+    private final double minimum;
+    private final double maximum;
     private final double mean;
+    private final double standardDeviation;
     private final double median;
+    private final int resolutionLevel;
+    private final boolean logHistogram;
+    private final boolean intHistogram;
+    private final Histogram histogram;
 
-    public static Stx create(RasterDataNode raster, int level, ProgressMonitor pm) {
-        return createImpl(raster, level, null, null, DEFAULT_BIN_COUNT, pm);
-    }
-
-    /**
-     * @deprecated since BEAM 4.7, use {@link #create(RasterDataNode, Mask, ProgressMonitor)} instead.
-     */
-    @Deprecated
-    public static Stx create(RasterDataNode raster, RenderedImage roiImage, ProgressMonitor pm) {
-        return createImpl(raster, 0, roiImage, null, DEFAULT_BIN_COUNT, pm);
-    }
-
-    public static Stx create(RasterDataNode raster, Mask roiMask, ProgressMonitor pm) {
-        Shape maskShape = null;
-        RenderedImage maskImage = null;
-        if (roiMask != null) {
-            maskShape = roiMask.getValidShape();
-            maskImage = roiMask.getSourceImage();
-        }
-        return createImpl(raster, 0, maskImage, maskShape, DEFAULT_BIN_COUNT, pm);
-    }
+    private final Scaling histogramScaling;
 
     /**
-     * @deprecated since BEAM 4.7, use {@link #create(RasterDataNode, Mask, int, ProgressMonitor)} instead.
-     */
-    @Deprecated
-    public static Stx create(RasterDataNode raster, RenderedImage roiImage, int binCount, ProgressMonitor pm) {
-        return createImpl(raster, 0, roiImage, null, binCount, pm);
-    }
-
-    public static Stx create(RasterDataNode raster, Mask roiMask, int binCount, ProgressMonitor pm) {
-        Shape maskShape = null;
-        RenderedImage maskImage = null;
-        if (roiMask != null) {
-            maskShape = roiMask.getValidShape();
-            maskImage = roiMask.getSourceImage();
-        }
-        return createImpl(raster, 0, maskImage, maskShape, binCount, pm);
-    }
-
-    public static Stx create(RasterDataNode raster, int level, int binCount, double min, double max,
-                             ProgressMonitor pm) {
-        return createImpl(raster, level, null, null, binCount, min, max, pm);
-    }
-
-    /**
-     * @deprecated since BEAM 4.7, use {@link #create(RasterDataNode, Mask, int, double, double, ProgressMonitor)} instead.
-     */
-    @Deprecated
-    public static Stx create(RasterDataNode raster, RenderedImage roiImage, int binCount, double min, double max,
-                             ProgressMonitor pm) {
-        return createImpl(raster, 0, roiImage, null, binCount, min, max, pm);
-    }
-
-    public static Stx create(RasterDataNode raster, Mask roiMask, int binCount, double min, double max,
-                             ProgressMonitor pm) {
-        Shape maskShape = null;
-        RenderedImage maskImage = null;
-        if (roiMask != null) {
-            maskShape = roiMask.getValidShape();
-            maskImage = roiMask.getSourceImage();
-        }
-        return createImpl(raster, 0, maskImage, maskShape, binCount, min, max, pm);
-    }
-
-
-    /**
-     * Creates a {@code Stx} object with the given Parameter.
+     * Constructor. Avoid using it directly. instead, use the {@link StxFactory} since the constructor may change in the future.
      *
-     * @param min               the minimum value
-     * @param max               the maximum value
-     * @param mean              the mean value, if it's {@link Double#NaN} the mean will be computed
-     * @param stdDev            the value of the standard deviation, if it's {@link Double#NaN} it will be computed
-     * @param intType           if true, statistics are computed from a data basis of integer number type.
-     * @param sampleFrequencies the frequencies of the samples
+     * @param minimum           the minimum value, if it is {@link Double#NaN} the minimum is taken from the {@code histogram}
+     * @param maximum           the maximum value, if it is {@link Double#NaN} the maximum is taken from the {@code histogram}
+     * @param mean              the mean value, if it is {@link Double#NaN} the mean is taken from the {@code histogram}
+     * @param standardDeviation the value of the standard deviation, if it is {@link Double#NaN} it is taken from the {@code histogram}
+     * @param logHistogram      {@code true} if the histogram has been computed on logarithms, see {@link #getHistogram()}
+     * @param intHistogram      {@code true} if the histogram has been computed from integer samples, see {@link #getHistogram()}
+     * @param histogram         the histogram
      * @param resolutionLevel   the resolution level this {@code Stx} is for
-     *
-     * @see Stx#Stx(double, double, double, double, javax.media.jai.Histogram, int)
      */
-    public Stx(double min, double max, double mean, double stdDev, boolean intType, int[] sampleFrequencies,
-               int resolutionLevel) {
-        this(min, max, mean, stdDev, createHistogram(min, max + (intType ? 1.0 : 0.0), sampleFrequencies),
-             resolutionLevel);
-    }
+    public Stx(double minimum, double maximum, double mean, double standardDeviation,
+               boolean logHistogram, boolean intHistogram, Histogram histogram, int resolutionLevel) {
 
-    /**
-     * Creates a {@code Stx} object with the given Parameter.
-     *
-     * @param min             the minimum value
-     * @param max             the maximum value
-     * @param mean            the mean value, if it's {@link Double#NaN} the mean is taken from the {@code histogram}
-     * @param stdDev          the value of the standard deviation, if it's {@link Double#NaN} it is taken from the {@code histogram}
-     * @param histogram       the histogram
-     * @param resolutionLevel the resolution level this {@code Stx} is for
-     *
-     * @see Stx#Stx(double, double, double, double, javax.media.jai.Histogram, int)
-     */
-    private Stx(double min, double max, double mean, double stdDev, Histogram histogram, int resolutionLevel) {
-        this.min = min;
-        this.max = max;
-        this.mean = Double.isNaN(mean) ? histogram.getMean()[0] : mean;
-        this.stdDev = Double.isNaN(stdDev) ? histogram.getStandardDeviation()[0] : stdDev;
+        Assert.argument(!Double.isNaN(minimum) && !Double.isInfinite(minimum), "minimum");
+        Assert.argument(!Double.isNaN(maximum) && !Double.isInfinite(maximum), "maximum");
+        Assert.argument(resolutionLevel >= 0, "resolutionLevel");
+
+        // todo - this is still a lot of behaviour, move all computations to StxFactory (nf)
+        // todo - minimum and maximum must always be valid (nf)
+        this.sampleCount = StxFactory.computeSum(histogram.getBins(0));
+        this.minimum = minimum;
+        this.maximum = maximum;
+        this.histogramScaling = getHistogramScaling(logHistogram);
+        this.mean = Double.isNaN(mean) ? histogramScaling.scaleInverse(histogram.getMean()[0]) : mean;
+        this.standardDeviation = Double.isNaN(standardDeviation) ? histogramScaling.scaleInverse(histogram.getStandardDeviation()[0]) : standardDeviation;
+        this.median = histogramScaling.scaleInverse(StxFactory.computeMedian(histogram, this.sampleCount));
+        this.logHistogram = logHistogram;
+        this.intHistogram = intHistogram;
         this.histogram = histogram;
         this.resolutionLevel = resolutionLevel;
-        this.sampleCount = computeSum(histogram.getBins(0));
-        this.median = computeMedian(histogram, this.sampleCount);
     }
 
-    public double getMin() {
-        return min;
+    /**
+     * @return The minimum value.
+     */
+    public double getMinimum() {
+        return minimum;
     }
 
-    public double getMax() {
-        return max;
+    /**
+     * @return The maximum value.
+     */
+    public double getMaximum() {
+        return maximum;
     }
 
+    /**
+     * @return The mean value.
+     */
     public double getMean() {
         return mean;
     }
 
+    /**
+     * @return The median value (estimation based on Gaussian distribution).
+     */
     public double getMedian() {
         return median;
     }
 
+    /**
+     * @return The standard deviation value.
+     */
     public double getStandardDeviation() {
-        return stdDev;
+        return standardDeviation;
     }
 
-    public double getHistogramBinMin(int binIndex) {
-        return getMin() + binIndex * getHistogramBinWidth();
+    /**
+     * Gets the histogram computed from image samples.
+     * <p/>
+     * The returned histogram may have been computed on the logarithms of image samples.
+     * In this case {@link #isLogHistogram()} returns true and it is expected that the histogram has been
+     * computed from logarithms (base 10) of image samples.
+     * Therefore, any statistical property retrieved from the returned histogram object such as low value, high value, bin low value,
+     * mean, moment, entropy, etc. must be raised to the power of 10. Scaling is best done using the {@link #getHistogramScaling()} object.
+     * <p/>
+     * The returned histogram may furthermore be computed from integer image data.
+     * In this case {@link #isIntHistogram()} returns true and the high value of the histogram is by one higher than
+     * the value returned by {@link #getMinimum()}.
+     * <p/>
+     * The {@code numBands} property of the histogram will always be 1.
+     *
+     * @return The histogram.
+     * @see #isIntHistogram()
+     * @see #isLogHistogram()
+     * @see #getHistogramScaling()
+     */
+    public Histogram getHistogram() {
+        return histogram;
     }
 
-    public double getHistogramBinMax(int binIndex) {
-        return getHistogramBinMin(binIndex) + getHistogramBinWidth();
+    /**
+     * @return {@code true} if the histogram is computed from integer samples.
+     * @see #getHistogram()
+     */
+    public boolean isIntHistogram() {
+        return intHistogram;
     }
 
+    /**
+     * @return {@code true} if the histogram is computed from log-samples.
+     * @see #getHistogram()
+     * @see #getHistogramScaling()
+     */
+    public boolean isLogHistogram() {
+        return logHistogram;
+    }
+
+    /**
+     * Gets the (inclusive) minimum value of the histogram bin given by the bin index.
+     * <p/>
+     * The value returned is in units of the image samples,
+     * {@link #getHistogramScaling() histogram scaling} is already applied
+     *
+     * @param binIndex The bin index.
+     * @return The (inclusive) minimum value of the bin given by the bin index.
+     */
+    public double getHistogramBinMinimum(int binIndex) {
+        double value = histogram.getBinLowValue(0, binIndex);
+        return histogramScaling.scaleInverse(value);
+    }
+
+    /**
+     * Gets the (exclusive) maximum value of the histogram bin given by the bin index.
+     * <p/>
+     * The value returned is in units of the image samples,
+     * {@link #getHistogramScaling() histogram scaling} is already applied
+     *
+     * @param binIndex The bin index.
+     * @return The (exclusive) maximum value of the bin given by the bin index.
+     */
+    public double getHistogramBinMaximum(int binIndex) {
+        double value = binIndex < histogram.getNumBins(0) ? histogram.getBinLowValue(0, binIndex + 1) : histogram.getHighValue(0);
+        return histogramScaling.scaleInverse(value);
+    }
+
+    /**
+     * Gets the width of any histogram bin.
+     * <p/>
+     * The method's return value is undefined if {@link #isLogHistogram()} returns {@code true}. In this case you will have to use
+     * {@link #getHistogramBinWidth(int)}.
+     *
+     * @return The width of any histogram bin.
+     */
     public double getHistogramBinWidth() {
-        return (getMax() - getMin()) / getHistogramBinCount();
+        return (getMaximum() - getMinimum()) / getHistogramBinCount();
     }
 
+    /**
+     * Gets the width of the histogram bin given by the bin index.
+     * <p/>
+     * The value returned is in units of the image samples,
+     * {@link #getHistogramScaling() histogram scaling} is already applied
+     *
+     * @param binIndex The bin index.
+     * @return The width of the bin given by the bin index.
+     */
+    public double getHistogramBinWidth(int binIndex) {
+        return getHistogramBinMaximum(binIndex) - getHistogramBinMinimum(binIndex);
+    }
+
+    /**
+     * @return The histogram bins (sample counts).
+     */
     public int[] getHistogramBins() {
         return histogram.getBins(0);
     }
 
+    /**
+     * @return The number of bins.
+     */
     public int getHistogramBinCount() {
         return histogram.getNumBins(0);
     }
 
+    /**
+     * @return The image sample scaling used for deriving the histogram.
+     */
+    public Scaling getHistogramScaling() {
+        return histogramScaling;
+    }
+
+    /**
+     * @return The total number of samples seen.
+     */
     public long getSampleCount() {
         return sampleCount;
     }
 
+    /**
+     * @return The image resolution level.
+     */
     public int getResolutionLevel() {
         return resolutionLevel;
     }
 
-    private static Histogram createHistogram(double minSample, double maxSample, int[] sampleFrequencies) {
-        final Histogram histogram = createHistogram(sampleFrequencies.length, minSample, maxSample);
-        System.arraycopy(sampleFrequencies, 0, histogram.getBins(0), 0, sampleFrequencies.length);
-        return histogram;
+    static Scaling getHistogramScaling(boolean logHistogram) {
+        return logHistogram ? LOG10_SCALING : Scaling.IDENTITY;
     }
 
-    private static long computeSum(int[] sampleFrequencies) {
-        long sum = 0;
-        for (int sampleFrequency : sampleFrequencies) {
-            sum += sampleFrequency;
+    static final class Log10Scaling implements Scaling {
+
+        @Override
+        public double scale(double value) {
+            // This is mathematical nonsense, but we want to consider every pixel in the distribution (nf)
+            if (value <= 1.0E-9) {
+                return -9.0;
+            }
+            return Math.log10(value);
         }
-        return sum;
-    }
 
-    private static double computeMedian(Histogram histogram, long sampleCount) {
-        boolean isEven = sampleCount % 2 == 0;
-        double halfSampleCount = sampleCount / 2.0;
-        final int bandIndex = 0;
-        int[] bins = histogram.getBins(bandIndex);
-        long currentSampleCount = 0;
-        int lastConsideredBinIndex = 0;
-        for (int i = 0, binsLength = bins.length; i < binsLength; i++) {
-            currentSampleCount += bins[i];
-
-            if (currentSampleCount > halfSampleCount) {
-                if (isEven) {
-                    double binValue = getMeanOfBin(histogram, bandIndex, i);
-                    double lastBinValue = getMeanOfBin(histogram, bandIndex, lastConsideredBinIndex);
-                    return (lastBinValue + binValue) / 2;
-                } else {
-                    final double binLowValue = histogram.getBinLowValue(bandIndex, i);
-                    final double binMaxValue = histogram.getBinLowValue(bandIndex, i + 1);
-                    final double previousSampleCount = currentSampleCount - bins[i];
-                    double weight = (halfSampleCount - previousSampleCount) / (currentSampleCount - previousSampleCount);
-                    return binLowValue * (1 - weight) + binMaxValue * weight;
-                }
-            }
-            if (bins[i] > 0) {
-                lastConsideredBinIndex = i;
-            }
-        }
-        return Double.NaN;
-    }
-
-    private static double getMeanOfBin(Histogram histogram, int bandIndex, int binIndex) {
-        final double binLowValue = histogram.getBinLowValue(bandIndex, binIndex);
-        final double binMaxValue = histogram.getBinLowValue(bandIndex, binIndex + 1);
-        return (binLowValue + binMaxValue) / 2;
-    }
-
-
-    private static Stx createImpl(RasterDataNode raster, int level, RenderedImage maskImage, Shape maskShape,
-                                  int binCount, ProgressMonitor pm) {
-        try {
-            pm.beginTask("Computing statistics", 3);
-            final SummaryStxOp summaryOp = new SummaryStxOp();
-            accumulate(raster, level, maskImage, maskShape, summaryOp, SubProgressMonitor.create(pm, 1));
-
-            double min = summaryOp.getMinimum();
-            double max = summaryOp.getMaximum();
-            double mean = summaryOp.getMean();
-            double stdDev = summaryOp.getStdDev();
-
-            if (min == Double.MAX_VALUE && max == Double.MIN_VALUE) {
-                final Histogram histogram = createHistogram(1, 0, 1);
-                histogram.getBins(0)[0] = 0;
-                return new Stx(0.0, 1.0, Double.NaN, Double.NaN, histogram, level);
-            }
-
-            double off = getHighValueOffset(raster);
-            final HistogramStxOp histogramOp = new HistogramStxOp(binCount, min, max + off);
-            accumulate(raster, level, maskImage, maskShape, histogramOp, SubProgressMonitor.create(pm, 1));
-
-            // Create JAI histo, but use our "BEAM" bins
-            final Histogram histogram = createHistogram(binCount, min, max + off);
-            System.arraycopy(histogramOp.getBins(), 0, histogram.getBins(0), 0, binCount);
-
-
-            return createImpl(raster, level, maskImage, maskShape, histogram, min, max, mean, stdDev,
-                              SubProgressMonitor.create(pm, 1));
-        } finally {
-            pm.done();
+        @Override
+        public double scaleInverse(double value) {
+            return Math.pow(10, value);
         }
     }
 
-    private static Stx createImpl(RasterDataNode raster, int level, RenderedImage maskImage, Shape maskShape,
-                                  int binCount, double min, double max, ProgressMonitor pm) {
-        try {
-            pm.beginTask("Computing statistics", 3);
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Deprecated API
 
-            double off = getHighValueOffset(raster);
-            final HistogramStxOp histogramOp = new HistogramStxOp(binCount, min, max + off);
-            accumulate(raster, level, maskImage, maskShape, histogramOp, SubProgressMonitor.create(pm, 1));
-
-            // Create JAI histogram, but use our "BEAM" bins
-            final Histogram histogram = createHistogram(binCount, min, max + off);
-            System.arraycopy(histogramOp.getBins(), 0, histogram.getBins(0), 0, binCount);
-
-            return createImpl(raster, level, maskImage, maskShape, histogram, min, max, Double.NaN, Double.NaN,
-                              SubProgressMonitor.create(pm, 1));
-        } finally {
-            pm.done();
-        }
+    /**
+     * @deprecated since BEAM 4.10, use {@link #getHistogramBinMinimum(int)}
+     */
+    @Deprecated
+    public double getHistogramBinMin(int binIndex) {
+        return getHistogramBinMinimum(binIndex);
     }
 
-    private static Stx createImpl(RasterDataNode raster, int level, RenderedImage maskImage, Shape maskShape,
-                                  Histogram histogram, double min, double max, double mean, double stdDev,
-                                  ProgressMonitor pm) {
-        if (Double.isNaN(mean) || Double.isNaN(stdDev)) {
-            final SummaryStxOp meanOp = new SummaryStxOp();
-            accumulate(raster, level, maskImage, maskShape, meanOp, pm);
-            mean = meanOp.getMean();
-            stdDev = meanOp.getStdDev();
-        }
-
-        return new Stx(min, max, mean, stdDev, histogram, level);
+    /**
+     * @deprecated since BEAM 4.10, use {@link #getHistogramBinMaximum(int)}
+     */
+    @Deprecated
+    public double getHistogramBinMax(int binIndex) {
+        return getHistogramBinMaximum(binIndex);
     }
 
-    private static double getHighValueOffset(RasterDataNode raster) {
-        return ProductData.isIntType(raster.getDataType()) ? 1.0 : 0.0;
+    /**
+     * @deprecated since BEAM 4.10, use {@link #getMinimum()}
+     */
+    @Deprecated
+    public double getMin() {
+        return getMinimum();
     }
 
-    private static Histogram createHistogram(int binCount, double min, double max) {
-        return min < max ? new Histogram(binCount, min, max, 1) : new Histogram(binCount, min, min + 1e-10, 1);
+    /**
+     * @deprecated since BEAM 4.10, use {@link #getMaximum()} ()}
+     */
+    @Deprecated
+    public double getMax() {
+        return getMaximum();
     }
 
-    private static void accumulate(RasterDataNode raster,
-                                   int level,
-                                   RenderedImage roiImage, Shape maskShape,
-                                   StxOp op,
-                                   ProgressMonitor pm) {
+    // todo - check if the following createXXX need to be maintained, otherwise remove (nf)
 
-        Assert.notNull(raster, "raster");
-        Assert.argument(level >= 0, "level");
-        Assert.argument(roiImage == null || level == 0, "level");
-        Assert.notNull(pm, "pm");
+    /**
+     * Creates statistics for the given raster data node at the given resolution level.
+     *
+     * @param raster The raster data node.
+     * @param level  The image resolution level.
+     * @param pm     A progress monitor.
+     * @return The statistics at the given resolution level.
+     * @deprecated since BEAM 4.10, use {@link StxFactory} instead.
+     */
+    @Deprecated
+    public static Stx create(RasterDataNode raster, int level, ProgressMonitor pm) {
+        return new StxFactory().withResolutionLevel(level).create(raster, pm);
+    }
 
-        final PlanarImage dataImage = ImageManager.getInstance().getSourceImage(raster, level);
-        final SampleModel dataSampleModel = dataImage.getSampleModel();
-        if (dataSampleModel.getNumBands() != 1) {
-            throw new IllegalStateException("dataSampleModel.numBands != 1");
-        }
-        final PixelAccessor dataAccessor = new PixelAccessor(dataSampleModel, null);
+    /**
+     * Creates (accurate) statistics for the given raster data node.
+     *
+     * @param raster  The raster data node.
+     * @param roiMask The mask that determines the region of interest.
+     * @param pm      A progress monitor.
+     * @return The (accurate) statistics.
+     * @deprecated since BEAM 4.10, use {@link StxFactory} instead.
+     */
+    @Deprecated
+    public static Stx create(RasterDataNode raster, Mask roiMask, ProgressMonitor pm) {
+        return new StxFactory().withRoiMask(roiMask).create(raster, pm);
+    }
 
-        RenderedImage maskImage = ImageManager.getInstance().getValidMaskImage(raster, level);
-        if (roiImage != null) {
-            if (maskImage != null) {
-                final ImageLayout imageLayout = new ImageLayout();
-                imageLayout.setTileWidth(maskImage.getTileWidth());
-                imageLayout.setTileHeight(maskImage.getTileHeight());
-                final RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, imageLayout);
-                maskImage = MinDescriptor.create(maskImage, roiImage, hints);
-            } else {
-                maskImage = roiImage;
-            }
-        }
-        Shape validShape = raster.getValidShape();
-        Shape effectiveShape = validShape;
-        if (validShape != null && maskShape != null) {
-            Area area = new Area(validShape);
-            area.intersect(new Area(maskShape));
-            effectiveShape = area;
-        } else if (maskShape != null) {
-            effectiveShape = maskShape;
-        }
+    /**
+     * Creates (accurate) statistics for the given raster data node.
+     *
+     * @param raster   The raster data node.
+     * @param roiMask  The mask that determines the region of interest.
+     * @param binCount The number of bin cells used for the histogram.
+     * @param pm       A progress monitor.
+     * @return The (accurate) statistics.
+     * @deprecated since BEAM 4.10, use {@link StxFactory} instead.
+     */
+    @Deprecated
+    public static Stx create(RasterDataNode raster, Mask roiMask, int binCount, ProgressMonitor pm) {
+        return new StxFactory().withRoiMask(roiMask).withHistogramBinCount(binCount).create(raster, pm);
+    }
 
-        final PixelAccessor maskAccessor;
-        if (maskImage != null) {
-            SampleModel maskSampleModel = maskImage.getSampleModel();
-            if (maskSampleModel.getNumBands() != 1) {
-                throw new IllegalStateException("maskSampleModel.numBands != 1");
-            }
-            if (maskSampleModel.getDataType() != DataBuffer.TYPE_BYTE) {
-                throw new IllegalStateException("maskSampleModel.dataType != TYPE_BYTE");
-            }
-            maskAccessor = new PixelAccessor(maskSampleModel, null);
-            if (maskImage.getMinX() != dataImage.getMinX()) {
-                throw new IllegalStateException("maskImage.getMinX() != dataImage.getMinX()");
-            }
-            if (maskImage.getMinY() != dataImage.getMinY()) {
-                throw new IllegalStateException("maskImage.getMinY() != dataImage.getMinY()");
-            }
-            if (maskImage.getWidth() != dataImage.getWidth()) {
-                throw new IllegalStateException("maskImage.getWidth() != dataImage.getWidth()");
-            }
-            if (maskImage.getHeight() != dataImage.getHeight()) {
-                throw new IllegalStateException("maskImage.getWidth() != dataImage.getWidth()");
-            }
-        } else {
-            maskAccessor = null;
-        }
+    /**
+     * Creates (accurate) statistics for the given raster data node.
+     *
+     * @param raster   The raster data node.
+     * @param level    The image resolution level.
+     * @param binCount The number of bin cells used for the histogram.
+     * @param min      The minimum value.
+     * @param max      The maximum value.
+     * @param pm       A progress monitor.
+     * @return The (accurate) statistics.
+     * @deprecated since BEAM 4.10, use {@link StxFactory} instead.
+     */
+    @Deprecated
+    public static Stx create(RasterDataNode raster, int level, int binCount, double min, double max,
+                             ProgressMonitor pm) {
+        return new StxFactory().withResolutionLevel(level).withHistogramBinCount(binCount).withMinimum(min).withMaximum(max).create(raster, pm);
+    }
 
-
-        final int numXTiles = dataImage.getNumXTiles();
-        final int numYTiles = dataImage.getNumYTiles();
-
-        final int tileX1 = dataImage.getTileGridXOffset();
-        final int tileY1 = dataImage.getTileGridYOffset();
-        final int tileX2 = tileX1 + numXTiles - 1;
-        final int tileY2 = tileY1 + numYTiles - 1;
-
-        if (maskImage != null) {
-            if (maskImage.getTileGridXOffset() != tileX1) {
-                throw new IllegalStateException("maskImage.getTileGridXOffset() != dataImage.getTileGridXOffset()");
-            }
-            if (maskImage.getTileGridXOffset() != tileY1) {
-                throw new IllegalStateException("maskImage.getTileGridYOffset() != dataImage.getTileGridYOffset()");
-            }
-            if (maskImage.getNumXTiles() != numXTiles) {
-                throw new IllegalStateException("maskImage.getNumXTiles() != dataImage.getNumXTiles()");
-            }
-            if (maskImage.getNumYTiles() != numYTiles) {
-                throw new IllegalStateException("maskImage.getNumYTiles() != dataImage.getNumYTiles()");
-            }
-        }
-
-        try {
-            pm.beginTask("Computing " + op.getName(), numXTiles * numYTiles);
-            for (int tileY = tileY1; tileY <= tileY2; tileY++) {
-                for (int tileX = tileX1; tileX <= tileX2; tileX++) {
-                    if (pm.isCanceled()) {
-                        throw new CancellationException("Process terminated by user."); /*I18N*/
-                    }
-                    boolean tileContainsData = true;
-                    if (effectiveShape != null) {
-                        Rectangle dataRect = dataImage.getTileRect(tileX, tileY);
-                        if (!effectiveShape.intersects(dataRect)) {
-                            tileContainsData = false;
-                        }
-                    }
-                    if (tileContainsData) {
-                        final Raster dataTile = dataImage.getTile(tileX, tileY);
-                        if (!(dataTile instanceof NoDataRaster)) {
-                            // data and mask image might not have the same tile size
-                            // --> we can not use the tile index of the one for the other, so we use the bounds
-                            final Raster maskTile = maskImage != null ? maskImage.getData(dataTile.getBounds()) : null;
-                            final Rectangle r = new Rectangle(dataImage.getMinX(), dataImage.getMinY(),
-                                                              dataImage.getWidth(), dataImage.getHeight()).intersection(
-                                    dataTile.getBounds());
-                            switch (raster.getDataType()) {
-                                case ProductData.TYPE_UINT8:
-                                    op.accumulateDataUByte(dataAccessor, dataTile, maskAccessor, maskTile, r);
-                                    break;
-                                case ProductData.TYPE_INT8:
-                                    op.accumulateDataByte(dataAccessor, dataTile, maskAccessor, maskTile, r);
-                                    break;
-                                case ProductData.TYPE_UINT16:
-                                    op.accumulateDataUShort(dataAccessor, dataTile, maskAccessor, maskTile, r);
-                                    break;
-                                case ProductData.TYPE_INT16:
-                                    op.accumulateDataShort(dataAccessor, dataTile, maskAccessor, maskTile, r);
-                                    break;
-                                case ProductData.TYPE_UINT32:
-                                    op.accumulateDataUInt(dataAccessor, dataTile, maskAccessor, maskTile, r);
-                                    break;
-                                case ProductData.TYPE_INT32:
-                                    op.accumulateDataInt(dataAccessor, dataTile, maskAccessor, maskTile, r);
-                                    break;
-                                case ProductData.TYPE_FLOAT32:
-                                    op.accumulateDataFloat(dataAccessor, dataTile, maskAccessor, maskTile, r);
-                                    break;
-                                case ProductData.TYPE_FLOAT64:
-                                    op.accumulateDataDouble(dataAccessor, dataTile, maskAccessor, maskTile, r);
-                                    break;
-                            }
-                        }
-                    }
-                    pm.worked(1);
-                }
-            }
-        } finally {
-            pm.done();
-        }
+    /**
+     * Creates (accurate) statistics for the given raster data node.
+     *
+     * @param raster   The raster data node.
+     * @param roiMask  The mask that determines the region of interest.
+     * @param binCount The number of bin cells used for the histogram.
+     * @param min      The minimum value.
+     * @param max      The maximum value.
+     * @param pm       A progress monitor.
+     * @return The (accurate) statistics.
+     * @deprecated since BEAM 4.10, use {@link StxFactory} instead.
+     */
+    @Deprecated
+    public static Stx create(RasterDataNode raster, Mask roiMask, int binCount, double min, double max,
+                             ProgressMonitor pm) {
+        return new StxFactory().withRoiMask(roiMask).withHistogramBinCount(binCount).withMinimum(min).withMaximum(max).create(raster, pm);
     }
 }

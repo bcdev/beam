@@ -22,11 +22,12 @@ import com.vividsolutions.jts.geom.Point;
 import org.esa.beam.framework.datamodel.*;
 import org.esa.beam.framework.ui.command.CommandEvent;
 import org.esa.beam.framework.ui.command.ExecCommand;
+import org.esa.beam.framework.ui.product.ProductSceneView;
 import org.esa.beam.util.io.CsvReader;
 import org.esa.beam.util.io.FileUtils;
 import org.esa.beam.visat.VisatApp;
+import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.feature.FeatureCollection;
-import org.geotools.feature.FeatureCollections;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
@@ -40,14 +41,17 @@ import java.io.Reader;
 
 
 /**
- * Experimental action that lets a user load text files that contain data associated with a geo-point (e.g. ship tracks).
+ * Action that lets a user load text files that contain data associated with a geographic position,
+ * e.g. some kind of track. The format is:
  * <pre>
- *     lat.1 TAB lon.1 TAB data.1 NEWLINE
- *     lat.2 TAB lon.2 TAB data.2 NEWLINE
- *     lat.3 TAB lon.3 TAB data.3 NEWLINE
+ *     lat-1 TAB lon-1 TAB data-1 NEWLINE
+ *     lat-2 TAB lon-2 TAB data-2 NEWLINE
+ *     lat-3 TAB lon-3 TAB data-3 NEWLINE
  *     ...
- *     lat.n TAB lon.n TAB data.n NEWLINE
+ *     lat-n TAB lon-n TAB data-n NEWLINE
  * </pre>
+ * <p/>
+ * This is the format that is also used by SeaDAS 6.x in order to import ship tracks.
  *
  * @author Norman Fomferra
  * @since BEAM 4.10
@@ -81,9 +85,16 @@ public class ImportTrackAction extends ExecCommand {
         }
 
         String name = FileUtils.getFilenameWithoutExtension(file);
-        VectorDataNode vectorDataNode = new VectorDataNode(name, featureCollection);
-        vectorDataNode.setDefaultStyleCss("symbol: cross; stroke:#ffaaaa; stroke-opacity:1.0; stroke-width:1.0");
+        final PlacemarkDescriptor placemarkDescriptor = PlacemarkDescriptorRegistry.getInstance().getPlacemarkDescriptor(featureCollection.getSchema());
+        placemarkDescriptor.setUserData(featureCollection.getSchema());
+        VectorDataNode vectorDataNode = new VectorDataNode(name, featureCollection, placemarkDescriptor);
+
         product.getVectorDataGroup().add(vectorDataNode);
+
+        final ProductSceneView view = visatApp.getSelectedProductSceneView();
+        if (view != null) {
+            view.setLayersVisible(vectorDataNode);
+        }
     }
 
     @Override
@@ -103,13 +114,14 @@ public class ImportTrackAction extends ExecCommand {
 
     static FeatureCollection<SimpleFeatureType, SimpleFeature> readTrack(Reader reader, GeoCoding geoCoding) throws IOException {
         CsvReader csvReader = new CsvReader(reader, new char[]{'\t', ' '}, true, "#");
-        FeatureCollection<SimpleFeatureType, SimpleFeature> featureCollection = FeatureCollections.newCollection();
         SimpleFeatureType trackFeatureType = createTrackFeatureType(geoCoding);
+        FeatureCollection<SimpleFeatureType, SimpleFeature> featureCollection = new ListFeatureCollection(trackFeatureType);
         double[] record;
         int pointIndex = 0;
         while ((record = csvReader.readDoubleRecord()) != null) {
             if (record.length < 3) {
-                throw new IOException("Illegal track file format.");
+                throw new IOException("Illegal track file format.\n" +
+                                              "Expecting tab-separated lines containing 3 values: lat, lon, data.");
             }
 
             float lat = (float) record[0];
@@ -133,27 +145,35 @@ public class ImportTrackAction extends ExecCommand {
 
     private static SimpleFeatureType createTrackFeatureType(GeoCoding geoCoding) {
         SimpleFeatureTypeBuilder ftb = new SimpleFeatureTypeBuilder();
-        ftb.setName("TrackPoint");
-        ftb.add("timestamp", Long.class);
+        ftb.setName("org.esa.beam.TrackPoint");
+        /*0*/
         ftb.add("pixelPos", Point.class, geoCoding.getImageCRS());
+        /*1*/
         ftb.add("geoPos", Point.class, DefaultGeographicCRS.WGS84);
+        /*2*/
         ftb.add("data", Double.class);
         ftb.setDefaultGeometry(geoCoding instanceof CrsGeoCoding ? "geoPos" : "pixelPos");
-        return ftb.buildFeatureType();
+        // GeoTools Bug: this doesn't work
+        // ftb.userData("trackPoints", "true");
+        final SimpleFeatureType ft = ftb.buildFeatureType();
+        ft.getUserData().put("trackPoints", "true");
+        return ft;
     }
 
-    private static SimpleFeature createFeature(SimpleFeatureType type, GeoCoding geoCoding, long pointIndex, float lat, float lon, double data) {
+    private static SimpleFeature createFeature(SimpleFeatureType type, GeoCoding geoCoding, int pointIndex, float lat, float lon, double data) {
         PixelPos pixelPos = geoCoding.getPixelPos(new GeoPos(lat, lon), null);
         if (!pixelPos.isValid()) {
             return null;
         }
         SimpleFeatureBuilder fb = new SimpleFeatureBuilder(type);
         GeometryFactory gf = new GeometryFactory();
-        fb.add(pointIndex);
+        /*0*/
         fb.add(gf.createPoint(new Coordinate(pixelPos.x, pixelPos.y)));
+        /*1*/
         fb.add(gf.createPoint(new Coordinate(lon, lat)));
+        /*2*/
         fb.add(data);
-        return fb.buildFeature(Long.toHexString(System.nanoTime()));
+        return fb.buildFeature(String.format("ID%08d", pointIndex));
     }
 
 

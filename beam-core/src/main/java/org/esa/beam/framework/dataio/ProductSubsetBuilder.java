@@ -21,9 +21,9 @@ import org.esa.beam.framework.datamodel.*;
 import org.esa.beam.util.Debug;
 import org.esa.beam.util.ProductUtils;
 
+import javax.media.jai.Histogram;
 import java.awt.*;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -319,7 +319,6 @@ public class ProductSubsetBuilder extends AbstractProductBuilder {
         ProductUtils.copyVectorData(sourceProduct, product);
         ProductUtils.copyMasks(sourceProduct, product);
         ProductUtils.copyOverlayMasks(sourceProduct, product);
-        ProductUtils.copyRoiMasks(sourceProduct, product);
         ProductUtils.copyPreferredTileSize(sourceProduct, product);
         setSceneRasterStartAndStopTime(product);
         addSubsetInfoMetadata(product);
@@ -484,11 +483,23 @@ public class ProductSubsetBuilder extends AbstractProductBuilder {
 
     private void copyStx(RasterDataNode sourceRaster, RasterDataNode targetRaster) {
         final Stx sourceStx = sourceRaster.getStx();
-        final Stx targetStx = new Stx(sourceStx.getMin(), sourceStx.getMax(),
-                                      sourceStx.getMean(), sourceStx.getStandardDeviation(),
-                                      ProductData.isIntType(sourceRaster.getDataType()),
-                                      Arrays.copyOf(sourceStx.getHistogramBins(), sourceStx.getHistogramBins().length),
+        final Histogram sourceHistogram = sourceStx.getHistogram();
+        final Histogram targetHistogram = new Histogram(sourceStx.getHistogramBinCount(),
+                                                        sourceHistogram.getLowValue(0),
+                                                        sourceHistogram.getHighValue(0),
+                                                        1);
+
+        System.arraycopy(sourceHistogram.getBins(0), 0, targetHistogram.getBins(0), 0, sourceStx.getHistogramBinCount());
+
+        final Stx targetStx = new Stx(sourceStx.getMinimum(),
+                                      sourceStx.getMaximum(),
+                                      sourceStx.getMean(),
+                                      sourceStx.getStandardDeviation(),
+                                      sourceStx.isLogHistogram(),
+                                      sourceStx.isIntHistogram(),
+                                      targetHistogram,
                                       sourceStx.getResolutionLevel());
+
         targetRaster.setStx(targetStx);
     }
 

@@ -5,32 +5,30 @@ import com.bc.ceres.binding.ValidationException;
 import com.bc.ceres.binding.Validator;
 import org.esa.beam.framework.datamodel.ProductData;
 
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class TimeStampExtractor {
 
-    private static final String legalDateTimeCharMatcher = "[yMdhms:_\\.-]+";
+    private static final String LEGAL_DATE_TIME_CHAR_MATCHER = "[yMdhms:_\\.-]+";
+    private static final String LEGAL_FILENAME_CHAR_MATCHER = "[\\?\\*\\w\\. -]*";
 
-    private static final String datePlaceholder = "${date}";
-    private static final String dph = datePlaceholder;
-
-    private static final String dphMatcher = "(\\$\\{date\\})";
-    private static final String legalFilenameCharMatcher = "[\\?\\*\\w\\. -]*";
-
-    private static final String aSign = "[\\w\\. -]";
-    private static final String exactlyOneTimes = "{1}";
-    private static final String anyTimes = "*";
-
-    private static final String questionSignMeaning = aSign + exactlyOneTimes;
-    private static final String starSignMeaning = aSign + anyTimes;
-
-    private static final String yearMatcher = "(yyyy)";
-    private static final String monthMatcher = "(MM)";
-    private static final String dayMatcher = "(\\d\\d)";
-    private static final String hourMatcher = "(hh)";
-    private static final String minuteMatcher = "(mm)";
-    private static final String secondMatcher = "(ss)";
+    private static final String DATE_PLACEHOLDER = "${date}";
+    private static final String DPH_MATCHER = "(\\$\\{date\\})";
 
     private final String datePattern;
     private final String filenamePattern;
+
+    private Map<DateType, Integer> startDateGroupIndices;
+    private Map<DateType, Integer> stopDateGroupIndices;
+
+    private TimeStampAccess timeStampAccess;
 
     public TimeStampExtractor(String dateInterpretationPattern, String filenameInterpretationPattern) {
         datePattern = dateInterpretationPattern;
@@ -38,36 +36,171 @@ public class TimeStampExtractor {
         init();
     }
 
-    public ProductData.UTC[] extractTimeStamp(String name) {
-        throw new IllegalStateException("Not implemented now");
+    public ProductData.UTC[] extractTimeStamps(String fileName) throws ValidationException {
+        final ProductData.UTC startTime = timeStampAccess.getStartTime(fileName);
+        final ProductData.UTC stopTime = timeStampAccess.getStopTime(fileName);
+        return new ProductData.UTC[]{startTime, stopTime};
     }
 
     private void init() {
-        if (countOf(dph).in(filenamePattern) == 1) {
-            final int datePos = filenamePattern.indexOf(dph);
-            String prefix = filenamePattern.substring(0, datePos);
-            String suffix = filenamePattern.substring(datePos + dph.length());
-            prefix = replaceStarAnQuestionSign(prefix);
-            suffix = replaceStarAnQuestionSign(suffix);
-            final String matcherExpression = prefix + getDateMatcher() + suffix;
+        createGroupIndices();
+        final boolean filenameHasStopTime = countOf(DATE_PLACEHOLDER).in(filenamePattern) == 2;
+        if(filenameHasStopTime) {
+            timeStampAccess = new StartStopTimeAccess();
+        } else {
+            timeStampAccess = new StartTimeAccess();
+        }
+        timeStampAccess.init();
+    }
+
+    private void createGroupIndices() {
+        startDateGroupIndices = new HashMap<DateType, Integer>(6);
+        stopDateGroupIndices = new HashMap<DateType, Integer>(6);
+        final int yearIndex = datePattern.indexOf("yyyy");
+        final int monthIndex = datePattern.indexOf("MM");
+        final int dayIndex = datePattern.indexOf("dd");
+        final int hourIndex = datePattern.indexOf("hh");
+        final int minuteIndex = datePattern.indexOf("mm");
+        final int secondIndex = datePattern.indexOf("ss");
+        List<Integer> indices = new ArrayList<Integer>(6);
+        indices.add(yearIndex);
+        if(monthIndex != -1) {
+            indices.add(monthIndex);
+        }
+        if(dayIndex != -1) {
+            indices.add(dayIndex);
+        }
+        if(hourIndex != -1) {
+            indices.add(0, hourIndex);
+        }
+        if(minuteIndex != -1) {
+            indices.add(minuteIndex);
+        }
+        if(secondIndex != -1) {
+            indices.add(secondIndex);
+        }
+        Collections.sort(indices);
+        createGroupIndices(0, yearIndex, monthIndex, dayIndex, hourIndex, minuteIndex, secondIndex, indices, startDateGroupIndices);
+        createGroupIndices(startDateGroupIndices.size(), yearIndex, monthIndex, dayIndex, hourIndex, minuteIndex, secondIndex, indices, stopDateGroupIndices);
+    }
+
+    private void createGroupIndices(int offset, int yearIndex, int monthIndex, int dayIndex, int hourIndex, int minuteIndex, int secondIndex, List<Integer> indices, Map<DateType, Integer> groupIndices) {
+        int position = offset + 1;
+        for (Integer index : indices) {
+            if(index == yearIndex) {
+                groupIndices.put(DateType.YEAR, position);
+                position++;
+            } else if (index == monthIndex) {
+                groupIndices.put(DateType.MONTH, position);
+                position++;
+            } else if (index == dayIndex) {
+                groupIndices.put(DateType.DAY, position);
+                position++;
+            } else if(index == hourIndex) {
+                groupIndices.put(DateType.HOUR, position);
+                position++;
+            } else if(index == minuteIndex) {
+                groupIndices.put(DateType.MINUTE, position);
+                position++;
+            } else if(index == secondIndex) {
+                groupIndices.put(DateType.SECOND, position);
+                position++;
+            }
         }
     }
 
-    private String replaceStarAnQuestionSign(String string) {
-        string = string.replaceAll("\\*", starSignMeaning);
-        string = string.replaceAll("\\?", questionSignMeaning);
-        return string;
+    private ProductData.UTC createTime(Matcher matcher, Map<DateType, Integer> groupIndices) {
+        final String startYearGroup = getString(matcher, DateType.YEAR, groupIndices);
+        final String startMonthGroup = getString(matcher, DateType.MONTH, groupIndices);
+        final String startDayGroup = getString(matcher, DateType.DAY, groupIndices);
+        final String startHourGroup = getString(matcher, DateType.HOUR, groupIndices);
+        final String startMinuteGroup = getString(matcher, DateType.MINUTE, groupIndices);
+        final String startSecondGroup = getString(matcher, DateType.SECOND, groupIndices);
+
+        String pattern = createPattern(startYearGroup, startMonthGroup, startDayGroup, startHourGroup, startMinuteGroup, startSecondGroup);
+        final ProductData.UTC startTime;
+        try {
+            startTime = ProductData.UTC.parse(
+                    startYearGroup + startMonthGroup + startDayGroup + startHourGroup + startMinuteGroup + startSecondGroup, pattern);
+        } catch (ParseException e) {
+            throw new IllegalStateException(e);
+        }
+        return startTime;
     }
 
-    public String getDateMatcher() {
-        String dateMatcher = datePattern.replaceAll(yearMatcher, yearMatcher);
-        dateMatcher = dateMatcher.replaceAll(monthMatcher, monthMatcher);
-        dateMatcher = dateMatcher.replaceAll(dayMatcher, dayMatcher);
-        dateMatcher = dateMatcher.replaceAll(hourMatcher, hourMatcher);
-        dateMatcher = dateMatcher.replaceAll(minuteMatcher, minuteMatcher);
-        dateMatcher = dateMatcher.replaceAll(secondMatcher, secondMatcher);
+    private String getString(Matcher matcher, DateType dateType, Map<DateType, Integer> groupIndices) {
+        if(!groupIndices.containsKey(dateType)) {
+            return "";
+        }
+        return matcher.group(groupIndices.get(dateType));
+    }
+
+    private String createPattern(String yearGroup, String monthGroup, String dayGroup, String hourGroup, String minuteGroup, String secondGroup) {
+        final StringBuilder pattern = new StringBuilder();
+        if (!"".equals(yearGroup)) {
+            pattern.append("yyyy");
+        }
+        if(!"".equals(monthGroup)) {
+            pattern.append("MM");
+        }
+        if(!"".equals(dayGroup)) {
+            pattern.append("dd");
+        }
+        if(!"".equals(hourGroup)) {
+            pattern.append("hh");
+        }
+        if(!"".equals(minuteGroup)) {
+            pattern.append("mm");
+        }
+        if(!"".equals(secondGroup)) {
+            pattern.append("ss");
+        }
+        return pattern.toString();
+    }
+
+
+    private String replaceSpecialSigns(String string) {
+        final String validSign = "[\\\\w\\\\. -]";
+        final String exactlyOneTimesModifier = "{1}";
+        final String anyTimesModifier = "\\*";
+
+        final String starSignPattern = validSign + anyTimesModifier;
+        final String questionSignPattern = validSign + exactlyOneTimesModifier;
+
+        String result = string.replaceAll("\\*", starSignPattern);
+        result = result.replaceAll("\\?", questionSignPattern);
+        return result;
+    }
+
+    private String getDateMatcher() {
+        final String yearPattern = "yyyy";
+        final String monthPattern = "MM";
+        final String dayPattern = "dd";
+        final String hourPattern = "hh";
+        final String minutePattern = "mm";
+        final String secondPattern = "ss";
+
+        final String yearMatcher = "(\\\\d{" + yearPattern.length() + "})";
+        final String monthMatcher = "(\\\\d{" + monthPattern.length() + "})";
+        final String dayMatcher = "(\\\\d{" + dayPattern.length() + "})";
+        final String hourMatcher = "(\\\\d{" + hourPattern.length() + "})";
+        final String minuteMatcher = "(\\\\d{" + minutePattern.length() + "})";
+        final String secondMatcher = "(\\\\d{" + secondPattern.length() + "})";
+
+        String dateMatcher = datePattern.replaceAll(yearPattern, yearMatcher);
+        dateMatcher = dateMatcher.replaceAll(monthPattern, monthMatcher);
+        dateMatcher = dateMatcher.replaceAll(dayPattern, dayMatcher);
+        dateMatcher = dateMatcher.replaceAll(hourPattern, hourMatcher);
+        dateMatcher = dateMatcher.replaceAll(minutePattern, minuteMatcher);
+        dateMatcher = dateMatcher.replaceAll(secondPattern, secondMatcher);
         return dateMatcher;
-   }
+    }
+
+    private void validateFileName(Matcher matcher, String fileName) throws ValidationException {
+        if(!matcher.matches()) {
+            throw new ValidationException("Given filename '" + fileName + "' does not match the given date pattern.");
+        }
+    }
 
     public static class DateInterpretationPatternValidator implements Validator {
 
@@ -77,16 +210,13 @@ public class TimeStampExtractor {
             if (pattern.length() < 4) {
                 throw new ValidationException("Value of dateInterpretationPattern must at least contain 4 Characters");
             }
-            if (!pattern.matches(legalDateTimeCharMatcher)) {
+            if (!pattern.matches(LEGAL_DATE_TIME_CHAR_MATCHER)) {
                 throw new ValidationException("Value of dateInterpretationPattern contains illegal charachters.\n" +
                         "Valid characters are: 'y' 'M' 'd' 'h' 'm' 's' ':' '_' '-' '.'");
             }
             if (!pattern.contains("yyyy")) {
                 throw new ValidationException("Value of dateInterpretationPattern must contain 'yyyy' as year placeholder.");
             }
-//            if (!pattern.contains("MM")) {
-//                throw new ValidationException("Value of dateInterpretationPattern must contain 'MM' as month placeholder.");
-//            }
             if (countOf("yyyy").in(pattern) > 1
                     || countOf("MM").in(pattern) > 1
                     || countOf("dd").in(pattern) > 1
@@ -105,20 +235,24 @@ public class TimeStampExtractor {
         @Override
         public void validateValue(Property property, Object value) throws ValidationException {
             final String pattern = ((String) value).trim();
-            if (!pattern.contains(dph)) {
-                throw new ValidationException("Value of filenameInterpretationPattern must contain a date placeholder '" + dph + "' at least once.");
+            if (!pattern.contains(DATE_PLACEHOLDER)) {
+                throw new ValidationException("Value of filenameInterpretationPattern must contain a date placeholder '" +
+                                              DATE_PLACEHOLDER + "' at least once.");
             }
-            final int count = countOf(dph).in(pattern);
+            final int count = countOf(DATE_PLACEHOLDER).in(pattern);
             if (count > 2) {
-                throw new ValidationException("Value of filenameInterpretationPattern can contain a date placeholder '" + dph + "' twice maximally.");
+                throw new ValidationException("Value of filenameInterpretationPattern can contain a date placeholder '" +
+                                              DATE_PLACEHOLDER + "' twice maximally.");
             }
             if (count == 2) {
-                if (!pattern.matches(legalFilenameCharMatcher + dphMatcher + legalFilenameCharMatcher + dphMatcher + legalFilenameCharMatcher)) {
+                if (!pattern.matches(
+                        LEGAL_FILENAME_CHAR_MATCHER + DPH_MATCHER + LEGAL_FILENAME_CHAR_MATCHER + DPH_MATCHER +
+                        LEGAL_FILENAME_CHAR_MATCHER)) {
                     throw new ValidationException("Value of filenameInterpretationPattern contains illegal characters.\n" +
                             "legal characters are a-zA-Z0-9_-*.?${}");
                 }
             } else {
-                if (!pattern.matches(legalFilenameCharMatcher + dphMatcher + legalFilenameCharMatcher)) {
+                if (!pattern.matches(LEGAL_FILENAME_CHAR_MATCHER + DPH_MATCHER + LEGAL_FILENAME_CHAR_MATCHER)) {
                     throw new ValidationException("Value of filenameInterpretationPattern contains illegal characters.\n" +
                             "legal characters are a-zA-Z0-9_-*.?${}");
                 }
@@ -146,6 +280,85 @@ public class TimeStampExtractor {
                 count++;
             }
             return count;
+        }
+    }
+
+    static enum DateType {
+        YEAR,
+        MONTH,
+        DAY,
+        HOUR,
+        MINUTE,
+        SECOND
+    }
+
+    private static interface TimeStampAccess {
+
+        void init();
+        ProductData.UTC getStartTime(String fileName) throws ValidationException;
+        ProductData.UTC getStopTime(String fileName) throws ValidationException;
+    }
+
+    private class StartTimeAccess implements TimeStampAccess {
+
+        private Pattern startDatePattern;
+
+        @Override
+        public void init() {
+            final int startDatePos = filenamePattern.indexOf(DATE_PLACEHOLDER);
+            String prefix = filenamePattern.substring(0, startDatePos);
+            prefix = replaceSpecialSigns(prefix);
+            String suffix = filenamePattern.substring(startDatePos + DATE_PLACEHOLDER.length());
+            suffix = replaceSpecialSigns(suffix);
+            String matcherExpression = prefix + getDateMatcher() + suffix;
+            startDatePattern = Pattern.compile(matcherExpression);
+        }
+
+        @Override
+        public ProductData.UTC getStartTime(String fileName) throws ValidationException {
+            final Matcher matcher = startDatePattern.matcher(fileName);
+            validateFileName(matcher, fileName);
+            return createTime(matcher, startDateGroupIndices);
+        }
+
+        @Override
+        public ProductData.UTC getStopTime(String fileName) throws ValidationException {
+            return getStartTime(fileName);
+        }
+    }
+
+    private class StartStopTimeAccess implements TimeStampAccess {
+
+        private Pattern startStopDatesPattern;
+
+        @Override
+        public void init() {
+            final int startDatePos = filenamePattern.indexOf(DATE_PLACEHOLDER);
+            final int endDatePos = filenamePattern.lastIndexOf(DATE_PLACEHOLDER);
+            String prefix = filenamePattern.substring(0, startDatePos);
+            String inBetween = filenamePattern.substring(startDatePos + DATE_PLACEHOLDER.length(), endDatePos);
+            String suffix = filenamePattern.substring(endDatePos + DATE_PLACEHOLDER.length());
+
+            prefix = replaceSpecialSigns(prefix);
+            inBetween = replaceSpecialSigns(inBetween);
+            suffix = replaceSpecialSigns(suffix);
+
+            String matcherExpression = prefix + getDateMatcher() + inBetween + getDateMatcher() + suffix;
+            startStopDatesPattern = Pattern.compile(matcherExpression);
+        }
+
+        @Override
+        public ProductData.UTC getStartTime(String fileName) throws ValidationException {
+            final Matcher matcher = startStopDatesPattern.matcher(fileName);
+            validateFileName(matcher, fileName);
+            return createTime(matcher, startDateGroupIndices);
+        }
+
+        @Override
+        public ProductData.UTC getStopTime(String fileName) throws ValidationException {
+            final Matcher matcher = startStopDatesPattern.matcher(fileName);
+            validateFileName(matcher, fileName);
+            return createTime(matcher, stopDateGroupIndices);
         }
     }
 }

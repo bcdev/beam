@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-avhrr-reader</symbolicName>
-    <version>1.1</version>
+    <version>1.2</version>
     <name>AVHRR Product Reader</name>
 
     <description>Enables BEAM to read AVHRR/3 Level-1b data products.</description>
@@ -14,6 +14,8 @@
 
     <changelog>
         <![CDATA[
+        Changes in 1.2:<br/>
+        Remove usage of deprecated methods/classes<br/>
         Changes in 1.1:<br/>
         [BEAM-1216] The NOAA AVHRR reader should support GAC products<br/>
         Changes in 1.0.101:<br/>
@@ -42,7 +44,6 @@
             <class>org.esa.beam.visat.actions.ProductImportAction</class>
             <formatName>NOAA_AVHRR_3_L1B</formatName>
             <useAllFileFilter>true</useAllFileFilter>
-            <text>Import NOAA-AVHRR/3 Level-1b Product...</text>
             <mnemonic>V</mnemonic>
             <shortDescr>Import a NOAA-AVHRR/3 Level-1b data product or product subset.</shortDescr>
             <description>Import a NOAA-AVHRR/3 Level-1b data product or product subset.</description>

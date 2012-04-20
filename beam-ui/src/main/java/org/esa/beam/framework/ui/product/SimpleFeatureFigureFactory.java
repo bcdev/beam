@@ -27,29 +27,24 @@ import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 import org.esa.beam.framework.datamodel.PlainFeatureFactory;
 import org.esa.beam.util.AwtGeomToJtsGeomConverter;
-import org.geotools.feature.FeatureCollection;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
-import java.awt.Color;
-import java.awt.Shape;
+import java.awt.*;
 import java.awt.geom.Point2D;
 
 public class SimpleFeatureFigureFactory implements FigureFactory {
 
-    private final FeatureCollection featureCollection;
+    private final SimpleFeatureType simpleFeatureType;
     private final AwtGeomToJtsGeomConverter toJtsGeom;
     private long currentFeatureId;
 
-    public SimpleFeatureFigureFactory(FeatureCollection featureCollection) {
-        this.featureCollection = featureCollection;
+    public SimpleFeatureFigureFactory(SimpleFeatureType simpleFeatureType) {
+        this.simpleFeatureType = simpleFeatureType;
         this.toJtsGeom = new AwtGeomToJtsGeomConverter();
         this.currentFeatureId = System.nanoTime();
     }
 
-    public FeatureCollection getFeatureCollection() {
-        return featureCollection;
-    }
 
     @Override
     public PointFigure createPointFigure(Point2D point, FigureStyle style) {
@@ -77,9 +72,9 @@ public class SimpleFeatureFigureFactory implements FigureFactory {
         return new SimpleFeaturePointFigure(createSimpleFeature(geometry), style);
     }
 
-    public SimpleFeatureFigure createSimpleFeatureFigure(SimpleFeature simpleFeature, String defaultCSS) {
-        final String css = getStyleCSS(simpleFeature, defaultCSS);
-        final FigureStyle normalStyle = DefaultFigureStyle.createFromCSS(css);
+    public SimpleFeatureFigure createSimpleFeatureFigure(SimpleFeature simpleFeature, String defaultStyleCss) {
+        final String css = getStyleCss(simpleFeature, defaultStyleCss);
+        final FigureStyle normalStyle = DefaultFigureStyle.createFromCss(css);
         final FigureStyle selectedStyle = deriveSelectedStyle(normalStyle);
         final Object geometry = simpleFeature.getDefaultGeometry();
         if (geometry instanceof Point) {
@@ -89,7 +84,7 @@ public class SimpleFeatureFigureFactory implements FigureFactory {
         }
     }
 
-    private String getStyleCSS(SimpleFeature simpleFeature, String defaultCSS) {
+    private String getStyleCss(SimpleFeature simpleFeature, String defaultStyleCss) {
         Object styleAttribute = simpleFeature.getAttribute(PlainFeatureFactory.ATTRIB_NAME_STYLE_CSS);
         if (styleAttribute instanceof String) {
             String css = (String) styleAttribute;
@@ -97,7 +92,7 @@ public class SimpleFeatureFigureFactory implements FigureFactory {
                 return css;
             }
         }
-        return defaultCSS;
+        return defaultStyleCss;
     }
 
     public ShapeFigure createShapeFigure(Geometry geometry, FigureStyle style) {
@@ -105,7 +100,7 @@ public class SimpleFeatureFigureFactory implements FigureFactory {
     }
 
     public SimpleFeature createSimpleFeature(Geometry geometry) {
-        return PlainFeatureFactory.createPlainFeature((SimpleFeatureType) featureCollection.getSchema(),
+        return PlainFeatureFactory.createPlainFeature(simpleFeatureType,
                                                       "ID" + Long.toHexString(currentFeatureId++),
                                                       geometry,
                                                       null);

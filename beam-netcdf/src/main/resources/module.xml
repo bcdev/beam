@@ -32,8 +32,10 @@
     <changelog>
         <![CDATA[
         Changes in 1.1:<br/>
+        [BEAM-1381] - Statistics written to NetCDF files shall be in geo-physical units<br/>
         [BEAM-1363] - Write NetCDf 4 files using compression<br/>
         [BEAM-1351] - Metadata is duplicated if NetCDF-BEAM file is saved again<br/>
+        [BEAM-1347] - Wrong Histogram in exported NetCDF-BEAM product<br/>
         [BEAM-1333] - NetCDF files are not CF compliant<br/>
         [BEAM-1332] - NetCDF/CF writer does not write coordinates<br/>
         [BEAM-1320] - BEAM-NetCDF reader/writer does not preserve solar flux information<br/>
@@ -62,7 +64,7 @@
         <action>
             <id>importNetCdfGenericProduct</id>
             <class>org.esa.beam.visat.actions.ProductImportAction</class>
-            <text>Import Generic NetCDF Product...</text>
+            <text>NetCDF (Generic)</text>
             <formatName>NetCDF</formatName>
             <useAllFileFilter>true</useAllFileFilter>
             <mnemonic>N</mnemonic>
@@ -73,7 +75,6 @@
         <action>
             <id>importNetCdfCFProduct</id>
             <class>org.esa.beam.visat.actions.ProductImportAction</class>
-            <text>Import NetCDF/CF Product...</text>
             <formatName>NetCDF-CF</formatName>
             <useAllFileFilter>true</useAllFileFilter>
             <mnemonic>H</mnemonic>
@@ -84,7 +85,6 @@
         <action>
             <id>importNetCdfBEAMProduct</id>
             <class>org.esa.beam.visat.actions.ProductImportAction</class>
-            <text>Import NetCDF/BEAM Product...</text>
             <formatName>NetCDF-BEAM</formatName>
             <useAllFileFilter>true</useAllFileFilter>
             <mnemonic>H</mnemonic>
@@ -95,7 +95,7 @@
         <action>
             <id>importHdfEosProduct</id>
             <class>org.esa.beam.visat.actions.ProductImportAction</class>
-            <text>Import HDF-EOS Gridded Product...</text>
+            <text>HDF-EOS Gridded</text>
             <formatName>HDF-EOS</formatName>
             <useAllFileFilter>true</useAllFileFilter>
             <mnemonic>H</mnemonic>
@@ -106,7 +106,6 @@
         <action>
             <id>exportNetCdfCFProduct</id>
             <class>org.esa.beam.visat.actions.ProductExportAction</class>
-            <text>Export NetCDF/CF Product...</text>
             <formatName>NetCDF-CF</formatName>
             <useAllFileFilter>true</useAllFileFilter>
             <shortDescr>Writes a product in NetCDF/CF format</shortDescr>
@@ -116,7 +115,6 @@
         <action>
             <id>exportNetCdfBEAMProduct</id>
             <class>org.esa.beam.visat.actions.ProductExportAction</class>
-            <text>Export NetCDF/BEAM Product...</text>
             <formatName>NetCDF-BEAM</formatName>
             <useAllFileFilter>true</useAllFileFilter>
             <shortDescr>Writes a product in NetCDF/BEAM format</shortDescr>
@@ -126,7 +124,6 @@
         <action>
             <id>exportNetCdf4BEAMProduct</id>
             <class>org.esa.beam.visat.actions.ProductExportAction</class>
-            <text>Export NetCDF-4/BEAM Product...</text>
             <formatName>NetCDF4-BEAM</formatName>
             <useAllFileFilter>true</useAllFileFilter>
             <shortDescr>Writes a product in NetCDF-4/BEAM format</shortDescr>

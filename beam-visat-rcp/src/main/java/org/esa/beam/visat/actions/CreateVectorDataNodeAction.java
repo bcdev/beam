@@ -15,17 +15,11 @@
  */
 package org.esa.beam.visat.actions;
 
-import com.bc.ceres.binding.Property;
-import com.bc.ceres.binding.PropertyContainer;
-import com.bc.ceres.binding.PropertySet;
-import com.bc.ceres.binding.ValidationException;
-import com.bc.ceres.binding.Validator;
+import com.bc.ceres.binding.*;
 import com.bc.ceres.glayer.Layer;
 import com.bc.ceres.glayer.LayerFilter;
 import com.bc.ceres.glayer.support.LayerUtils;
 import com.bc.ceres.swing.binding.PropertyPane;
-
-import org.esa.beam.framework.datamodel.Mask;
 import org.esa.beam.framework.datamodel.PlainFeatureFactory;
 import org.esa.beam.framework.datamodel.Product;
 import org.esa.beam.framework.datamodel.ProductNodeGroup;
@@ -41,8 +35,8 @@ import org.esa.beam.visat.VisatApp;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import javax.swing.JPanel;
-import java.awt.Dimension;
+import javax.swing.*;
+import java.awt.*;
 import java.text.MessageFormat;
 
 /**
@@ -52,7 +46,7 @@ import java.text.MessageFormat;
  * @since BEAM 4.7
  */
 public class CreateVectorDataNodeAction extends ExecCommand {
-    private static final String DIALOG_TITLE = "New Geometry Container";
+    private static final String DIALOG_TITLE = "New Vector Data Container";
     private static final String KEY_VECTOR_DATA_INITIAL_NAME = "geometry.initialName";
 
 
@@ -92,7 +86,7 @@ public class CreateVectorDataNodeAction extends ExecCommand {
     public static VectorDataNode createDefaultVectorDataNode(Product product) {
         return createDefaultVectorDataNode(product,
                                            getDefaultVectorDataNodeName(),
-                                           "Default geometry container (automatically created)");
+                                           "Default vector data container for geometries (automatically created)");
     }
 
     public static VectorDataNode createDefaultVectorDataNode(Product product, String name, String description) {
@@ -114,21 +108,12 @@ public class CreateVectorDataNodeAction extends ExecCommand {
             if (vectorDataLayer != null) {
                 vectorDataLayer.setVisible(true);
             }
-            final Mask mask = product.getMaskGroup().get(vectorDataNode.getName());
-            final ProductNodeGroup<Mask> roiMaskGroup = sceneView.getRaster().getRoiMaskGroup();
-            setAsRoi(mask, roiMaskGroup);
         }
         return vectorDataNode;
     }
 
     public static String getDefaultVectorDataNodeName() {
         return VisatActivator.getInstance().getModuleContext().getRuntimeConfig().getContextProperty(KEY_VECTOR_DATA_INITIAL_NAME, "geometry");
-    }
-
-    private static void setAsRoi(Mask mask, ProductNodeGroup<Mask> roiMaskGroup) {
-        if (!roiMaskGroup.contains(mask)) {
-            roiMaskGroup.add(mask);
-        }
     }
 
     /**
@@ -155,7 +140,7 @@ public class CreateVectorDataNodeAction extends ExecCommand {
         public void validateValue(Property property, Object value) throws ValidationException {
             String name = (String) value;
             if (product.getVectorDataGroup().contains(name)) {
-                final String pattern = "A geometry container with name ''{0}'' already exists.\n" +
+                final String pattern = "A vector data container with name ''{0}'' already exists.\n" +
                         "Please choose another one.";
                 throw new ValidationException(MessageFormat.format(pattern, name));
             }
@@ -187,12 +172,12 @@ public class CreateVectorDataNodeAction extends ExecCommand {
     private static class DialogData {
         private String name;
         private String description;
-        
+
         private DialogData(ProductNodeGroup<VectorDataNode> vectorGroup) {
             String defaultPrefix = getDefaultVectorDataNodeName() + "_";
             name = defaultPrefix + (numItems++);
-            while(vectorGroup.contains(name)) {
-                name = defaultPrefix + (numItems++);    
+            while (vectorGroup.contains(name)) {
+                name = defaultPrefix + (numItems++);
             }
             description = "";
         }

@@ -43,7 +43,10 @@ import java.util.logging.Logger;
 
 /**
  * The worker class for the sea surface temperature processor.
+ *
+ * @deprecated since BEAM 4.10 - no replacement.
  */
+@Deprecated
 public class SstProcessor extends Processor {
 
     public static final String PROCESSOR_NAME = "BEAM SST Processor";
@@ -234,7 +237,7 @@ public class SstProcessor extends Processor {
     /**
      * Retrieves a progress message for the request passed in. Override this method if you need custom messaging.
      *
-     * @param request
+     * @param request The request.
      *
      * @return the progress message for the request
      */

@@ -1,13 +1,15 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-merisl3-reader</symbolicName>
-    <version>1.1</version>
+    <version>1.2</version>
     <name>MERIS Level-3 Product Reader</name>
 
     <description>A reader for MERIS Binned Level-3 (netCDF) data products.</description>
 
     <changelog>
         <![CDATA[
+        Changes in 1.2:<br/>
+        [BEAM-943] ProductIOException occures in VISAT by saving product as DIMAP, if some band names have been changed<br/>
         Changes in 1.1:<br/>
         Use beam-netcdf module.<br/>
         Changes in 1.0.100:<br/>
@@ -41,12 +43,12 @@
             <class>org.esa.beam.visat.actions.ProductImportAction</class>
             <formatName>L3_ENV_MER</formatName>
             <useAllFileFilter>true</useAllFileFilter>
-            <text>Import MERIS Binned Level-3 Product...</text>
+            <text>MERIS Binned Level-3</text>
             <mnemonic>B</mnemonic>
             <shortDescr>Import a MERIS Binned Level-3 (NetCDF) data product or product subset.</shortDescr>
             <description>Import a MERIS Binned Level-3 (NetCDF) data product or product subset.</description>
             <helpId>importMerisBinnedL3Product</helpId>
-            <placeAfter>importEnvisatProduct</placeAfter>
+            <!--<placeAfter>importEnvisatProduct</placeAfter>-->
         </action>
     </extension>
 

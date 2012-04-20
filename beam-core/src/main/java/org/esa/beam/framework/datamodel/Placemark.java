@@ -130,8 +130,9 @@ public class Placemark extends ProductNode {
      * @param attributeValue The feature's attribute value, may be {@code null}.
      */
     public void setAttributeValue(String attributeName, Object attributeValue) {
-        if (!ObjectUtils.equalObjects(attributeValue, getAttributeValue(attributeName))) {
-            feature.setAttribute(attributeName, attributeValue);
+        final int index = feature.getFeatureType().indexOf(attributeName);
+        if (index != -1 && !ObjectUtils.equalObjects(attributeValue, getAttributeValue(attributeName))) {
+            feature.setAttribute(index, attributeValue);
             fireProductNodeChanged(attributeName);
         }
     }
@@ -228,17 +229,20 @@ public class Placemark extends ProductNode {
      * Updates pixel and geo position according to the current geometry (model coordinates).
      */
     public void updatePositions() {
-        final Point point = (Point) feature.getDefaultGeometry();
-        if (getProduct() != null) {
-            final GeoCoding geoCoding = getProduct().getGeoCoding();
-            final AffineTransform i2m = ImageManager.getImageToModelTransform(geoCoding);
-            PixelPos pixelPos = new PixelPos((float) point.getX(), (float) point.getY());
-            try {
-                i2m.inverseTransform(pixelPos, pixelPos);
-            } catch (NoninvertibleTransformException ignored) {
-                // ignore
+        final Object defaultGeometry = feature.getDefaultGeometry();
+        if (defaultGeometry instanceof Point) {
+            final Point point = (Point) defaultGeometry;
+            if (getProduct() != null) {
+                final GeoCoding geoCoding = getProduct().getGeoCoding();
+                final AffineTransform i2m = ImageManager.getImageToModelTransform(geoCoding);
+                PixelPos pixelPos = new PixelPos((float) point.getX(), (float) point.getY());
+                try {
+                    i2m.inverseTransform(pixelPos, pixelPos);
+                } catch (NoninvertibleTransformException ignored) {
+                    // ignore
+                }
+                setPixelPosAttribute(pixelPos, true, false);
             }
-            setPixelPosAttribute(pixelPos, true, false);
         }
     }
 

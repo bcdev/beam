@@ -17,26 +17,21 @@
 package org.esa.beam.visat.toolviews.stat;
 
 import com.bc.ceres.swing.TableLayout;
-import org.esa.beam.framework.datamodel.Mask;
-import org.esa.beam.framework.datamodel.Product;
-import org.esa.beam.framework.datamodel.ProductNode;
-import org.esa.beam.framework.datamodel.ProductNodeEvent;
-import org.esa.beam.framework.datamodel.ProductNodeGroup;
-import org.esa.beam.framework.datamodel.ProductNodeListener;
-import org.esa.beam.framework.datamodel.RasterDataNode;
+import com.jidesoft.list.FilterableCheckBoxList;
+import com.jidesoft.list.QuickListFilterField;
+import com.jidesoft.swing.SearchableUtils;
+import org.esa.beam.framework.datamodel.*;
 import org.esa.beam.framework.ui.UIUtils;
+import org.esa.beam.util.Debug;
 
-import javax.swing.ButtonGroup;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.Icon;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JPanel;
-import javax.swing.JRadioButton;
-import java.awt.Insets;
+import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.text.Position;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Arrays;
 
 
 /**
@@ -45,28 +40,59 @@ import java.awt.event.ActionListener;
  * @author Marco Zuehlke
  */
 class MultipleRoiComputePanel extends JPanel {
-    
+
+
+    private final QuickListFilterField maskNameSearchField;
+
     interface ComputeMasks {
         void compute(Mask[] selectedMasks);
     }
-    
+
     private final ProductNodeListener productNodeListener;
-    
+
     private final JButton computeButton;
     private final JCheckBox useRoiCheckBox;
-    private final JComboBox maskNameComboBox;
-    private final JRadioButton iterateButton;
-    private final JRadioButton singleButton;
-    
+    private final FilterableCheckBoxList maskNameList;
+
     private RasterDataNode raster;
     private Product product;
 
     MultipleRoiComputePanel(final ComputeMasks method, final RasterDataNode rasterDataNode) {
         productNodeListener = new PNL();
-        final Icon icon = UIUtils.loadImageIcon("icons/Gears20.gif");
+        final Icon icon = UIUtils.loadImageIcon("icons/ViewRefresh16.png");
+
+        DefaultListModel maskNameListModel = new DefaultListModel();
+
+        maskNameSearchField = new QuickListFilterField(maskNameListModel);
+        maskNameSearchField.setHintText("Filter masks here");
+        //quickSearchPanel.setBorder(new JideTitledBorder(new PartialEtchedBorder(PartialEtchedBorder.LOWERED, PartialSide.NORTH), "QuickListFilterField", JideTitledBorder.LEADING, JideTitledBorder.ABOVE_TOP));
+
+        maskNameList = new FilterableCheckBoxList(maskNameSearchField.getDisplayListModel()) {
+            @Override
+            public int getNextMatch(String prefix, int startIndex, Position.Bias bias) {
+                return -1;
+            }
+
+            @Override
+            public boolean isCheckBoxEnabled(int index) {
+                return true;
+            }
+        };
+        SearchableUtils.installSearchable(maskNameList);
+
+        maskNameList.getCheckBoxListSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        maskNameList.getCheckBoxListSelectionModel().addListSelectionListener(new ListSelectionListener() {
+            public void valueChanged(ListSelectionEvent e) {
+
+                if (!e.getValueIsAdjusting()) {
+                    int[] indices = maskNameList.getCheckBoxListSelectedIndices();
+                    System.out.println("indices = " + Arrays.toString(indices));
+                }
+            }
+        });
 
         computeButton = new JButton("Compute");     /*I18N*/
-        computeButton.setMnemonic('A');
+        computeButton.setMnemonic('C');
         computeButton.setEnabled(rasterDataNode != null);
         computeButton.addActionListener(new ActionListener() {
             @Override
@@ -74,78 +100,42 @@ class MultipleRoiComputePanel extends JPanel {
                 boolean useRoi = useRoiCheckBox.isSelected();
                 Mask[] selectedMasks;
                 if (useRoi) {
-                    if (iterateButton.isEnabled() && iterateButton.isSelected()) {
-                        ProductNodeGroup<Mask> roiMaskGroup = raster.getRoiMaskGroup();
-                        selectedMasks = roiMaskGroup.toArray(new Mask[roiMaskGroup.getNodeCount()]);
-                    } else {
-                        String maskName = (String) maskNameComboBox.getSelectedItem();
-                        ProductNodeGroup<Mask> roiMaskGroup = raster.getRoiMaskGroup();
-                        Mask mask = roiMaskGroup.get(maskName);
-                        selectedMasks = new Mask[] {mask};
+                    int[] listIndexes = maskNameList.getCheckBoxListSelectedIndices();
+                    selectedMasks = new Mask[listIndexes.length];
+                    for (int i = 0; i < listIndexes.length; i++) {
+                        int listIndex = listIndexes[i];
+                        String maskName = maskNameList.getModel().getElementAt(listIndex).toString();
+                        selectedMasks[i] = raster.getProduct().getMaskGroup().get(maskName);
                     }
                 } else {
-                    selectedMasks = new Mask[] {null}; 
+                    selectedMasks = new Mask[]{null};
                 }
                 method.compute(selectedMasks);
             }
         });
         computeButton.setIcon(icon);
 
-        useRoiCheckBox = new JCheckBox("Use ROI-Mask");
+        useRoiCheckBox = new JCheckBox("Use ROI mask(s):");
         useRoiCheckBox.setMnemonic('R');
         useRoiCheckBox.addActionListener(new ActionListener() {
-            
+
             @Override
             public void actionPerformed(ActionEvent e) {
                 updateEnablement();
             }
         });
-        
-        maskNameComboBox = new JComboBox();
-        iterateButton = new JRadioButton("Iterate over all");
-        singleButton = new JRadioButton();
-        ButtonGroup buttonGroup = new ButtonGroup();
-        buttonGroup.add(iterateButton);
-        buttonGroup.add(singleButton);
-        
-        final TableLayout tableLayoutSingle = new TableLayout(2);
-        tableLayoutSingle.setTableAnchor(TableLayout.Anchor.WEST);
-        tableLayoutSingle.setTableFill(TableLayout.Fill.HORIZONTAL);
-        tableLayoutSingle.setTableWeightX(1.0);
-        
-        JPanel singlePanel = new JPanel(tableLayoutSingle);
-        singlePanel.add(singleButton);
-        singlePanel.add(maskNameComboBox);
-        
-        final TableLayout tableLayoutRoi = new TableLayout(1);
-        tableLayoutRoi.setTableAnchor(TableLayout.Anchor.WEST);
-        tableLayoutRoi.setTableFill(TableLayout.Fill.HORIZONTAL);
-        tableLayoutRoi.setTableWeightX(1.0);
-        
-        JPanel roiPanel = new JPanel(tableLayoutRoi);
-        roiPanel.add(singlePanel);
-        roiPanel.add(iterateButton);
 
-        ActionListener actionListener = new ActionListener() {
-            
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                updateEnablement();
-            }
-        };
-        iterateButton.addActionListener(actionListener);
-        singleButton.addActionListener(actionListener);
-        
         final TableLayout tableLayout = new TableLayout(1);
         tableLayout.setTableAnchor(TableLayout.Anchor.SOUTHWEST);
         tableLayout.setTableFill(TableLayout.Fill.HORIZONTAL);
         tableLayout.setTableWeightX(1.0);
-        tableLayout.setCellPadding(2, 0, new Insets(4, 10, 4, 0));
+        tableLayout.setTablePadding(new Insets(2, 2, 2, 2));
         setLayout(tableLayout);
 
         add(computeButton);
         add(useRoiCheckBox);
-        add(roiPanel);
+        add(maskNameSearchField);
+        add(new JScrollPane(maskNameList));
 
         setRaster(rasterDataNode);
     }
@@ -158,6 +148,7 @@ class MultipleRoiComputePanel extends JPanel {
                     product.removeProductNodeListener(productNodeListener);
                 }
                 product = null;
+                updateMaskListState();
             } else if (product != newRaster.getProduct()) {
                 if (product != null) {
                     product.removeProductNodeListener(productNodeListener);
@@ -166,45 +157,56 @@ class MultipleRoiComputePanel extends JPanel {
                 if (product != null) {
                     product.addProductNodeListener(productNodeListener);
                 }
+                updateMaskListState();
             }
-            updateMaskListState();
         }
     }
 
     private void updateMaskListState() {
-        boolean hasRaster = (raster != null);
-        computeButton.setEnabled(hasRaster);
-        int roiCount = 0;
-        if (hasRaster) {
-            roiCount = raster.getRoiMaskGroup().getNodeCount();
+
+        DefaultListModel maskNameListModel = new DefaultListModel();
+
+        if (product != null) {
+            final ProductNodeGroup<Mask> maskGroup = product.getMaskGroup();
+            Mask[] masks = maskGroup.toArray(new Mask[0]);
+            for (Mask mask : masks) {
+                maskNameListModel.addElement(mask.getName());
+            }
         }
-        boolean hasRois = (hasRaster && roiCount > 0);
-        useRoiCheckBox.setEnabled(hasRois);
-        if (hasRois) {
-            String[] nodeNames = raster.getRoiMaskGroup().getNodeNames();
-            maskNameComboBox.setModel(new DefaultComboBoxModel(nodeNames));
-            maskNameComboBox.setSelectedIndex(0);
-        } else {
-            maskNameComboBox.setModel(new DefaultComboBoxModel());
-            useRoiCheckBox.setSelected(false);
+
+        try {
+            maskNameSearchField.setListModel(maskNameListModel);
+            maskNameList.setModel(maskNameSearchField.getDisplayListModel());
+        } catch (Throwable e) {
+
+            /*
+            We catch everything here, because there seems to be a bug in the combination of
+            JIDE QuickListFilterField and FilteredCheckBoxList:
+
+             java.lang.IndexOutOfBoundsException: bitIndex < 0: -1
+             	at java.util.BitSet.get(BitSet.java:441)
+             	at javax.swing.DefaultListSelectionModel.clear(DefaultListSelectionModel.java:257)
+             	at javax.swing.DefaultListSelectionModel.setState(DefaultListSelectionModel.java:567)
+             	at javax.swing.DefaultListSelectionModel.removeIndexInterval(DefaultListSelectionModel.java:635)
+             	at com.jidesoft.list.CheckBoxListSelectionModelWithWrapper.removeIndexInterval(Unknown Source)
+             */
+            Debug.trace(e);
         }
+
         updateEnablement();
     }
-    
+
     private void updateEnablement() {
-        boolean useRoi = useRoiCheckBox.isSelected() && useRoiCheckBox.isEnabled();
-        int numRoiMasks = maskNameComboBox.getModel().getSize();
-        boolean hasMultipleRois = numRoiMasks > 1;
-        
-        singleButton.setEnabled(hasMultipleRois && useRoi);
-        iterateButton.setEnabled(hasMultipleRois && useRoi);
-        if (hasMultipleRois && useRoi && !singleButton.isSelected() && !iterateButton.isSelected()) {
-            singleButton.setSelected(true);
-        }
-        boolean useSingleRoi = singleButton.isSelected();
-        maskNameComboBox.setEnabled(hasMultipleRois && useRoi && useSingleRoi);
+        boolean hasRaster = (raster != null);
+        boolean hasMasks = (product != null && product.getMaskGroup().getNodeCount() > 0);
+        boolean canSelectMasks = hasMasks && useRoiCheckBox.isSelected();
+
+        computeButton.setEnabled(hasRaster);
+        useRoiCheckBox.setEnabled(hasMasks);
+        maskNameSearchField.setEnabled(canSelectMasks);
+        maskNameList.setEnabled(canSelectMasks);
     }
-    
+
     private class PNL implements ProductNodeListener {
 
         @Override
@@ -226,11 +228,16 @@ class MultipleRoiComputePanel extends JPanel {
         public void nodeRemoved(ProductNodeEvent event) {
             handleEvent(event);
         }
-        
+
         private void handleEvent(ProductNodeEvent event) {
             ProductNode sourceNode = event.getSourceNode();
             if (sourceNode instanceof Mask) {
-                updateMaskListState();
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        updateMaskListState();
+                    }
+                });
             }
         }
     }

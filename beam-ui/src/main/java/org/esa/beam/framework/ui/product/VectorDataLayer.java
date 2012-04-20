@@ -63,7 +63,7 @@ public class VectorDataLayer extends Layer {
 
         this.vectorDataNode = vectorDataNode;
         setName(vectorDataNode.getName());
-        figureFactory = new SimpleFeatureFigureFactory(vectorDataNode.getFeatureCollection());
+        figureFactory = new SimpleFeatureFigureFactory(vectorDataNode.getFeatureType());
         figureCollection = new DefaultFigureCollection();
         updateFigureCollection();
 
@@ -106,7 +106,7 @@ public class VectorDataLayer extends Layer {
             if (featureFigure != null) {
                 figureMap.remove(simpleFeature);
             } else {
-                featureFigure = getFigureFactory().createSimpleFeatureFigure(simpleFeature, vectorDataNode.getDefaultCSS());
+                featureFigure = getFigureFactory().createSimpleFeatureFigure(simpleFeature, vectorDataNode.getDefaultStyleCss());
                 figureCollection.addFigure(featureFigure);
             }
             featureFigure.forceRegeneration();
@@ -115,6 +115,12 @@ public class VectorDataLayer extends Layer {
         Collection<SimpleFeatureFigure> remainingFigures = figureMap.values();
         figureCollection.removeFigures(remainingFigures.toArray(new Figure[remainingFigures.size()]));
 
+    }
+
+    private void setLayerStyle(String styleCss) {
+        // todo - implement me (nf)
+        // this method is called if no figure is selected, but the layer editor is showing and users can modify style settings
+        Debug.trace("VectorDataLayer.setLayerStyle: styleCss = " + styleCss);
     }
 
     public SimpleFeatureFigureFactory getFigureFactory() {
@@ -143,16 +149,20 @@ public class VectorDataLayer extends Layer {
 
         @Override
         public void nodeChanged(ProductNodeEvent event) {
-            if (event.getSourceNode() == VectorDataLayer.this.vectorDataNode) {
+            if (event.getSourceNode() == getVectorDataNode()) {
+                Debug.trace("VectorDataLayer$VectorDataChangeHandler.nodeChanged: event = " + event);
                 if (ProductNode.PROPERTY_NAME_NAME.equals(event.getPropertyName())) {
-                    setName(VectorDataLayer.this.vectorDataNode.getName());
-                }
-                if (!reactingAgainstFigureChange
-                        && VectorDataNode.PROPERTY_NAME_FEATURE_COLLECTION.equals(event.getPropertyName())) {
-                    // System.out.println("VectorDataLayer$VectorDataChangeHandler.nodeChanged: event = " + event);
-                    updateFigureCollection();
-                    // todo - compute changed modelRegion instead of passing null (nf)
-                    fireLayerDataChanged(null);
+                    setName(getVectorDataNode().getName());
+                } else if (VectorDataNode.PROPERTY_NAME_STYLE_CSS.equals(event.getPropertyName())) {
+                    if (event.getNewValue() != null) {
+                        setLayerStyle(event.getNewValue().toString());
+                    }
+                } else if (VectorDataNode.PROPERTY_NAME_FEATURE_COLLECTION.equals(event.getPropertyName())) {
+                    if (!reactingAgainstFigureChange) {
+                        updateFigureCollection();
+                        // todo - compute changed modelRegion instead of passing null (nf)
+                        fireLayerDataChanged(null);
+                    }
                 }
             }
         }
@@ -165,7 +175,7 @@ public class VectorDataLayer extends Layer {
             if (sourceFigure instanceof SimpleFeatureFigure) {
                 SimpleFeatureFigure featureFigure = (SimpleFeatureFigure) sourceFigure;
                 try {
-                    final VectorDataNode vectorDataNode = VectorDataLayer.this.vectorDataNode;
+                    final VectorDataNode vectorDataNode = getVectorDataNode();
                     final SimpleFeature simpleFeature = featureFigure.getSimpleFeature();
                     Debug.trace("VectorDataLayer$FigureChangeHandler: vectorDataNode=" + vectorDataNode.getName() + ", featureType=" + simpleFeature.getFeatureType().getTypeName());
                     reactingAgainstFigureChange = true;

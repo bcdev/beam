@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -143,6 +143,8 @@ public class Product extends ProductNode {
 
     private Dimension preferredTileSize;
     private AutoGrouping autoGrouping;
+    private final PlacemarkGroup pinGroup;
+    private final PlacemarkGroup gcpGroup;
 
     /**
      * Creates a new product without any reader (in-memory product)
@@ -195,8 +197,15 @@ public class Product extends ProductNode {
         this.tiePointGridGroup = new ProductNodeGroup<TiePointGrid>(this, "tiePointGridGroup", true);
         this.bitmaskDefGroup = new ProductNodeGroup<BitmaskDef>(this, "bitmaskDefGroup", true);
         this.vectorDataGroup = new ProductNodeGroup<VectorDataNode>(this, "vectorDataGroup", true) {
+
             @Override
             public boolean add(VectorDataNode vectorDataNode) {
+                if (pinGroup != null && pinGroup.getVectorDataNode() == vectorDataNode) {
+                    return false;
+                }
+                if (gcpGroup != null && gcpGroup.getVectorDataNode() == vectorDataNode) {
+                    return false;
+                }
                 final boolean added = super.add(vectorDataNode);
                 if (added) {
                     getMaskGroup().add(createMask(vectorDataNode));
@@ -206,12 +215,24 @@ public class Product extends ProductNode {
 
             @Override
             public void add(int index, VectorDataNode vectorDataNode) {
+                if (pinGroup != null && pinGroup.getVectorDataNode() == vectorDataNode) {
+                    return;
+                }
+                if (gcpGroup != null && gcpGroup.getVectorDataNode() == vectorDataNode) {
+                    return;
+                }
                 super.add(index, vectorDataNode);
                 getMaskGroup().add(createMask(vectorDataNode));
             }
 
             @Override
             public boolean remove(VectorDataNode vectorDataNode) {
+                if (pinGroup != null && pinGroup.getVectorDataNode() == vectorDataNode) {
+                    return false;
+                }
+                if (gcpGroup != null && gcpGroup.getVectorDataNode() == vectorDataNode) {
+                    return false;
+                }
                 final boolean removed = super.remove(vectorDataNode);
                 if (removed) {
                     final Mask[] masks = getMaskGroup().toArray(new Mask[getMaskGroup().getNodeCount()]);
@@ -220,12 +241,10 @@ public class Product extends ProductNode {
                                 Mask.VectorDataType.getVectorData(mask) == vectorDataNode) {
                             getMaskGroup().remove(mask);
                             for (Band band : getBands()) {
-                                deleteMaskFromGroup(band.getRoiMaskGroup(), mask);
                                 deleteMaskFromGroup(band.getOverlayMaskGroup(), mask);
                             }
                             TiePointGrid[] tiePointGrids = getTiePointGrids();
                             for (TiePointGrid tiePointGrid : tiePointGrids) {
-                                deleteMaskFromGroup(tiePointGrid.getRoiMaskGroup(), mask);
                                 deleteMaskFromGroup(tiePointGrid.getOverlayMaskGroup(), mask);
                             }
                             break;
@@ -252,7 +271,32 @@ public class Product extends ProductNode {
         };
         this.indexCodingGroup = new ProductNodeGroup<IndexCoding>(this, "indexCodingGroup", true);
         this.flagCodingGroup = new ProductNodeGroup<FlagCoding>(this, "flagCodingGroup", true);
-        this.maskGroup = new ProductNodeGroup<Mask>(this, "maskGroup", true);
+        this.maskGroup = new ProductNodeGroup<Mask>(this, "maskGroup", true) {
+
+            @Override
+            public boolean add(Mask mask) {
+                updateDescription(mask);
+                return super.add(mask);
+            }
+
+            @Override
+            public void add(int index, Mask mask) {
+                updateDescription(mask);
+                super.add(index, mask);
+            }
+
+            private void updateDescription(Mask mask) {
+                if (StringUtils.isNullOrEmpty(mask.getDescription())) {
+                    if (mask.getImageType() == Mask.BandMathsType.INSTANCE) {
+                        String expression = Mask.BandMathsType.getExpression(mask);
+                        mask.setDescription(getSuitableBitmaskDefDescription(expression));
+                    }
+                }
+            }
+        };
+
+        pinGroup = createPinGroup();
+        gcpGroup = createGcpGroup();
 
         setModified(false);
 
@@ -269,7 +313,6 @@ public class Product extends ProductNode {
     }
 
     private void handleGeoCodingChange() {
-        final ProductNodeGroup<Placemark> pinGroup = getPinGroup(false);
         if (pinGroup == null) {
             return;
         }
@@ -1109,25 +1152,11 @@ public class Product extends ProductNode {
     //////////////////////////////////////////////////////////////////////////
     // GCP support
 
-    /**
-     * Gets the group of ground-control points (GCPs).
-     *
-     * @param create If {@code true}, a new group will be created, in case none exists already.
-     * @return the GCP group, or {@code null} if none was found or created.
-     * @since BEAM 4.10
-     */
-    public synchronized PlacemarkGroup getGcpGroup(boolean create) {
-        VectorDataNode vectorDataNode = vectorDataGroup.get(GCP_GROUP_NAME);
-        if (vectorDataNode != null) {
-            return vectorDataNode.getPlacemarkGroup();
-        }
-        if (create) {
-            vectorDataNode = new VectorDataNode(GCP_GROUP_NAME, Placemark.createGcpFeatureType());
-            vectorDataNode.setDefaultCSS("symbol:plus; stroke:#ff8800; stroke-opacity:0.8; stroke-width:1.0");
-            this.vectorDataGroup.add(vectorDataNode);
-            return vectorDataNode.getPlacemarkGroup();
-        }
-        return null;
+    private synchronized PlacemarkGroup createGcpGroup() {
+        final VectorDataNode vectorDataNode = new VectorDataNode(GCP_GROUP_NAME, Placemark.createGcpFeatureType());
+        vectorDataNode.setDefaultStyleCss("symbol:plus; stroke:#ff8800; stroke-opacity:0.8; stroke-width:1.0");
+        this.vectorDataGroup.add(vectorDataNode);
+        return vectorDataNode.getPlacemarkGroup();
     }
 
     /**
@@ -1137,31 +1166,17 @@ public class Product extends ProductNode {
      * @return the GCP group.
      */
     public PlacemarkGroup getGcpGroup() {
-        return getGcpGroup(true);
+        return gcpGroup;
     }
 
     //////////////////////////////////////////////////////////////////////////
     // Pin support
 
-    /**
-     * Gets the group of pins.
-     *
-     * @param create If {@code true}, a new group will be created, in case none exists already.
-     * @return the pin group.
-     * @since BEAM 4.10
-     */
-    public synchronized PlacemarkGroup getPinGroup(boolean create) {
-        VectorDataNode vectorDataNode = vectorDataGroup.get(PIN_GROUP_NAME);
-        if (vectorDataNode != null) {
-            return vectorDataNode.getPlacemarkGroup();
-        }
-        if (create) {
-            vectorDataNode = new VectorDataNode(PIN_GROUP_NAME, Placemark.createPinFeatureType());
-            vectorDataNode.setDefaultCSS("symbol:pin; fill:#0000ff; fill-opacity:0.7; stroke:#ffffff; stroke-opacity:1.0; stroke-width:0.5");
-            this.vectorDataGroup.add(vectorDataNode);
-            return vectorDataNode.getPlacemarkGroup();
-        }
-        return null;
+    private synchronized PlacemarkGroup createPinGroup() {
+        final VectorDataNode vectorDataNode = new VectorDataNode(PIN_GROUP_NAME, Placemark.createPinFeatureType());
+        vectorDataNode.setDefaultStyleCss("symbol:pin; fill:#0000ff; fill-opacity:0.7; stroke:#ffffff; stroke-opacity:1.0; stroke-width:0.5");
+        this.vectorDataGroup.add(vectorDataNode);
+        return vectorDataNode.getPlacemarkGroup();
     }
 
     /**
@@ -1171,7 +1186,7 @@ public class Product extends ProductNode {
      * @return the pin group.
      */
     public synchronized PlacemarkGroup getPinGroup() {
-        return getPinGroup(true);
+        return pinGroup;
     }
 
     //
@@ -1841,9 +1856,8 @@ public class Product extends ProductNode {
         return true;
     }
 
-    private String getSuitableBitmaskDefDescription(final BitmaskDef bitmaskDef) {
+    private String getSuitableBitmaskDefDescription(final String expr) {
 
-        final String expr = bitmaskDef.getExpr();
         if (StringUtils.isNullOrEmpty(expr)) {
             return null;
         }
@@ -2016,6 +2030,41 @@ public class Product extends ProductNode {
     public void setAutoGrouping(String pattern) {
         Assert.notNull(pattern, "text");
         setAutoGrouping(AutoGroupingImpl.parse(pattern));
+    }
+
+    /**
+     * Creates a new mask with the given name and image type and adds it to this product and returns it.
+     * The new mask's samples are computed from the given image type.
+     *
+     * @param maskName  the new mask's name
+     * @param imageType the image data type used to compute the mask samples
+     * @return the new mask which has just been added
+     * @since BEAM 4.10
+     */
+    public Mask addMask(String maskName, Mask.ImageType imageType) {
+        final Mask mask = new Mask(maskName, sceneRasterWidth, sceneRasterHeight, imageType);
+        getMaskGroup().add(mask);
+        return mask;
+    }
+
+    /**
+     * Creates a new mask using a band arithmetic expression
+     * and adds it to this product and returns it.
+     *
+     * @param maskName  the new mask's name
+     * @param description the mask's description
+     * @param expression the band arithmetic expression
+     * @param color the display color
+     * @param transparency the display transparency
+     * @return the new mask which has just been added
+     * @since BEAM 4.10
+     */
+    public Mask addMask(String maskName, String description, String expression, Color color, double transparency) {
+        final Mask mask = Mask.BandMathsType.create(maskName, description,
+                                                    sceneRasterWidth, sceneRasterHeight,
+                                                    expression, color, transparency);
+        getMaskGroup().add(mask);
+        return mask;
     }
 
     /**
@@ -2193,7 +2242,7 @@ public class Product extends ProductNode {
     @Deprecated
     public void addBitmaskDef(final BitmaskDef bitmaskDef) {
         if (StringUtils.isNullOrEmpty(bitmaskDef.getDescription())) {
-            final String defaultDescription = getSuitableBitmaskDefDescription(bitmaskDef);
+            final String defaultDescription = getSuitableBitmaskDefDescription(bitmaskDef.getExpr());
             bitmaskDef.setDescription(defaultDescription);
         }
         bitmaskDefGroup.add(bitmaskDef);
@@ -2229,23 +2278,11 @@ public class Product extends ProductNode {
     @Deprecated
     public boolean removeBitmaskDef(final BitmaskDef bitmaskDef) {
         final boolean result = bitmaskDefGroup.remove(bitmaskDef);
-        removeBitmaskDef(getBands(), bitmaskDef);
-        removeBitmaskDef(getTiePointGrids(), bitmaskDef);
 
         Mask mask = getMaskGroup().get(bitmaskDef.getName());
         getMaskGroup().remove(mask);
 
         return result;
-    }
-
-    @Deprecated
-    private static void removeBitmaskDef(RasterDataNode[] bands, BitmaskDef bitmaskDef) {
-        for (RasterDataNode band : bands) {
-            final BitmaskOverlayInfo bitmaskOverlayInfo = band.getBitmaskOverlayInfo();
-            if (bitmaskOverlayInfo != null) {
-                bitmaskOverlayInfo.removeBitmaskDef(bitmaskDef);
-            }
-        }
     }
 
     /**

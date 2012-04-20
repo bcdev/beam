@@ -18,17 +18,7 @@ package org.esa.beam.visat.toolviews.imageinfo;
 import com.bc.ceres.core.ProgressMonitor;
 import com.bc.ceres.swing.progress.ProgressMonitorSwingWorker;
 import org.esa.beam.BeamUiActivator;
-import org.esa.beam.framework.datamodel.Band;
-import org.esa.beam.framework.datamodel.ColorPaletteDef;
-import org.esa.beam.framework.datamodel.ImageInfo;
-import org.esa.beam.framework.datamodel.Product;
-import org.esa.beam.framework.datamodel.ProductManager;
-import org.esa.beam.framework.datamodel.ProductNode;
-import org.esa.beam.framework.datamodel.ProductNodeEvent;
-import org.esa.beam.framework.datamodel.ProductNodeListener;
-import org.esa.beam.framework.datamodel.ProductNodeListenerAdapter;
-import org.esa.beam.framework.datamodel.RasterDataNode;
-import org.esa.beam.framework.datamodel.Stx;
+import org.esa.beam.framework.datamodel.*;
 import org.esa.beam.framework.help.HelpSys;
 import org.esa.beam.framework.ui.GridBagUtils;
 import org.esa.beam.framework.ui.SuppressibleOptionPane;
@@ -46,25 +36,9 @@ import org.esa.beam.util.io.BeamFileFilter;
 import org.esa.beam.util.io.FileUtils;
 import org.esa.beam.visat.VisatApp;
 
-import javax.swing.AbstractButton;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JFileChooser;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.InternalFrameAdapter;
-import javax.swing.event.InternalFrameEvent;
-import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
+import javax.swing.*;
+import javax.swing.event.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
@@ -251,7 +225,7 @@ class ColorManipulationForm {
         if (productSceneView != null) {
             titlePostfix = " - " + productSceneView.getSceneName();
         }
-        toolView.setTitle( titlePrefix + titlePostfix);
+        toolView.setTitle(titlePrefix + titlePostfix);
     }
 
     private void updateToolButtons() {
@@ -308,7 +282,7 @@ class ColorManipulationForm {
         applyButton.setName("ApplyButton");
         applyButton.setMnemonic('A');
         applyButton.addActionListener(new ActionListener() {
-
+            @Override
             public void actionPerformed(final ActionEvent e) {
                 applyChanges();
             }
@@ -319,6 +293,7 @@ class ColorManipulationForm {
         resetButton.setToolTipText("Reset to defaults"); /*I18N*/
         resetButton.addActionListener(new ActionListener() {
 
+            @Override
             public void actionPerformed(final ActionEvent e) {
                 resetToDefaults();
             }
@@ -329,6 +304,7 @@ class ColorManipulationForm {
         multiApplyButton.setToolTipText("Apply to other bands"); /*I18N*/
         multiApplyButton.addActionListener(new ActionListener() {
 
+            @Override
             public void actionPerformed(final ActionEvent e) {
                 applyMultipleColorPaletteDef();
             }
@@ -338,7 +314,7 @@ class ColorManipulationForm {
         importButton.setName("ImportButton");
         importButton.setToolTipText("Import settings from text file."); /*I18N*/
         importButton.addActionListener(new ActionListener() {
-
+            @Override
             public void actionPerformed(final ActionEvent e) {
                 importColorPaletteDef();
             }
@@ -349,14 +325,14 @@ class ColorManipulationForm {
         exportButton.setName("ExportButton");
         exportButton.setToolTipText("Export settings to text file."); /*I18N*/
         exportButton.addActionListener(new ActionListener() {
-
+            @Override
             public void actionPerformed(final ActionEvent e) {
                 exportColorPaletteDef();
             }
         });
         exportButton.setEnabled(true);
 
-        helpButton = createButton("icons/Help24.gif");
+        helpButton = createButton("icons/Help22.png");
         helpButton.setToolTipText("Help."); /*I18N*/
         helpButton.setName("helpButton");
 
@@ -462,16 +438,12 @@ class ColorManipulationForm {
         if (productSceneView != null) {
             try {
                 getToolViewPaneControl().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                if (!isRgbMode()) {
-                    productSceneView.getRaster().setImageInfo(imageInfo);
-                    productSceneView.setImageInfo(imageInfo);
-                } else {
+                if (isRgbMode()) {
                     productSceneView.setRasters(childForm.getRasters());
-                    productSceneView.setImageInfo(imageInfo);
+                } else {
+                    productSceneView.getRaster().setImageInfo(imageInfo);
                 }
-                setImageInfoCopy(imageInfo);
-                childForm.updateFormModel(productSceneView);
-                visatApp.updateImage(productSceneView);
+                productSceneView.setImageInfo(imageInfo);
             } finally {
                 getToolViewPaneControl().setCursor(Cursor.getDefaultCursor());
             }
@@ -621,8 +593,8 @@ class ColorManipulationForm {
                 return;
             }
             targetImageInfo.setColorPaletteDef(colorPaletteDef,
-                                               targetRaster.scale(stx.getMin()),
-                                               targetRaster.scale(stx.getMax()),
+                                               stx.getMinimum(),
+                                               stx.getMaximum(),
                                                autoDistribute);
         }
     }
@@ -827,6 +799,7 @@ class ColorManipulationForm {
 
     private class ApplyEnablerCL implements ChangeListener {
 
+        @Override
         public void stateChanged(ChangeEvent e) {
             setApplyEnabled(true);
         }
@@ -835,6 +808,7 @@ class ColorManipulationForm {
 
     private class ApplyEnablerTML implements TableModelListener {
 
+        @Override
         public void tableChanged(TableModelEvent e) {
             setApplyEnabled(true);
         }
@@ -842,6 +816,7 @@ class ColorManipulationForm {
 
     private class SceneViewImageInfoChangeListener implements PropertyChangeListener {
 
+        @Override
         public void propertyChange(PropertyChangeEvent evt) {
             if (ProductSceneView.PROPERTY_NAME_IMAGE_INFO.equals(evt.getPropertyName())) {
                 setImageInfoCopy((ImageInfo) evt.getNewValue());

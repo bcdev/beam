@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -23,33 +23,40 @@ import javax.help.BadIDException;
 import javax.help.DefaultHelpBroker;
 import javax.help.HelpBroker;
 import javax.help.HelpSet;
-import javax.swing.*;
+import javax.swing.AbstractButton;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.Window;
-import java.awt.Component;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.util.List;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 /**
-  * The <code>AbstractDialog</code> is the base class for {@link ModalDialog} and {@link ModelessDialog},
-  * two helper classes used to quickly construct modal and modeless dialogs. The dialogs created with this
-  * class have a unique border and font and a standard button row for the typical buttons like "OK", "Cancel" etc.
-  * <p/>
-  * <p>Instances of a modal dialog are created with a parent component, a title, the actual dialog content component, and
-  * a bit-combination of the standard buttons to be used.
-  * <p/>
-  * <p>A limited way of input validation is provided by the  <code>verifyUserInput</code> method which can be overridden
-  * in order to return <code>false</code> if a user input is invalid. In this case the {@link #onOK()},
-  * {@link #onYes()} and {@link #onNo()} methods are NOT called.
-  *
+ * The <code>AbstractDialog</code> is the base class for {@link ModalDialog} and {@link ModelessDialog},
+ * two helper classes used to quickly construct modal and modeless dialogs. The dialogs created with this
+ * class have a unique border and font and a standard button row for the typical buttons like "OK", "Cancel" etc.
+ * <p/>
+ * <p>Instances of a modal dialog are created with a parent component, a title, the actual dialog content component, and
+ * a bit-combination of the standard buttons to be used.
+ * <p/>
+ * <p>A limited way of input validation is provided by the  <code>verifyUserInput</code> method which can be overridden
+ * in order to return <code>false</code> if a user input is invalid. In this case the {@link #onOK()},
+ * {@link #onYes()} and {@link #onNo()} methods are NOT called.
+ *
  * @author Norman Fomferra
  * @since BEAM 4.2
  */
@@ -72,7 +79,7 @@ public abstract class AbstractDialog {
     private int buttonId;
     private Component content;
     private boolean shown;
-    private Map<Integer,AbstractButton> buttonMap;
+    private Map<Integer, AbstractButton> buttonMap;
 
     // Java help support
     private String helpId;
@@ -90,6 +97,7 @@ public abstract class AbstractDialog {
 
     /**
      * Gets the underlying Swing dialog passed to the constructor.
+     *
      * @return the underlying Swing dialog.
      */
     public JDialog getJDialog() {
@@ -98,6 +106,7 @@ public abstract class AbstractDialog {
 
     /**
      * Gets the owner of the dialog.
+     *
      * @return The owner of the dialog.
      */
     public Window getParent() {
@@ -120,6 +129,7 @@ public abstract class AbstractDialog {
 
     /**
      * Gets the button mask passed to the constructor.
+     *
      * @return The button mask.
      */
     public int getButtonMask() {
@@ -128,6 +138,7 @@ public abstract class AbstractDialog {
 
     /**
      * Gets the identifier for the most recently pressed button.
+     *
      * @return The identifier for the most recently pressed button.
      */
     public int getButtonID() {
@@ -136,6 +147,7 @@ public abstract class AbstractDialog {
 
     /**
      * Sets the identifier for the most recently pressed button.
+     *
      * @param buttonID The identifier for the most recently pressed button.
      */
     protected void setButtonID(final int buttonID) {
@@ -144,6 +156,7 @@ public abstract class AbstractDialog {
 
     /**
      * Gets the help identifier for the dialog.
+     *
      * @return The help identifier.
      */
     public String getHelpID() {
@@ -152,6 +165,7 @@ public abstract class AbstractDialog {
 
     /**
      * Sets the help identifier for the dialog.
+     *
      * @param helpID The help identifier.
      */
     public void setHelpID(String helpID) {
@@ -159,8 +173,10 @@ public abstract class AbstractDialog {
         updateHelpID();
     }
 
+
     /**
      * Gets the dialog's content component.
+     *
      * @return The dialog's content component.
      */
     public Component getContent() {
@@ -169,6 +185,7 @@ public abstract class AbstractDialog {
 
     /**
      * Sets the dialog's content component.
+     *
      * @param content The dialog's content component.
      */
     public void setContent(Component content) {
@@ -183,6 +200,7 @@ public abstract class AbstractDialog {
 
     /**
      * Sets the dialog's content.
+     *
      * @param content The dialog's content.
      */
     public void setContent(Object content) {
@@ -197,6 +215,7 @@ public abstract class AbstractDialog {
 
     /**
      * Gets the button for the given identifier.
+     *
      * @param buttonID The button identifier.
      * @return The button, or {@code null}.
      */
@@ -206,6 +225,7 @@ public abstract class AbstractDialog {
 
     /**
      * Shows the dialog. Overrides shall call {@code super.show()} at the end.
+     *
      * @return the identifier of the last button pressed or zero if this is a modeless dialog.
      */
     public int show() {
@@ -221,7 +241,8 @@ public abstract class AbstractDialog {
 
     /**
      * Hides the dialog. Overrides shall call {@code super.hide()} at the end. This method does nothing else than hiding the underlying Swing dialog.
-     * @see #getJDialog() 
+     *
+     * @see #getJDialog()
      */
     public void hide() {
         dialog.setVisible(false);
@@ -243,6 +264,7 @@ public abstract class AbstractDialog {
 
     /**
      * Shows an error dialog on top of this dialog.
+     *
      * @param errorMessage The message.
      */
     public void showErrorDialog(String errorMessage) {
@@ -251,6 +273,7 @@ public abstract class AbstractDialog {
 
     /**
      * Shows an information dialog on top of this dialog.
+     *
      * @param infoMessage The message.
      */
     public void showInformationDialog(String infoMessage) {
@@ -259,6 +282,7 @@ public abstract class AbstractDialog {
 
     /**
      * Shows a warning dialog on top of this dialog.
+     *
      * @param warningMessage The message.
      */
     public void showWarningDialog(String warningMessage) {
@@ -347,6 +371,7 @@ public abstract class AbstractDialog {
 
     /**
      * Called in order to perform input validation.
+     *
      * @return {@code true} if and only if the validation was successful.
      */
     protected boolean verifyUserInput() {
@@ -356,6 +381,7 @@ public abstract class AbstractDialog {
     /**
      * Called by the constructor in order to initialise the user interface.
      * The default implementation does nothing.
+     *
      * @param buttons The container into which new buttons shall be collected.
      */
     protected void collectButtons(List<AbstractButton> buttons) {

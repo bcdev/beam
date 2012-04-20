@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -18,12 +18,7 @@ package org.esa.beam.visat.toolviews.stat;
 
 import org.esa.beam.framework.dataio.ProductReader;
 import org.esa.beam.framework.dataio.ProductReaderPlugIn;
-import org.esa.beam.framework.datamodel.AbstractBand;
-import org.esa.beam.framework.datamodel.Band;
-import org.esa.beam.framework.datamodel.Product;
-import org.esa.beam.framework.datamodel.ProductData;
-import org.esa.beam.framework.datamodel.ProductNodeEvent;
-import org.esa.beam.framework.datamodel.TiePointGrid;
+import org.esa.beam.framework.datamodel.*;
 import org.esa.beam.framework.ui.application.ToolView;
 import org.esa.beam.util.StringUtils;
 
@@ -33,16 +28,11 @@ import org.esa.beam.util.StringUtils;
  */
 class InformationPanel extends TextPagePanel {
 
-    private static final String _DEFAULT_INFORMATION_TEXT = "No information available."; /*I18N*/
-    private static final String _TITLE_PREFIX = "Information";  /*I18N*/
+    private static final String DEFAULT_INFORMATION_TEXT = "No information available."; /*I18N*/
+    private static final String TITLE_PREFIX = "Information";  /*I18N*/
 
     InformationPanel(final ToolView parentDialog, String helpID) {
-        super(parentDialog, _DEFAULT_INFORMATION_TEXT, helpID);
-    }
-
-    @Override
-    protected String getTitlePrefix() {
-        return _TITLE_PREFIX;
+        super(parentDialog, DEFAULT_INFORMATION_TEXT, helpID, TITLE_PREFIX);
     }
 
     @Override
@@ -94,7 +84,7 @@ class InformationPanel extends TextPagePanel {
         final Product product = getProduct();
 
         if (product == null) {
-            return _DEFAULT_INFORMATION_TEXT;
+            return DEFAULT_INFORMATION_TEXT;
         }
         sb.append('\n');
 
@@ -116,11 +106,11 @@ class InformationPanel extends TextPagePanel {
         appendEntry(sb, "Product scene height:", String.valueOf(product.getSceneRasterHeight()), "pixels");
 
         final String startTimeString = product.getStartTime() != null ?
-                                       product.getStartTime().getElemString() : "Not available";
+                product.getStartTime().getElemString() : "Not available";
         appendEntry(sb, "Product start time (UTC):", startTimeString, null);
 
         final String stopTimeString = product.getEndTime() != null ?
-                                      product.getEndTime().getElemString() : "Not available";
+                product.getEndTime().getElemString() : "Not available";
         appendEntry(sb, "Product end time (UTC):", stopTimeString, null);
 
         return sb.toString();
@@ -177,7 +167,7 @@ class InformationPanel extends TextPagePanel {
     @Override
     public void nodeChanged(final ProductNodeEvent event) {
         if (event.getSourceNode() == getRaster() || event.getSourceNode() == getProduct()) {
-            updateContent();
+            updateComponents();
         }
     }
 }

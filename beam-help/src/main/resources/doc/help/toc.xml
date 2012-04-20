@@ -22,7 +22,7 @@
         <tocitem text="Introduction" target="visat"/>
         <tocitem text="Tools">
             <tocitem text="Import and Export Tools">
-                <tocitem text="Import Geometry" target="importGeometry"/>
+                <tocitem text="Import Shapefile" target="importShapefile"/>
                 <tocitem text="Import ENVISAT Data Product" target="importEnvisatProduct"/>
                 <tocitem text="Import ERS1/2 Data Product" target="importErsProduct"/>
                 <tocitem text="Import ATSR Data Product" target="importAtsrProduct"/>
@@ -77,7 +77,8 @@
                 <tocitem text="Product/Band Geo-Coding Information" target="geoCodingInfoDialog"/>
                 <tocitem text="Band Statistics" target="statisticsDialog"/>
                 <tocitem text="Band Histogram" target="histogramDialog"/>
-                <tocitem text="Band Scatter Plot" target="scatterplotDialog"/>
+                <tocitem text="Band Density Plot" target="densityplotDialog"/>
+                <tocitem text="Scatter Plot" target="scatterplotDialog"/>
                 <tocitem text="Band Transect Profile Plot" target="profilePlotDialog"/>
                 <tocitem text="Band Transect Co-ordinate List" target="coordinateListDialog"/>
                 <tocitem text="Compute Mask Area" target="computeMaskArea"/>

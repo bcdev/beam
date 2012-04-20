@@ -1,6 +1,6 @@
 package org.esa.beam.framework.datamodel;
 
-import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
 import org.geotools.feature.AttributeTypeBuilder;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.junit.Test;
@@ -39,17 +39,17 @@ public class PlacemarkDescriptorRegistryTest {
 
     @Test
     public void testThatPlacemarkDescriptorIsFoundForPinFeatureType() throws Exception {
-        testThatPlacemarkDescriptorIsFound("org.esa.beam.Pin", "org.esa.beam.framework.datamodel.PinDescriptor");
+        testThatPlacemarkDescriptorIsFound("org.esa.beam.Pin", "org.esa.beam.framework.datamodel.PinDescriptor", 3);
     }
 
     @Test
     public void testThatPlacemarkDescriptorIsFoundForGcpFeatureType() throws Exception {
-        testThatPlacemarkDescriptorIsFound("org.esa.beam.GroundControlPoint", "org.esa.beam.framework.datamodel.GcpDescriptor");
+        testThatPlacemarkDescriptorIsFound("org.esa.beam.GroundControlPoint", "org.esa.beam.framework.datamodel.GcpDescriptor", 3);
     }
 
     @Test
     public void testThatPlacemarkDescriptorIsFoundForGeometryFeatureType() throws Exception {
-        testThatPlacemarkDescriptorIsFound("org.esa.beam.Geometry", "org.esa.beam.framework.datamodel.GeometryDescriptor");
+        testThatPlacemarkDescriptorIsFound("org.esa.beam.Geometry", "org.esa.beam.framework.datamodel.GeometryDescriptor", 2);
     }
 
     @Test
@@ -58,29 +58,28 @@ public class PlacemarkDescriptorRegistryTest {
 
         SimpleFeatureType ft = createYetUnknownFeatureType();
 
-        List<PlacemarkDescriptor> descriptors = registry.getPlacemarkDescriptors(ft);
+        List<PlacemarkDescriptor> descriptors = registry.getValidPlacemarkDescriptors(ft);
         assertNotNull(descriptors);
-        assertEquals(0, descriptors.size());
+        assertEquals(1, descriptors.size());
     }
 
-    private void testThatPlacemarkDescriptorIsFound(String featureTypeName, String className) {
+    private void testThatPlacemarkDescriptorIsFound(String featureTypeName, String className, int expected) {
         PlacemarkDescriptorRegistry registry = new PlacemarkDescriptorRegistry();
 
         SimpleFeatureType ft = Placemark.createPointFeatureType(featureTypeName);
 
-        List<PlacemarkDescriptor> descriptors = registry.getPlacemarkDescriptors(ft);
+        List<PlacemarkDescriptor> descriptors = registry.getValidPlacemarkDescriptors(ft);
         assertNotNull(descriptors);
-        assertEquals(1, descriptors.size());
+        assertEquals(expected, descriptors.size());
 
-        assertSame(registry.getPlacemarkDescriptor(className),
-                   descriptors.get(0));
+        assertTrue(descriptors.contains(registry.getPlacemarkDescriptor(className)));
     }
 
     public static SimpleFeatureType createYetUnknownFeatureType() {
         SimpleFeatureTypeBuilder sftb = new SimpleFeatureTypeBuilder();
         AttributeTypeBuilder atb = new AttributeTypeBuilder();
 
-        atb.setBinding(Point.class);
+        atb.setBinding(Polygon.class);
         atb.nillable(false);
         sftb.add(atb.buildDescriptor("PT"));
         sftb.setDefaultGeometry("PT");

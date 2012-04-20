@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -27,15 +27,25 @@ import com.bc.ceres.jai.operator.ReinterpretDescriptor;
 import com.bc.ceres.jai.operator.ScalingType;
 import org.esa.beam.framework.dataop.barithm.BandArithmetic;
 import org.esa.beam.jai.ImageManager;
-import org.esa.beam.util.*;
+import org.esa.beam.util.BitRaster;
+import org.esa.beam.util.Debug;
+import org.esa.beam.util.ObjectUtils;
+import org.esa.beam.util.ProductUtils;
+import org.esa.beam.util.StringUtils;
 import org.esa.beam.util.jai.SingleBandedSampleModel;
-import org.esa.beam.util.math.*;
+import org.esa.beam.util.math.DoubleList;
+import org.esa.beam.util.math.Histogram;
+import org.esa.beam.util.math.IndexValidator;
+import org.esa.beam.util.math.MathUtils;
+import org.esa.beam.util.math.Quantizer;
+import org.esa.beam.util.math.Range;
 
 import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.ROI;
-import java.awt.*;
+import java.awt.RenderingHints;
+import java.awt.Shape;
 import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
@@ -61,7 +71,6 @@ import java.util.Arrays;
 public abstract class RasterDataNode extends DataNode implements Scaling {
 
     public static final String PROPERTY_NAME_IMAGE_INFO = "imageInfo";
-    public static final String PROPERTY_NAME_BITMASK_OVERLAY_INFO = "bitmaskOverlayInfo";
     public static final String PROPERTY_NAME_LOG_10_SCALED = "log10Scaled";
     public static final String PROPERTY_NAME_ROI_DEFINITION = "roiDefinition";
     public static final String PROPERTY_NAME_SCALING_FACTOR = "scalingFactor";
@@ -120,14 +129,9 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
 
     private ImageInfo imageInfo;
 
-    @Deprecated
-    private BitmaskOverlayInfo bitmaskOverlayInfo;
-    // todo - use instead of bitmaskOverlayInfo
     private final ProductNodeGroup<Mask> overlayMasks;
 
     @Deprecated
-    private ROIDefinition roiDefinition;
-
     private final ProductNodeGroup<Mask> roiMasks;
 
     /**
@@ -227,7 +231,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
             if (!modified && overlayMasks != null) {
                 overlayMasks.setModified(false);
             }
-            if (!modified && roiMasks != null) {
+            if (!modified) {
                 roiMasks.setModified(false);
             }
             super.setModified(modified);
@@ -838,14 +842,6 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
         if (imageInfo != null) {
             imageInfo.dispose();
             imageInfo = null;
-        }
-        if (bitmaskOverlayInfo != null) {
-            bitmaskOverlayInfo.dispose();
-            bitmaskOverlayInfo = null;
-        }
-        if (roiDefinition != null) {
-            roiDefinition.dispose();
-            roiDefinition = null;
         }
         if (sourceImage != null) {
             sourceImage.dispose();
@@ -1474,7 +1470,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
      * @throws IOException if an I/O error occurs
      */
     public TransectProfileData createTransectProfileData(Shape shape) throws IOException {
-        return TransectProfileData.create(this, shape);
+        return new TransectProfileDataBuilder().raster(this).path(shape).build();
     }
 
     /**
@@ -1574,8 +1570,8 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
     public synchronized ImageInfo createDefaultImageInfo(double[] histoSkipAreas, ProgressMonitor pm) {
         Stx stx = getStx(false, pm);
         Histogram histogram = new Histogram(stx.getHistogramBins(),
-                                            stx.getMin(),
-                                            stx.getMax());
+                                            stx.getMinimum(),
+                                            stx.getMaximum());
         return createDefaultImageInfo(histoSkipAreas, histogram);
     }
 
@@ -1601,11 +1597,11 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
 
         final double min, max;
         if (range.getMin() != range.getMax()) {
-            min = scale(range.getMin());
-            max = scale(range.getMax());
+            min = range.getMin();
+            max = range.getMax();
         } else {
-            min = scale(histogram.getMin());
-            max = scale(histogram.getMax());
+            min = histogram.getMin();
+            max = histogram.getMax();
         }
 
         double center = scale(0.5 * (scaleInverse(min) + scaleInverse(max)));
@@ -1619,13 +1615,6 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
      */
     public ProductNodeGroup<Mask> getOverlayMaskGroup() {
         return overlayMasks;
-    }
-
-    /**
-     * @return The roi mask group.
-     */
-    public ProductNodeGroup<Mask> getRoiMaskGroup() {
-        return roiMasks;
     }
 
     /**
@@ -2130,7 +2119,7 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
      * @since BEAM 4.5
      */
     protected Stx computeStxImpl(int level, ProgressMonitor pm) {
-        return Stx.create(this, level, pm);
+        return new StxFactory().withResolutionLevel(level).create(this, pm);
     }
 
     /**
@@ -2235,94 +2224,22 @@ public abstract class RasterDataNode extends DataNode implements Scaling {
     // Deprecated API
 
     /**
-     * @return the ROI definition
-     * @deprecated since BEAM 4.7, use {@link #getRoiMaskGroup()}
+     * @return The roi mask group.
+     * @deprecated since BEAM 4.10 (no replacement)
      */
     @Deprecated
-    public ROIDefinition getROIDefinition() {
-        return roiDefinition;
-    }
-
-    /**
-     * Sets the ROI definition for image display
-     *
-     * @param roiDefinition the ROI definition
-     * @deprecated since BEAM 4.7, use {@link #getRoiMaskGroup()}
-     */
-    @Deprecated
-    public void setROIDefinition(ROIDefinition roiDefinition) {
-        if (this.roiDefinition != roiDefinition) {
-            this.roiDefinition = roiDefinition;
-            fireProductNodeChanged(PROPERTY_NAME_ROI_DEFINITION);
-
-            if (getProduct() != null) {
-                if (roiDefinition.isUsable()) {
-                    final Mask mask = ROIDefinition.toMask(roiDefinition, this);
-                    if (mask != null) {
-                        getProduct().getMaskGroup().add(mask);
-                    }
-                }
-            }
-
-            setModified(true);
-        }
-    }
-
-
-    /**
-     * @return the bitmask overlay info for image display
-     * @deprecated since BEAM 4.7, use {@link #getOverlayMaskGroup()}
-     */
-    @Deprecated
-    public BitmaskOverlayInfo getBitmaskOverlayInfo() {
-        return bitmaskOverlayInfo;
-    }
-
-    /**
-     * Sets the bitmask overlay info for image display
-     *
-     * @param bitmaskOverlayInfo the bitmask overlay info
-     * @deprecated since BEAM 4.7, use {@link #getOverlayMaskGroup()}
-     */
-    @Deprecated
-    public void setBitmaskOverlayInfo(BitmaskOverlayInfo bitmaskOverlayInfo) {
-        if (this.bitmaskOverlayInfo != bitmaskOverlayInfo) {
-            this.bitmaskOverlayInfo = bitmaskOverlayInfo;
-            fireProductNodeChanged(PROPERTY_NAME_BITMASK_OVERLAY_INFO);
-
-            synchronized (overlayMasks) {
-                if (getProduct() != null) {
-                    overlayMasks.removeAll();
-                    if (bitmaskOverlayInfo != null) {
-                        final ProductNodeGroup<Mask> maskGroup = getProduct().getMaskGroup();
-                        for (final BitmaskDef def : bitmaskOverlayInfo.getBitmaskDefs()) {
-                            final Mask mask = maskGroup.get(def.getName());
-                            if (mask != null) {
-                                overlayMasks.add(mask);
-                            }
-                        }
-                    }
-                }
-            }
-
-            setModified(true);
-        }
+    public ProductNodeGroup<Mask> getRoiMaskGroup() {
+        return roiMasks;
     }
 
     /**
      * Gets all associated bitmask definitions. An empty arry is returned if no bitmask defintions are associated.
      *
      * @return Associated bitmask definitions.
-     * @see #getBitmaskOverlayInfo()
-     * @see #setBitmaskOverlayInfo(BitmaskOverlayInfo)
      * @deprecated since BEAM 4.7, use {@link #getOverlayMaskGroup()}
      */
     @Deprecated
     public BitmaskDef[] getBitmaskDefs() {
-        final BitmaskOverlayInfo bitmaskOverlayInfo = getBitmaskOverlayInfo();
-        if (bitmaskOverlayInfo != null) {
-            return bitmaskOverlayInfo.getBitmaskDefs();
-        }
         return new BitmaskDef[0];
     }
 

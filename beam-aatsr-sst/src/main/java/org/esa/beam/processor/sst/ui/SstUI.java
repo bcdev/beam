@@ -61,7 +61,10 @@ import java.util.logging.Logger;
 
 /**
  * This class implements the graphical user interface for the BEAM Sea Surface Temperature processor.
+ *
+ * @deprecated since BEAM 4.10 - no replacement.
  */
+@Deprecated
 public class SstUI extends AbstractProcessorUI implements ParamChangeListener {
 
     private JTabbedPane _tabbedPane;
@@ -444,8 +447,8 @@ public class SstUI extends AbstractProcessorUI implements ParamChangeListener {
                 } catch (IOException e) {
                     _logger.severe("Unable to read the input product '" + prodRef.getFilePath() + "'");
                     Debug.trace(e);
-                }finally {
-                    if(inProduct != null) {
+                } finally {
+                    if (inProduct != null) {
                         inProduct.dispose();
                     }
                 }
@@ -725,7 +728,8 @@ public class SstUI extends AbstractProcessorUI implements ParamChangeListener {
      */
     private void handleUpdateInputProduct() {
         try {
-            File file = (File) _paramGroup.getParameter(DefaultRequestElementFactory.INPUT_PRODUCT_PARAM_NAME).getValue();
+            File file = (File) _paramGroup.getParameter(
+                    DefaultRequestElementFactory.INPUT_PRODUCT_PARAM_NAME).getValue();
             Product inProduct = ProductIO.readProduct(file);
             if (inProduct != null) {
                 scanForFlags(inProduct);

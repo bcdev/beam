@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -21,6 +21,7 @@ import com.bc.ceres.swing.binding.BindingContext;
 import com.bc.ceres.swing.binding.PropertyPane;
 import org.esa.beam.framework.datamodel.*;
 import org.esa.beam.framework.ui.ModalDialog;
+import org.esa.beam.util.FeatureUtils;
 import org.esa.beam.util.Guardian;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.opengis.referencing.FactoryException;
@@ -35,47 +36,58 @@ import java.beans.PropertyChangeListener;
  */
 public class PlacemarkDialog extends ModalDialog {
 
+    private final static String PROPERTY_NAME_NAME = "name";
+    private final static String PROPERTY_NAME_LABEL = "label";
+    private final static String PROPERTY_NAME_DESCRIPTION = "description";
+    private final static String PROPERTY_NAME_STYLE_CSS = "styleCss";
+    private final static String PROPERTY_NAME_LAT = "lat";
+    private final static String PROPERTY_NAME_LON = "lon";
+    private final static String PROPERTY_NAME_PIXEL_X = "pixelX";
+    private final static String PROPERTY_NAME_PIXEL_Y = "pixelY";
+    private final static String PROPERTY_NAME_USE_PIXEL_POS = "usePixelPos";
+
     private final Product product;
     private final boolean canGetPixelPos;
     private final boolean canGetGeoPos;
     private final PlacemarkDescriptor placemarkDescriptor;
-    private final BindingContext bindingContext;
 
+    private final BindingContext bindingContext;
     private boolean adjusting;
 
     public PlacemarkDialog(final Window parent, final Product product, final PlacemarkDescriptor placemarkDescriptor,
-                           boolean geoAndPixelPositionsEditable) {
+                           boolean switchGeoAndPixelPositionsEditable) {
         super(parent, "New " + placemarkDescriptor.getRoleLabel(), ModalDialog.ID_OK_CANCEL, null); /*I18N*/
         Guardian.assertNotNull("product", product);
         this.product = product;
         this.placemarkDescriptor = placemarkDescriptor;
         bindingContext = new BindingContext();
-        GeoCoding geoCoding = this.product.getGeoCoding();
-        boolean hasGeoCoding = geoCoding != null;
+        final GeoCoding geoCoding = this.product.getGeoCoding();
+        final boolean hasGeoCoding = geoCoding != null;
         canGetPixelPos = hasGeoCoding && geoCoding.canGetPixelPos();
         canGetGeoPos = hasGeoCoding && geoCoding.canGetGeoPos();
-        boolean usePixelPos = false;
+
+        boolean usePixelPos = !hasGeoCoding && switchGeoAndPixelPositionsEditable;
 
         PropertySet propertySet = bindingContext.getPropertySet();
-        propertySet.addProperties(Property.create("name", ""),
-                                  Property.create("label", ""),
-                                  Property.create("description", ""),
-                                  Property.create("styleCss", ""),
-                                  Property.create("lat", 0.0F),
-                                  Property.create("lon", 0.0F),
-                                  Property.create("pixelX", 0.0F),
-                                  Property.create("pixelY", 0.0F),
-                                  Property.create("usePixelPos", usePixelPos)
+        propertySet.addProperties(Property.create(PROPERTY_NAME_NAME, ""),
+                                  Property.create(PROPERTY_NAME_LABEL, ""),
+                                  Property.create(PROPERTY_NAME_DESCRIPTION, ""),
+                                  Property.create(PROPERTY_NAME_STYLE_CSS, ""),
+                                  Property.create(PROPERTY_NAME_LAT, 0.0F),
+                                  Property.create(PROPERTY_NAME_LON, 0.0F),
+                                  Property.create(PROPERTY_NAME_PIXEL_X, 0.0F),
+                                  Property.create(PROPERTY_NAME_PIXEL_Y, 0.0F),
+                                  Property.create(PROPERTY_NAME_USE_PIXEL_POS, usePixelPos)
         );
-        propertySet.getProperty("usePixelPos").getDescriptor().setAttribute("enabled", hasGeoCoding && geoAndPixelPositionsEditable);
-        propertySet.getProperty("lat").getDescriptor().setDisplayName("Latitude");
-        propertySet.getProperty("lat").getDescriptor().setUnit("deg");
-        propertySet.getProperty("lon").getDescriptor().setDisplayName("Longitude");
-        propertySet.getProperty("lon").getDescriptor().setUnit("deg");
-        propertySet.getProperty("pixelX").getDescriptor().setDisplayName("Pixel X");
-        propertySet.getProperty("pixelX").getDescriptor().setUnit("pixels");
-        propertySet.getProperty("pixelY").getDescriptor().setDisplayName("Pixel Y");
-        propertySet.getProperty("pixelY").getDescriptor().setUnit("pixels");
+        propertySet.getProperty(PROPERTY_NAME_USE_PIXEL_POS).getDescriptor().setAttribute("enabled", hasGeoCoding && switchGeoAndPixelPositionsEditable);
+        propertySet.getProperty(PROPERTY_NAME_LAT).getDescriptor().setDisplayName("Latitude");
+        propertySet.getProperty(PROPERTY_NAME_LAT).getDescriptor().setUnit("deg");
+        propertySet.getProperty(PROPERTY_NAME_LON).getDescriptor().setDisplayName("Longitude");
+        propertySet.getProperty(PROPERTY_NAME_LON).getDescriptor().setUnit("deg");
+        propertySet.getProperty(PROPERTY_NAME_PIXEL_X).getDescriptor().setDisplayName("Pixel X");
+        propertySet.getProperty(PROPERTY_NAME_PIXEL_X).getDescriptor().setUnit("pixels");
+        propertySet.getProperty(PROPERTY_NAME_PIXEL_Y).getDescriptor().setDisplayName("Pixel Y");
+        propertySet.getProperty(PROPERTY_NAME_PIXEL_Y).getDescriptor().setUnit("pixels");
 
 
         PropertyChangeListener geoChangeListener = new PropertyChangeListener() {
@@ -85,8 +97,8 @@ public class PlacemarkDialog extends ModalDialog {
             }
         };
 
-        propertySet.getProperty("lat").addPropertyChangeListener(geoChangeListener);
-        propertySet.getProperty("lon").addPropertyChangeListener(geoChangeListener);
+        propertySet.getProperty(PROPERTY_NAME_LAT).addPropertyChangeListener(geoChangeListener);
+        propertySet.getProperty(PROPERTY_NAME_LON).addPropertyChangeListener(geoChangeListener);
 
         PropertyChangeListener pixelChangeListener = new PropertyChangeListener() {
             @Override
@@ -95,8 +107,8 @@ public class PlacemarkDialog extends ModalDialog {
             }
         };
 
-        propertySet.getProperty("pixelX").addPropertyChangeListener(pixelChangeListener);
-        propertySet.getProperty("pixelY").addPropertyChangeListener(pixelChangeListener);
+        propertySet.getProperty(PROPERTY_NAME_PIXEL_X).addPropertyChangeListener(pixelChangeListener);
+        propertySet.getProperty(PROPERTY_NAME_PIXEL_Y).addPropertyChangeListener(pixelChangeListener);
 
         /*
                 symbolLabel = new JLabel() {
@@ -119,10 +131,12 @@ public class PlacemarkDialog extends ModalDialog {
         */
 
         setContent(new PropertyPane(bindingContext).createPanel());
-        bindingContext.bindEnabledState("lat", false, "usePixelPos", true);
-        bindingContext.bindEnabledState("lon", false, "usePixelPos", true);
-        bindingContext.bindEnabledState("pixelX", true, "usePixelPos", true);
-        bindingContext.bindEnabledState("pixelY", true, "usePixelPos", true);
+        if (switchGeoAndPixelPositionsEditable) {
+            bindingContext.bindEnabledState(PROPERTY_NAME_LAT, false, PROPERTY_NAME_USE_PIXEL_POS, true);
+            bindingContext.bindEnabledState(PROPERTY_NAME_LON, false, PROPERTY_NAME_USE_PIXEL_POS, true);
+            bindingContext.bindEnabledState(PROPERTY_NAME_PIXEL_X, true, PROPERTY_NAME_USE_PIXEL_POS, true);
+            bindingContext.bindEnabledState(PROPERTY_NAME_PIXEL_Y, true, PROPERTY_NAME_USE_PIXEL_POS, true);
+        }
     }
 
     public Product getProduct() {
@@ -139,67 +153,67 @@ public class PlacemarkDialog extends ModalDialog {
     }
 
     public String getName() {
-        return bindingContext.getPropertySet().getValue("name");
+        return bindingContext.getPropertySet().getValue(PROPERTY_NAME_NAME);
     }
 
     public void setName(String name) {
-        bindingContext.getPropertySet().setValue("name", name);
+        bindingContext.getPropertySet().setValue(PROPERTY_NAME_NAME, name);
     }
 
     public String getLabel() {
-        return bindingContext.getPropertySet().getValue("label");
+        return bindingContext.getPropertySet().getValue(PROPERTY_NAME_LABEL);
     }
 
     public void setLabel(String label) {
-        bindingContext.getPropertySet().setValue("label", label);
+        bindingContext.getPropertySet().setValue(PROPERTY_NAME_LABEL, label);
     }
 
     public String getDescription() {
-        return bindingContext.getPropertySet().getValue("description");
+        return bindingContext.getPropertySet().getValue(PROPERTY_NAME_DESCRIPTION);
     }
 
     public void setDescription(String description) {
-        bindingContext.getPropertySet().setValue("description", description);
+        bindingContext.getPropertySet().setValue(PROPERTY_NAME_DESCRIPTION, description);
     }
 
     public String getStyleCss() {
-        return bindingContext.getPropertySet().getValue("styleCss");
+        return bindingContext.getPropertySet().getValue(PROPERTY_NAME_STYLE_CSS);
     }
 
     private void setStyleCss(String styleCss) {
-        bindingContext.getPropertySet().setValue("styleCss", styleCss);
+        bindingContext.getPropertySet().setValue(PROPERTY_NAME_STYLE_CSS, styleCss);
     }
 
     public float getPixelX() {
-        return (Float) bindingContext.getPropertySet().getValue("pixelX");
+        return (Float) bindingContext.getPropertySet().getValue(PROPERTY_NAME_PIXEL_X);
     }
 
     public void setPixelX(float pixelX) {
-        bindingContext.getPropertySet().setValue("pixelX", pixelX);
+        bindingContext.getPropertySet().setValue(PROPERTY_NAME_PIXEL_X, pixelX);
     }
 
     public float getPixelY() {
-        return (Float) bindingContext.getPropertySet().getValue("pixelY");
+        return (Float) bindingContext.getPropertySet().getValue(PROPERTY_NAME_PIXEL_Y);
     }
 
     public void setPixelY(float pixelY) {
-        bindingContext.getPropertySet().setValue("pixelY", pixelY);
+        bindingContext.getPropertySet().setValue(PROPERTY_NAME_PIXEL_Y, pixelY);
     }
 
     public float getLat() {
-        return (Float) bindingContext.getPropertySet().getValue("lat");
+        return (Float) bindingContext.getPropertySet().getValue(PROPERTY_NAME_LAT);
     }
 
     public void setLat(float lat) {
-        bindingContext.getPropertySet().setValue("lat", lat);
+        bindingContext.getPropertySet().setValue(PROPERTY_NAME_LAT, lat);
     }
 
     public float getLon() {
-        return (Float) bindingContext.getPropertySet().getValue("lon");
+        return (Float) bindingContext.getPropertySet().getValue(PROPERTY_NAME_LON);
     }
 
     public void setLon(float lon) {
-        bindingContext.getPropertySet().setValue("lon", lon);
+        bindingContext.getPropertySet().setValue(PROPERTY_NAME_LON, lon);
     }
 
     public GeoPos getGeoPos() {
@@ -250,17 +264,6 @@ public class PlacemarkDialog extends ModalDialog {
     }
 
     /**
-     * Turns the first letter of the given string to upper case.
-     *
-     * @param string the string to change
-     * @return a changed string
-     */
-    private static String firstLetterUp(String string) {
-        String firstChar = string.substring(0, 1).toUpperCase();
-        return firstChar + string.substring(1);
-    }
-
-    /**
      * Shows a dialog to edit the properties of an placemark.
      * If the placemark does not belong to a product it will be added after editing.
      *
@@ -276,7 +279,7 @@ public class PlacemarkDialog extends ModalDialog {
                                                            placemarkDescriptor instanceof PinDescriptor);
         boolean belongsToProduct = placemark.getProduct() != null;
         String titlePrefix = belongsToProduct ? "Edit" : "New";
-        String roleLabel = firstLetterUp(placemarkDescriptor.getRoleLabel());
+        String roleLabel = FeatureUtils.firstLetterUp(placemarkDescriptor.getRoleLabel());
 
         dialog.getJDialog().setTitle(titlePrefix + " " + roleLabel);
         dialog.getJDialog().setName(titlePrefix + "_" + roleLabel);
@@ -286,7 +289,8 @@ public class PlacemarkDialog extends ModalDialog {
         // prevent that geoPos change updates pixelPos and vice versa during dialog creation
         dialog.adjusting = true;
         dialog.setPixelPos(placemark.getPixelPos());
-        dialog.setGeoPos(placemark.getGeoPos());
+        GeoPos geoPos = placemark.getGeoPos();
+        dialog.setGeoPos(geoPos != null ? geoPos : new GeoPos(Float.NaN, Float.NaN));
         dialog.adjusting = false;
         dialog.setStyleCss(placemark.getStyleCss());
         boolean ok = (dialog.show() == ID_OK);
@@ -301,7 +305,6 @@ public class PlacemarkDialog extends ModalDialog {
             placemark.setGeoPos(dialog.getGeoPos());
             placemark.setPixelPos(dialog.getPixelPos());
             placemark.setStyleCss(dialog.getStyleCss());
-
         }
         return ok;
     }

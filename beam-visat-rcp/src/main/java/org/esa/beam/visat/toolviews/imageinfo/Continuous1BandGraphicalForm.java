@@ -16,8 +16,12 @@
 
 package org.esa.beam.visat.toolviews.imageinfo;
 
+import com.bc.ceres.core.ProgressMonitor;
 import org.esa.beam.framework.datamodel.ProductNodeEvent;
 import org.esa.beam.framework.datamodel.RasterDataNode;
+import org.esa.beam.framework.datamodel.Scaling;
+import org.esa.beam.framework.datamodel.Stx;
+import org.esa.beam.framework.datamodel.StxFactory;
 import org.esa.beam.framework.ui.ImageInfoEditor;
 import org.esa.beam.framework.ui.ImageInfoEditorModel;
 import org.esa.beam.framework.ui.product.ProductSceneView;
@@ -32,10 +36,13 @@ import java.awt.event.ActionListener;
 
 class Continuous1BandGraphicalForm implements ColorManipulationChildForm {
 
+    public static final Scaling POW10_SCALING = new Pow10Scaling();
+
     private final ColorManipulationForm parentForm;
     private final ImageInfoEditor2 imageInfoEditor;
     private final ImageInfoEditorSupport imageInfoEditorSupport;
     private final JPanel contentPanel;
+    private final AbstractButton logDisplayButton;
     private final AbstractButton evenDistButton;
     private final MoreOptionsForm moreOptionsForm;
     private ChangeListener applyEnablerCL;
@@ -49,10 +56,21 @@ class Continuous1BandGraphicalForm implements ColorManipulationChildForm {
         contentPanel.add(imageInfoEditor, BorderLayout.CENTER);
         moreOptionsForm = new MoreOptionsForm(parentForm, true);
 
+        logDisplayButton = ImageInfoEditorSupport.createToggleButton("icons/LogDisplay24.png");
+        logDisplayButton.setName("logDisplayButton");
+        logDisplayButton.setToolTipText("Switch to logarithmic display"); /*I18N*/
+        logDisplayButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                setLogarithmicDisplay(parentForm.getProductSceneView().getRaster(), logDisplayButton.isSelected());
+            }
+        });
+
         evenDistButton = ImageInfoEditorSupport.createButton("icons/EvenDistribution24.gif");
         evenDistButton.setName("evenDistButton");
         evenDistButton.setToolTipText("Distribute sliders evenly between first and last slider"); /*I18N*/
         evenDistButton.addActionListener(new ActionListener() {
+            @Override
             public void actionPerformed(ActionEvent e) {
                 distributeSlidersEvenly();
             }
@@ -61,6 +79,8 @@ class Continuous1BandGraphicalForm implements ColorManipulationChildForm {
         applyEnablerCL = parentForm.createApplyEnablerChangeListener();
     }
 
+
+    @Override
     public Component getContentPanel() {
         return contentPanel;
     }
@@ -84,21 +104,24 @@ class Continuous1BandGraphicalForm implements ColorManipulationChildForm {
 
     @Override
     public void updateFormModel(ProductSceneView productSceneView) {
-        ImageInfoEditorModel1B model = new ImageInfoEditorModel1B(parentForm.getImageInfo());
-        model.addChangeListener(applyEnablerCL);
-        ImageInfoEditorModel oldModel = imageInfoEditor.getModel();
-        setDisplayProperties(model, productSceneView.getRaster());
-        imageInfoEditor.setModel(model);
+        final ImageInfoEditorModel oldModel = imageInfoEditor.getModel();
+        final ImageInfoEditorModel newModel = new ImageInfoEditorModel1B(parentForm.getImageInfo());
+        newModel.addChangeListener(applyEnablerCL);
+        imageInfoEditor.setModel(newModel);
+
+        final RasterDataNode raster = productSceneView.getRaster();
+        setLogarithmicDisplay(raster, newModel.getImageInfo().isLogScaled());
         if (oldModel != null) {
-            model.setHistogramViewGain(oldModel.getHistogramViewGain());
-            model.setMinHistogramViewSample(oldModel.getMinHistogramViewSample());
-            model.setMaxHistogramViewSample(oldModel.getMaxHistogramViewSample());
+            newModel.setHistogramViewGain(oldModel.getHistogramViewGain());
+            newModel.setMinHistogramViewSample(oldModel.getMinHistogramViewSample());
+            newModel.setMaxHistogramViewSample(oldModel.getMaxHistogramViewSample());
         }
-        if (model.getSliderSample(0) < model.getMinHistogramViewSample() ||
-                model.getSliderSample(model.getSliderCount() - 1) > model.getMaxHistogramViewSample()) {
+        if (newModel.getSliderSample(0) < newModel.getMinHistogramViewSample() ||
+            newModel.getSliderSample(newModel.getSliderCount() - 1) > newModel.getMaxHistogramViewSample()) {
             imageInfoEditor.computeZoomInToSliderLimits();
         }
 
+        logDisplayButton.setSelected(newModel.getImageInfo().isLogScaled());
         parentForm.revalidateToolViewPaneControl();
     }
 
@@ -111,10 +134,12 @@ class Continuous1BandGraphicalForm implements ColorManipulationChildForm {
 
     @Override
     public void handleRasterPropertyChange(ProductNodeEvent event, RasterDataNode raster) {
-        if (imageInfoEditor.getModel() != null) {
-            setDisplayProperties(imageInfoEditor.getModel(), raster);
+        final ImageInfoEditorModel model = imageInfoEditor.getModel();
+        if (model != null) {
             if (event.getPropertyName().equals(RasterDataNode.PROPERTY_NAME_STX)) {
                 updateFormModel(parentForm.getProductSceneView());
+            } else {
+                setLogarithmicDisplay(raster, model.getImageInfo().isLogScaled());
             }
         }
     }
@@ -129,11 +154,27 @@ class Continuous1BandGraphicalForm implements ColorManipulationChildForm {
         return moreOptionsForm;
     }
 
+    private void setLogarithmicDisplay(final RasterDataNode raster, final boolean logarithmicDisplay) {
+        final ImageInfoEditorModel model = imageInfoEditor.getModel();
+        if (logarithmicDisplay) {
+            final StxFactory stxFactory = new StxFactory();
+            final Stx stx = stxFactory
+                    .withHistogramBinCount(raster.getStx().getHistogramBinCount())
+                    .withLogHistogram(logarithmicDisplay)
+                    .withResolutionLevel(raster.getSourceImage().getModel().getLevelCount() - 1)
+                    .create(raster, ProgressMonitor.NULL);
+            model.setDisplayProperties(raster.getName(), raster.getUnit(), stx, POW10_SCALING);
+        } else {
+            model.setDisplayProperties(raster.getName(), raster.getUnit(), raster.getStx(), Scaling.IDENTITY);
+        }
+        model.getImageInfo().setLogScaled(logarithmicDisplay);
+    }
+
     private void distributeSlidersEvenly() {
         imageInfoEditor.distributeSlidersEvenly();
     }
 
-
+    @Override
     public AbstractButton[] getToolButtons() {
         return new AbstractButton[]{
                 imageInfoEditorSupport.autoStretch95Button,
@@ -142,14 +183,42 @@ class Continuous1BandGraphicalForm implements ColorManipulationChildForm {
                 imageInfoEditorSupport.zoomOutVButton,
                 imageInfoEditorSupport.zoomInHButton,
                 imageInfoEditorSupport.zoomOutHButton,
-                imageInfoEditorSupport.showExtraInfoButton,
+                logDisplayButton,
                 evenDistButton,
+                imageInfoEditorSupport.showExtraInfoButton,
         };
     }
 
     static void setDisplayProperties(ImageInfoEditorModel model, RasterDataNode raster) {
-        model.setDisplayProperties(raster.getName(), raster.getUnit(), raster.getStx(), raster);
+        model.setDisplayProperties(raster.getName(), raster.getUnit(), raster.getStx(),
+                                   raster.isLog10Scaled() ? POW10_SCALING : Scaling.IDENTITY);
     }
 
 
+    private static class Log10Scaling implements Scaling {
+
+        @Override
+        public final double scale(double value) {
+            return value > 1.0E-9 ? Math.log10(value) : -9.0;
+        }
+
+        @Override
+        public final double scaleInverse(double value) {
+            return value < -9.0 ? 1.0E-9 : Math.pow(10.0, value);
+        }
+    }
+
+    private static class Pow10Scaling implements Scaling {
+        private final Scaling log10Scaling = new Log10Scaling();
+
+        @Override
+        public double scale(double value) {
+            return log10Scaling.scaleInverse(value);
+        }
+
+        @Override
+        public double scaleInverse(double value) {
+            return log10Scaling.scale(value);
+        }
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -22,7 +22,6 @@ import junit.framework.TestSuite;
 import org.esa.beam.GlobalTestTools;
 import org.esa.beam.framework.datamodel.Band;
 import org.esa.beam.framework.datamodel.BitmaskDef;
-import org.esa.beam.framework.datamodel.BitmaskOverlayInfo;
 import org.esa.beam.framework.datamodel.ColorPaletteDef;
 import org.esa.beam.framework.datamodel.FlagCoding;
 import org.esa.beam.framework.datamodel.GcpGeoCoding;
@@ -34,8 +33,8 @@ import org.esa.beam.framework.datamodel.MetadataAttribute;
 import org.esa.beam.framework.datamodel.MetadataElement;
 import org.esa.beam.framework.datamodel.Product;
 import org.esa.beam.framework.datamodel.ProductData;
-import org.esa.beam.framework.datamodel.RasterDataNode;
 import org.esa.beam.framework.datamodel.Stx;
+import org.esa.beam.framework.datamodel.StxFactory;
 import org.esa.beam.framework.datamodel.TiePointGeoCoding;
 import org.esa.beam.framework.datamodel.TiePointGrid;
 import org.esa.beam.framework.datamodel.VirtualBand;
@@ -44,7 +43,6 @@ import org.esa.beam.framework.dataop.maptransf.LambertConformalConicDescriptor;
 import org.esa.beam.framework.dataop.maptransf.MapInfo;
 import org.esa.beam.framework.dataop.maptransf.MapProjection;
 import org.esa.beam.framework.dataop.maptransf.MapTransform;
-import org.esa.beam.framework.draw.ShapeFigure;
 import org.esa.beam.util.BeamConstants;
 import org.esa.beam.util.Debug;
 import org.esa.beam.util.StringUtils;
@@ -52,11 +50,6 @@ import org.jdom.Document;
 import org.jdom.Element;
 
 import java.awt.Color;
-import java.awt.Shape;
-import java.awt.geom.Ellipse2D;
-import java.awt.geom.Line2D;
-import java.awt.geom.PathIterator;
-import java.awt.geom.Rectangle2D;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
@@ -214,8 +207,8 @@ public class DimapDocumentTest extends TestCase {
         final Band firstBand = bands[0];
         final Stx stx = firstBand.getStx();
         assertNotNull(stx);
-        assertEquals(-0.2, stx.getMin(), 1.0e-6);
-        assertEquals(3.0, stx.getMax(), 1.0e-6);
+        assertEquals(-0.2, stx.getMinimum(), 1.0e-6);
+        assertEquals(3.0, stx.getMaximum(), 1.0e-6);
         assertEquals(5.5, stx.getMean(), 1.0e-6);
         assertEquals(3.67, stx.getStandardDeviation(), 1.0e-6);
 
@@ -370,17 +363,13 @@ public class DimapDocumentTest extends TestCase {
     private void addTiePointGrids(Product product) {
         final int sceneRasterWidth = product.getSceneRasterWidth();
         final int sceneRasterHeight = product.getSceneRasterHeight();
-        final BitmaskDef def1 = product.getBitmaskDef("name2");
-        final BitmaskDef def2 = product.getBitmaskDef("name3");
         final TiePointGrid tiePointGrid = createTiePointGrid("tpg1", sceneRasterWidth, sceneRasterHeight, 21.1f, 14.2f,
                                                              16.3f, 32.004f,
                                                              false);
         product.addTiePointGrid(tiePointGrid);
 
-        final BitmaskOverlayInfo overlayInfo = new BitmaskOverlayInfo();
-        overlayInfo.addBitmaskDef(def1);
-        overlayInfo.addBitmaskDef(def2);
-        tiePointGrid.setBitmaskOverlayInfo(overlayInfo);
+        tiePointGrid.getOverlayMaskGroup().add(product.getMaskGroup().get("name2"));
+        tiePointGrid.getOverlayMaskGroup().add(product.getMaskGroup().get("name3"));
 
         product.addTiePointGrid(
                 createTiePointGrid("tpg2", sceneRasterWidth, sceneRasterHeight, 21.1f, 14.2f, 16.3f, 32.004f, true));
@@ -450,7 +439,6 @@ public class DimapDocumentTest extends TestCase {
         band1.setUnit("unit for " + band1.getName());
         band1.setDescription(band1.getName() + "-Description");
         band1.setImageInfo(createImageInfo());
-        band1.setROIDefinition(createROIDefinition());
         band1.setSolarFlux(0.12f);
         band1.setSpectralWavelength(23.45f);
         band1.setSpectralBandIndex(0);
@@ -466,12 +454,8 @@ public class DimapDocumentTest extends TestCase {
         band2.setSpectralBandIndex(3);
         product.addBand(band2);
 
-        final BitmaskDef def1 = product.getBitmaskDef("name1");
-        final BitmaskDef def2 = product.getBitmaskDef("name3");
-        final BitmaskOverlayInfo overlayInfo = new BitmaskOverlayInfo();
-        overlayInfo.addBitmaskDef(def1);
-        overlayInfo.addBitmaskDef(def2);
-        band2.setBitmaskOverlayInfo(overlayInfo);
+        band2.getOverlayMaskGroup().add(product.getMaskGroup().get("name1"));
+        band2.getOverlayMaskGroup().add(product.getMaskGroup().get("name3"));
 
         Band flags1 = new Band("Flags1", ProductData.TYPE_INT8, sceneRasterWidth, sceneRasterHeight);
         flags1.setDescription(flags1.getName() + "-Description");
@@ -500,21 +484,14 @@ public class DimapDocumentTest extends TestCase {
         product.addBand(virtualBand);
     }
 
-    private org.esa.beam.framework.datamodel.ROIDefinition createROIDefinition() {
-        final org.esa.beam.framework.datamodel.ROIDefinition roiDefinition = new org.esa.beam.framework.datamodel.ROIDefinition();
-        roiDefinition.setBitmaskExpr("flags.LAND_OCEAN");
-        roiDefinition.setBitmaskEnabled(true);
-        roiDefinition.setValueRangeMax(3.4f);
-        roiDefinition.setValueRangeMin(1.2f);
-        roiDefinition.setValueRangeEnabled(true);
-        roiDefinition.setPinUseEnabled(true);
-        roiDefinition.setShapeFigure(ShapeFigure.createRectangleArea(1, 2, 3, 4, null));
-        return roiDefinition;
-    }
-
     private Stx createStx() {
-        int[] bins = new int[]{4, 5, 4, 7, 5, 8};
-        return new Stx(-0.2, 3, 5.5, 3.67, false, bins, 0);
+        return new StxFactory()
+                .withMinimum(-0.2)
+                .withMaximum(3)
+                .withMean(5.5)
+                .withStandardDeviation(3.67)
+                .withHistogramBins(new int[]{4, 5, 4, 7, 5, 8})
+                .create();
     }
 
     private ImageInfo createImageInfo() {
@@ -1053,95 +1030,6 @@ public class DimapDocumentTest extends TestCase {
         return new TestDOMBuilder(product, nameDataDirectory).createDOM();
     }
 
-    public static Element createJDOMElement(org.esa.beam.framework.datamodel.ROIDefinition roiDefinition) {
-        final Element roiDefElem = new Element(DimapProductConstants.TAG_ROI_DEFINITION);
-        JDomHelper.addElement(DimapProductConstants.TAG_BITMASK_EXPRESSION, roiDefinition.getBitmaskExpr(), roiDefElem);
-        JDomHelper.addElement(DimapProductConstants.TAG_VALUE_RANGE_MAX, roiDefinition.getValueRangeMax(), roiDefElem);
-        JDomHelper.addElement(DimapProductConstants.TAG_VALUE_RANGE_MIN, roiDefinition.getValueRangeMin(), roiDefElem);
-        JDomHelper.addElement(DimapProductConstants.TAG_BITMASK_ENABLED, roiDefinition.isBitmaskEnabled(), roiDefElem);
-        JDomHelper.addElement(DimapProductConstants.TAG_INVERTED, roiDefinition.isInverted(), roiDefElem);
-        JDomHelper.addElement(DimapProductConstants.TAG_OR_COMBINED, roiDefinition.isOrCombined(), roiDefElem);
-        JDomHelper.addElement(DimapProductConstants.TAG_SHAPE_ENABLED, roiDefinition.isShapeEnabled(), roiDefElem);
-        JDomHelper.addElement(DimapProductConstants.TAG_VALUE_RANGE_ENABLED, roiDefinition.isValueRangeEnabled(),
-                              roiDefElem);
-        JDomHelper.addElement(DimapProductConstants.TAG_PIN_USE_ENABLED, roiDefinition.isPinUseEnabled(), roiDefElem);
-
-        Shape shape = null;
-        if (roiDefinition.getShapeFigure() != null) {
-            shape = roiDefinition.getShapeFigure().getShape();
-            JDomHelper.addElement(DimapProductConstants.TAG_ROI_ONE_DIMENSIONS,
-                                  roiDefinition.getShapeFigure().isOneDimensional(), roiDefElem);
-        }
-        if (shape != null) {
-            final Element figureElem = new Element(DimapProductConstants.TAG_SHAPE_FIGURE);
-            String type;
-            String values = null;
-            if (shape instanceof Line2D.Float) {
-                Line2D.Float line = (Line2D.Float) shape;
-                type = "Line2D";
-                values = "" + line.getX1() + "," + line.getY1()
-                         + "," + line.getX2() + "," + line.getY2();
-            } else if (shape instanceof Rectangle2D.Float) {
-                final Rectangle2D.Float rectangle = (Rectangle2D.Float) shape;
-                type = "Rectangle2D";
-                values = "" + rectangle.getX() + "," + rectangle.getY()
-                         + "," + rectangle.getWidth() + "," + rectangle.getHeight();
-            } else if (shape instanceof Ellipse2D.Float) {
-                final Ellipse2D.Float ellipse = (Ellipse2D.Float) shape;
-                type = "Ellipse2D";
-                values = "" + ellipse.getX() + "," + ellipse.getY()
-                         + "," + ellipse.getWidth() + "," + ellipse.getHeight();
-            } else {
-                type = "Path";
-                final PathIterator iterator = shape.getPathIterator(null);
-                final float[] floats = new float[6];
-                while (!iterator.isDone()) {
-                    Element segElem = null;
-                    final int segType = iterator.currentSegment(floats);
-                    switch (segType) {
-                        case PathIterator.SEG_MOVETO:
-                            segElem = new Element(DimapProductConstants.TAG_PATH_SEG);
-                            segElem.setAttribute(DimapProductConstants.ATTRIB_TYPE, "moveTo");
-                            segElem.setAttribute(DimapProductConstants.ATTRIB_VALUE, "" + floats[0] + "," + floats[1]);
-                            break;
-                        case PathIterator.SEG_LINETO:
-                            segElem = new Element(DimapProductConstants.TAG_PATH_SEG);
-                            segElem.setAttribute(DimapProductConstants.ATTRIB_TYPE, "lineTo");
-                            segElem.setAttribute(DimapProductConstants.ATTRIB_VALUE, "" + floats[0] + "," + floats[1]);
-                            break;
-                        case PathIterator.SEG_QUADTO:
-                            segElem = new Element(DimapProductConstants.TAG_PATH_SEG);
-                            segElem.setAttribute(DimapProductConstants.ATTRIB_TYPE, "quadTo");
-                            segElem.setAttribute(DimapProductConstants.ATTRIB_VALUE,
-                                                 "" + floats[0] + "," + floats[1] + "," + floats[2] + "," + floats[3]);
-                            break;
-                        case PathIterator.SEG_CUBICTO:
-                            segElem = new Element(DimapProductConstants.TAG_PATH_SEG);
-                            segElem.setAttribute(DimapProductConstants.ATTRIB_TYPE, "cubicTo");
-                            segElem.setAttribute(DimapProductConstants.ATTRIB_VALUE,
-                                                 "" + floats[0] + "," + floats[1] + "," + floats[2] + "," + floats[3] + "," + floats[4] + "," + floats[5]);
-                            break;
-                        case PathIterator.SEG_CLOSE:
-                            segElem = new Element(DimapProductConstants.TAG_PATH_SEG);
-                            segElem.setAttribute(DimapProductConstants.ATTRIB_TYPE, "close");
-                    }
-                    if (segElem != null) {
-                        figureElem.addContent(segElem);
-                    }
-                    iterator.next();
-                }
-            }
-            if (type != null) {
-                figureElem.setAttribute(DimapProductConstants.ATTRIB_TYPE, type);
-                if (values != null) {
-                    figureElem.setAttribute(DimapProductConstants.ATTRIB_VALUE, values);
-                }
-                roiDefElem.addContent(figureElem);
-            }
-        }
-        return roiDefElem;
-    }
-
     /**
      * A class whose only purpose is to create a DOM from a given data product.
      */
@@ -1261,8 +1149,8 @@ public class DimapDocumentTest extends TestCase {
                     mdAttr.setAttribute(DimapProductConstants.ATTRIB_MODE, "rw");
                 }
                 if (attribute.getNumDataElems() > 1 &&
-                    !ProductData.TYPESTRING_ASCII.equals(dataTypeString) &&
-                    !ProductData.TYPESTRING_UTC.equals(dataTypeString)) {
+                        !ProductData.TYPESTRING_ASCII.equals(dataTypeString) &&
+                        !ProductData.TYPESTRING_UTC.equals(dataTypeString)) {
                     mdAttr.setAttribute(DimapProductConstants.ATTRIB_ELEMS,
                                         String.valueOf(attribute.getNumDataElems()));
                 }
@@ -1377,9 +1265,9 @@ public class DimapDocumentTest extends TestCase {
                     imageDisplayElem.addContent(bandStatisticsElem);
                     JDomHelper.addElement(DimapProductConstants.TAG_BAND_INDEX, i, bandStatisticsElem);
                     if (band.isStxSet()) {
-                        JDomHelper.addElement(DimapProductConstants.TAG_STX_MIN, band.getStx().getMin(),
+                        JDomHelper.addElement(DimapProductConstants.TAG_STX_MIN, band.getStx().getMinimum(),
                                               bandStatisticsElem);
-                        JDomHelper.addElement(DimapProductConstants.TAG_STX_MAX, band.getStx().getMax(),
+                        JDomHelper.addElement(DimapProductConstants.TAG_STX_MAX, band.getStx().getMaximum(),
                                               bandStatisticsElem);
                         JDomHelper.addElement(DimapProductConstants.TAG_STX_MEAN, band.getStx().getMean(),
                                               bandStatisticsElem);
@@ -1412,51 +1300,11 @@ public class DimapDocumentTest extends TestCase {
                     }
                 }
             }
-            addBitmaskDefinitions(bands, imageDisplayElem);
-            addBitmaskDefinitions(getProduct().getTiePointGrids(), imageDisplayElem);
-
-            for (int i = 0; i < bands.length; i++) {
-                final Band band = bands[i];
-                final org.esa.beam.framework.datamodel.ROIDefinition roiDefinition = band.getROIDefinition();
-                if (roiDefinition != null) {
-                    final Element roiDefElem = createJDOMElement(roiDefinition);
-                    JDomHelper.addElement(DimapProductConstants.TAG_BAND_INDEX, i, roiDefElem);
-                    imageDisplayElem.addContent(roiDefElem);
-                }
-            }
 
             final List children = imageDisplayElem.getChildren();
             if (children != null && children.size() > 0) {
 //            if (imageDisplayElem.hasChildren()) {
                 _root.addContent(imageDisplayElem);
-            }
-        }
-
-        private void addBitmaskDefinitions(RasterDataNode[] rasterDataNodes, Element imageDisplayElem) {  //Übernommen
-            for (int i = 0; i < rasterDataNodes.length; i++) {
-                RasterDataNode rasterDataNode = rasterDataNodes[i];
-                final BitmaskOverlayInfo bitmaskOverlayInfo = rasterDataNode.getBitmaskOverlayInfo();
-                if (bitmaskOverlayInfo != null) {
-                    final BitmaskDef[] bitmaskDefs = bitmaskOverlayInfo.getBitmaskDefs();
-                    if (bitmaskDefs.length > 0) {
-                        final Element bitmaskOverlayElem = new Element(DimapProductConstants.TAG_BITMASK_OVERLAY);
-                        if (rasterDataNode instanceof Band) {
-                            JDomHelper.addElement(DimapProductConstants.TAG_BAND_INDEX, i, bitmaskOverlayElem);
-                        } else {
-                            JDomHelper.addElement(DimapProductConstants.TAG_TIE_POINT_GRID_INDEX, i,
-                                                  bitmaskOverlayElem);
-                        }
-                        final Element bitmasks = new Element(DimapProductConstants.TAG_BITMASK);
-                        final String[] bitmaskDefNames = new String[bitmaskDefs.length];
-                        for (int j = 0; j < bitmaskDefNames.length; j++) {
-                            bitmaskDefNames[j] = bitmaskDefs[j].getName();
-                        }
-                        bitmasks.setAttribute(DimapProductConstants.ATTRIB_NAMES,
-                                              StringUtils.arrayToCsv(bitmaskDefNames));
-                        bitmaskOverlayElem.addContent(bitmasks);
-                        imageDisplayElem.addContent(bitmaskOverlayElem);
-                    }
-                }
             }
         }
 

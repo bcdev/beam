@@ -22,32 +22,22 @@ import com.bc.ceres.glayer.Layer;
 import com.bc.ceres.glayer.LayerType;
 import com.bc.ceres.glayer.LayerTypeRegistry;
 import com.bc.ceres.swing.progress.ProgressMonitorSwingWorker;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.MultiLineString;
-import com.vividsolutions.jts.geom.MultiPolygon;
+import com.vividsolutions.jts.geom.*;
 import com.vividsolutions.jts.geom.Polygon;
 import org.esa.beam.framework.ui.layer.LayerSourcePageContext;
 import org.esa.beam.framework.ui.product.ProductSceneView;
-import org.esa.beam.util.FeatureCollectionClipper;
+import org.esa.beam.util.FeatureUtils;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.feature.FeatureCollection;
-import org.geotools.styling.FeatureTypeStyle;
-import org.geotools.styling.Fill;
-import org.geotools.styling.LineSymbolizer;
-import org.geotools.styling.PointSymbolizer;
-import org.geotools.styling.PolygonSymbolizer;
-import org.geotools.styling.Rule;
-import org.geotools.styling.SLD;
+import org.geotools.styling.*;
 import org.geotools.styling.Stroke;
-import org.geotools.styling.Style;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.FeatureType;
 import org.opengis.filter.FilterFactory;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import java.awt.Color;
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 
@@ -78,13 +68,12 @@ class ShapefileLoader extends ProgressMonitorSwingWorker<Layer, Object> {
         try {
             pm.beginTask("Reading shapes", ProgressMonitor.UNKNOWN);
             final ProductSceneView sceneView = context.getAppContext().getSelectedProductSceneView();
-            final Geometry clipGeometry = FeatureCollectionClipper.createGeoBoundaryPolygon(sceneView.getProduct());
+            final Geometry clipGeometry = FeatureUtils.createGeoBoundaryPolygon(sceneView.getProduct());
 
             File file = new File((String) context.getPropertyValue(ShapefileLayerSource.PROPERTY_NAME_FILE_PATH));
             FeatureCollection<SimpleFeatureType, SimpleFeature> featureCollection = getFeatureCollection(file);
-            CoordinateReferenceSystem featureCrs  = (CoordinateReferenceSystem) context.getPropertyValue(
+            CoordinateReferenceSystem featureCrs = (CoordinateReferenceSystem) context.getPropertyValue(
                     ShapefileLayerSource.PROPERTY_NAME_FEATURE_COLLECTION_CRS);
-
 
 
             Style[] styles = getStyles(file, featureCollection);
@@ -110,7 +99,7 @@ class ShapefileLoader extends ProgressMonitorSwingWorker<Layer, Object> {
         Object featureCollectionValue = context.getPropertyValue(ShapefileLayerSource.PROPERTY_NAME_FEATURE_COLLECTION);
         FeatureCollection<SimpleFeatureType, SimpleFeature> featureCollection;
         if (featureCollectionValue == null) {
-            featureCollection = ShapefileUtils.getFeatureSource(file.toURI().toURL()).getFeatures();
+            featureCollection = FeatureUtils.getFeatureSource(file.toURI().toURL()).getFeatures();
         } else {
             featureCollection = (FeatureCollection<SimpleFeatureType, SimpleFeature>) featureCollectionValue;
         }
@@ -136,16 +125,16 @@ class ShapefileLoader extends ProgressMonitorSwingWorker<Layer, Object> {
     }
 
     private static Style[] createStyle(File shapeFile, FeatureType schema) {
-        final Style[] styles = ShapefileUtils.loadSLD(shapeFile);
+        final Style[] styles = SLDUtils.loadSLD(shapeFile);
         if (styles != null && styles.length > 0) {
             return styles;
         }
         Class<?> type = schema.getGeometryDescriptor().getType().getBinding();
         if (type.isAssignableFrom(Polygon.class)
-            || type.isAssignableFrom(MultiPolygon.class)) {
+                || type.isAssignableFrom(MultiPolygon.class)) {
             return new Style[]{createPolygonStyle()};
         } else if (type.isAssignableFrom(LineString.class)
-                   || type.isAssignableFrom(MultiLineString.class)) {
+                || type.isAssignableFrom(MultiLineString.class)) {
             return new Style[]{createLineStyle()};
         } else {
             return new Style[]{createPointStyle()};
