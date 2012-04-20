@@ -180,4 +180,10 @@ public abstract class AbstractProductWriter implements ProductWriter {
      */
     public void removeBand(Band band) {
     }
+	
+    /**
+     * Overwrite this method to set the format to write for writers which handle multiple formats.
+     */
+    public void setFormatName(final String formatName) {
+    }
 }

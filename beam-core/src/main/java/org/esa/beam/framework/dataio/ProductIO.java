@@ -359,6 +359,7 @@ public class ProductIO {
             throw new ProductIOException("no product writer for the '" + formatName + "' format available");
         }
         productWriter.setIncrementalMode(incremental);
+		productWriter.setFormatName(formatName);
 
         ProductWriter productWriterOld = product.getProductWriter();
         product.setProductWriter(productWriter);
