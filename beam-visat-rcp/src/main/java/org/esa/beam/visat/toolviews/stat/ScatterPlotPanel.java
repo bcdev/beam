@@ -16,10 +16,38 @@
 
 package org.esa.beam.visat.toolviews.stat;
 
-import com.bc.ceres.binding.*;
-import com.bc.ceres.core.ProgressMonitor;
+import static org.esa.beam.visat.toolviews.stat.StatisticChartStyling.getAxisLabel;
+import com.bc.ceres.binding.Property;
+import com.bc.ceres.binding.PropertyContainer;
+import com.bc.ceres.binding.PropertyDescriptor;
+import com.bc.ceres.binding.ValidationException;
+import com.bc.ceres.binding.Validator;
+import com.bc.ceres.binding.ValueRange;
 import com.bc.ceres.swing.binding.BindingContext;
-import com.bc.ceres.swing.progress.ProgressMonitorSwingWorker;
+import com.vividsolutions.jts.geom.Point;
+import java.awt.BasicStroke;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.Rectangle;
+import java.awt.Shape;
+import java.awt.geom.Rectangle2D;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JSeparator;
+import javax.swing.JSpinner;
+import javax.swing.JTextField;
+import javax.swing.SwingWorker;
 import org.esa.beam.framework.datamodel.Mask;
 import org.esa.beam.framework.datamodel.ProductNodeEvent;
 import org.esa.beam.framework.datamodel.RasterDataNode;
@@ -47,18 +75,6 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.geom.Rectangle2D;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-
-import static org.esa.beam.visat.toolviews.stat.StatisticChartStyling.getAxisLabel;
-
 /**
  * The scatter plot pane within the statistics window.
  *
@@ -73,6 +89,7 @@ class ScatterPlotPanel extends ChartPagePanel {
     private final String PROPERTY_NAME_X_AXIS_LOG_SCALED = "xAxisLogScaled";
     private final String PROPERTY_NAME_Y_AXIS_LOG_SCALED = "yAxisLogScaled";
     private final String PROPERTY_NAME_DATA_FIELD = "dataField";
+    private final String PROPERTY_NAME_POINT_DATA_SOURCE = "pointDataSource";
     private final String PROPERTY_NAME_BOX_SIZE = "boxSize";
     private final String PROPERTY_NAME_SHOW_CONFIDENCE_INTERVAL = "showConfidenceInterval";
     private final String PROPERTY_NAME_CONFIDENCE_INTERVAL = "confidenceInterval";
@@ -91,14 +108,14 @@ class ScatterPlotPanel extends ChartPagePanel {
     private final XYPlot plot;
 
     private ChartPanel scatterPlotDisplay;
+    private ScatterPlotTableModel.Location[] locations;
 
     private CorrelativeFieldSelector correlativeFieldSelector;
-
     private Range xAutoRangeAxisRange;
     private Range yAutoRangeAxisRange;
 
     ScatterPlotPanel(ToolView parentDialog, String helpId) {
-        super(parentDialog, helpId, CHART_TITLE, true);
+        super(parentDialog, helpId, CHART_TITLE, false);
         xAxisRangeControl = new AxisRangeControl("X-Axis");
         yAxisRangeControl = new AxisRangeControl("Y-Axis");
         scatterPlotModel = new ScatterPlotModel();
@@ -108,11 +125,22 @@ class ScatterPlotPanel extends ChartPagePanel {
         plot = new XYPlot();
     }
 
+    @Override
+    protected void handleLayerContentChanged() {
+        computeChartDataIfPossible();
+    }
 
     @Override
     protected String getDataAsText() {
-//        todo
-        return "Must be implemented";
+        if (scatterpointsDataset.getItemCount(0) > 0) {
+            final String rasterName = getRaster().getName();
+            final String trackDataName = scatterPlotModel.dataField.getLocalName();
+            final int boxSize = scatterPlotModel.boxSize;
+            final ScatterPlotTableModel scatterPlotTableModel;
+            scatterPlotTableModel = new ScatterPlotTableModel(rasterName, trackDataName, locations, boxSize);
+            return scatterPlotTableModel.toCVS();
+        }
+        return "";
     }
 
     @Override
@@ -140,14 +168,13 @@ class ScatterPlotPanel extends ChartPagePanel {
         // setChartTitle();
 
         if (isRasterChanged()) {
-            computeCartDataIfPossible();
+            plot.getDomainAxis().setLabel(getAxisLabel(raster, "X", false));
+            computeChartDataIfPossible();
         }
     }
 
     @Override
     protected void updateChartData() {
-        // todo ... remove ?
-        computeCartDataIfPossible();
     }
 
     @Override
@@ -162,7 +189,7 @@ class ScatterPlotPanel extends ChartPagePanel {
         final PropertyChangeListener recomputeListener = new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
-                computeCartDataIfPossible();
+                computeChartDataIfPossible();
             }
         };
 
@@ -173,6 +200,24 @@ class ScatterPlotPanel extends ChartPagePanel {
         bindingContext.addPropertyChangeListener(PROPERTY_NAME_DATA_FIELD, recomputeListener);
         bindingContext.addPropertyChangeListener(PROPERTY_NAME_SHOW_CONFIDENCE_INTERVAL, recomputeListener);
         bindingContext.addPropertyChangeListener(PROPERTY_NAME_CONFIDENCE_INTERVAL, recomputeListener);
+
+        final PropertyChangeListener rangeLabelUpdateListener = new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                final VectorDataNode pointDataSource = scatterPlotModel.pointDataSource;
+                final AttributeDescriptor dataField = scatterPlotModel.dataField;
+                if (dataField != null && pointDataSource != null) {
+                    final String vdsName = pointDataSource.getName();
+                    final String dataFieldName = dataField.getLocalName();
+                    plot.getRangeAxis().setLabel(vdsName + " - " + dataFieldName);
+                } else {
+                    plot.getRangeAxis().setLabel("");
+                }
+            }
+        };
+
+        bindingContext.addPropertyChangeListener(PROPERTY_NAME_DATA_FIELD, rangeLabelUpdateListener);
+        bindingContext.addPropertyChangeListener(PROPERTY_NAME_POINT_DATA_SOURCE, rangeLabelUpdateListener);
 
         bindingContext.addPropertyChangeListener(PROPERTY_NAME_X_AXIS_LOG_SCALED, new PropertyChangeListener() {
             @Override
@@ -190,15 +235,30 @@ class ScatterPlotPanel extends ChartPagePanel {
         xAxisRangeControl.getBindingContext().addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
-                updateAxis(plot.getDomainAxis(), xAxisRangeControl, xAutoRangeAxisRange);
+                handleAxisRangeControlChanges(evt, xAxisRangeControl, plot.getDomainAxis(), xAutoRangeAxisRange);
             }
         });
         yAxisRangeControl.getBindingContext().addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
-                updateAxis(plot.getRangeAxis(), yAxisRangeControl, yAutoRangeAxisRange);
+                handleAxisRangeControlChanges(evt, yAxisRangeControl, plot.getRangeAxis(), yAutoRangeAxisRange);
             }
         });
+    }
+
+    private void handleAxisRangeControlChanges(PropertyChangeEvent evt, AxisRangeControl axisRangeControl, ValueAxis valueAxis, Range computedAutoRange) {
+        final String propertyName = evt.getPropertyName();
+        if (AxisRangeControl.PROPERTY_NAME_AUTO_MIN_MAX.equals(propertyName)) {
+            if (axisRangeControl.isAutoMinMax()) {
+                final double min = computedAutoRange.getLowerBound();
+                final double max = computedAutoRange.getUpperBound();
+                axisRangeControl.adjustComponents(min, max, 3);
+            }
+        } else if (AxisRangeControl.PROPERTY_NAME_MIN.equals(propertyName)) {
+            valueAxis.setLowerBound(axisRangeControl.getMin());
+        } else if (AxisRangeControl.PROPERTY_NAME_MAX.equals(propertyName)) {
+            valueAxis.setUpperBound(axisRangeControl.getMax());
+        }
     }
 
     private void createUI() {
@@ -247,8 +307,8 @@ class ScatterPlotPanel extends ChartPagePanel {
                 // axes...
                 boolean savedNotify = plot.isNotify();
                 plot.setNotify(false);
-                setRangeFromRangeControl(xAxisRangeControl, plot.getDomainAxis());
-                setRangeFromRangeControl(yAxisRangeControl, plot.getRangeAxis());
+                xAxisRangeControl.adjustAxis(plot.getDomainAxis(), 3);
+                yAxisRangeControl.adjustAxis(plot.getRangeAxis(), 3);
                 plot.setNotify(savedNotify);
             }
         };
@@ -348,88 +408,45 @@ class ScatterPlotPanel extends ChartPagePanel {
         return middlePanel;
     }
 
-    private void updateAxis(ValueAxis axis, AxisRangeControl axisRangeControl, Range range) {
-        setAxisRanges(axisRangeControl, axis);
-        setAutorangeAxisValues(axisRangeControl, axis, range);
-    }
-
-    private void setAxisRanges(AxisRangeControl axisRangeControl, ValueAxis axis) {
-        final boolean autoMinMax = axisRangeControl.isAutoMinMax();
-        axis.setAutoRange(autoMinMax);
-        if (!autoMinMax) {
-            setRangeFromRangeControl(axisRangeControl, axis);
-        }
-    }
-
-    private void setAutorangeAxisValues(AxisRangeControl axisRangeControl, ValueAxis axis, Range range) {
-        if (axisRangeControl.isAutoMinMax()) {
-            axis.setRange(range);
-            setAxisRangeControlMinMax(axisRangeControl, axis);
-        }
-    }
-
-    private void setAxisRangeControlMinMax(AxisRangeControl axisRangeControl, ValueAxis axis) {
-        if (axisRangeControl.isAutoMinMax()) {
-            axisRangeControl.setMin(cropToDecimals(axis.getLowerBound(), 3));
-            axisRangeControl.setMax(cropToDecimals(axis.getUpperBound(), 3));
-        }
-    }
-
-    private void setRangeFromRangeControl(AxisRangeControl axisRangeControl, ValueAxis axis) {
-        axis.setRange(axisRangeControl.getMin(), axisRangeControl.getMax());
-    }
-
-    /*
-    private void setChartTitle() {
-        final String xAxisName;
-        if (getRaster() != null) {
-            xAxisName = getAxisLabel(getRaster());
-        } else {
-            xAxisName = "";
-        }
-
-        final String yAxisName;
-        final AttributeDescriptor dataField = scatterPlotModel.dataField;
-        if (dataField != null) {
-            yAxisName = dataField.getLocalName();
-        } else {
-            yAxisName = "";
-        }
-
-        final String subtitle;
-        if (xAxisName.length() == 0 && xAxisName.length() == 0) {
-            subtitle = "";
-        } else {
-            subtitle = MessageFormat.format("{0}, {1}", xAxisName, yAxisName);
-        }
-
-        final JFreeChart chart = scatterPlotDisplay.getChart();
-        final List<Title> subtitles = new ArrayList<Title>();
-        subtitles.add(new TextTitle(subtitle));
-        chart.setSubtitles(subtitles);
-    }
-    */
-
     private void updateScalingOfXAxis() {
         final boolean logScaled = scatterPlotModel.xAxisLogScaled;
         final ValueAxis oldAxis = plot.getDomainAxis();
         ValueAxis newAxis = StatisticChartStyling.updateScalingOfAxis(logScaled, oldAxis, false);
-        newAxis.setRange(oldAxis.getRange());
-        newAxis.setAutoRange(false);
         plot.setDomainAxis(newAxis);
+        finishScalingUpdate(xAxisRangeControl, newAxis, oldAxis);
     }
 
     private void updateScalingOfYAxis() {
         final boolean logScaled = scatterPlotModel.yAxisLogScaled;
         final ValueAxis oldAxis = plot.getRangeAxis();
         ValueAxis newAxis = StatisticChartStyling.updateScalingOfAxis(logScaled, oldAxis, false);
-        newAxis.setRange(oldAxis.getRange());
-        newAxis.setAutoRange(false);
         plot.setRangeAxis(newAxis);
+        finishScalingUpdate(yAxisRangeControl, newAxis, oldAxis);
     }
 
-    private void computeCartDataIfPossible() {
-        if (scatterPlotModel.pointDataSource != null && scatterPlotModel.dataField != null && getRaster() != null) {
+    private void finishScalingUpdate(AxisRangeControl axisRangeControl, ValueAxis newAxis, ValueAxis oldAxis) {
+        if (axisRangeControl.isAutoMinMax()) {
+            newAxis.setAutoRange(false);
+            confidenceDataset.removeAllSeries();
+            newAxis.setAutoRange(true);
+            axisRangeControl.adjustComponents(newAxis, 3);
+            newAxis.setAutoRange(false);
+            confidenceDataset.addSeries(computeConfidenceData(xAxisRangeControl.getMin(), xAxisRangeControl.getMax()));
+        } else {
+            newAxis.setAutoRange(false);
+            newAxis.setRange(oldAxis.getRange());
+        }
+    }
+
+    private void computeChartDataIfPossible() {
+        if (scatterPlotModel.pointDataSource != null
+                && scatterPlotModel.dataField != null
+                && scatterPlotModel.pointDataSource.getFeatureCollection() != null
+                && scatterPlotModel.pointDataSource.getFeatureCollection().features() != null
+                && scatterPlotModel.pointDataSource.getFeatureCollection().features().hasNext() == true
+                && scatterPlotModel.pointDataSource.getFeatureCollection().features().next() != null
+                && scatterPlotModel.pointDataSource.getFeatureCollection().features().next().getAttribute(scatterPlotModel.dataField.getLocalName()) != null
+                && getRaster() != null) {
             compute(scatterPlotModel.useRoiMask ? scatterPlotModel.roiMask : null);
         } else {
             scatterpointsDataset.removeAllSeries();
@@ -446,87 +463,97 @@ class ScatterPlotPanel extends ChartPagePanel {
             return;
         }
 
-        ProgressMonitorSwingWorker<XYIntervalSeries, Object> swingWorker = new ProgressMonitorSwingWorker<XYIntervalSeries, Object>(
-                this, "Computing scatter plot") {
+        SwingWorker<ScatterPoints, Object> swingWorker = new SwingWorker<ScatterPoints, Object>() {
 
             @Override
-            protected XYIntervalSeries doInBackground(ProgressMonitor pm) throws Exception {
-                pm.beginTask("Computing scatter plot...", 100);
+            protected ScatterPoints doInBackground() throws Exception {
                 final XYIntervalSeries scatterValues = new XYIntervalSeries("scatter values");
-                try {
-                    final FeatureCollection<SimpleFeatureType, SimpleFeature> collection = scatterPlotModel.pointDataSource.getFeatureCollection();
-                    final SimpleFeature[] features = collection.toArray(new SimpleFeature[collection.size()]);
+                final ArrayList<ScatterPlotTableModel.Location> locationList = new ArrayList<ScatterPlotTableModel.Location>();
 
-                    final int boxSize = scatterPlotModel.boxSize;
+                final FeatureCollection<SimpleFeatureType, SimpleFeature> collection = scatterPlotModel.pointDataSource.getFeatureCollection();
+                final SimpleFeature[] features = collection.toArray(new SimpleFeature[collection.size()]);
 
-                    final Rectangle sceneRect = new Rectangle(raster.getSceneRasterWidth(), raster.getSceneRasterHeight());
+                final int boxSize = scatterPlotModel.boxSize;
 
-                    for (SimpleFeature feature : features) {
-                        final com.vividsolutions.jts.geom.Point point;
-                        point = (com.vividsolutions.jts.geom.Point) feature.getDefaultGeometryProperty().getValue();
-                        final int centerX = (int) point.getX();
-                        final int centerY = (int) point.getY();
+                final Rectangle sceneRect = new Rectangle(raster.getSceneRasterWidth(), raster.getSceneRasterHeight());
 
-                        if (!sceneRect.contains(centerX, centerY)) {
-                            continue;
-                        }
-                        final Rectangle box = sceneRect.intersection(new Rectangle(centerX - boxSize / 2,
-                                                                                   centerY - boxSize / 2,
-                                                                                   boxSize, boxSize));
-                        if (box.isEmpty()) {
-                            continue;
-                        }
-                        final double[] rasterValues = new double[box.width * box.height];
-                        raster.readPixels(box.x, box.y, box.width, box.height, rasterValues);
+                for (SimpleFeature feature : features) {
+                    final Point point;
+                    point = (Point) feature.getDefaultGeometryProperty().getValue();
+                    final int centerX = (int) point.getX();
+                    final int centerY = (int) point.getY();
 
-                        final int[] maskBuffer = new int[box.width * box.height];
-                        Arrays.fill(maskBuffer, 1);
-                        if (selectedMask != null) {
-                            selectedMask.readPixels(box.x, box.y, box.width, box.height, maskBuffer);
-                        }
+                    if (!sceneRect.contains(centerX, centerY)) {
+                        continue;
+                    }
+                    final Rectangle box = sceneRect.intersection(new Rectangle(centerX - boxSize / 2,
+                                                                               centerY - boxSize / 2,
+                                                                               boxSize, boxSize));
+                    if (box.isEmpty()) {
+                        continue;
+                    }
+                    final double[] rasterValues = new double[box.width * box.height];
+                    raster.readPixels(box.x, box.y, box.width, box.height, rasterValues);
 
-                        final int centerIndex = box.width * (box.height / 2) + (box.width / 2);
-                        if (maskBuffer[centerIndex] == 0) {
-                            continue;
-                        }
+                    final int[] maskBuffer = new int[box.width * box.height];
+                    Arrays.fill(maskBuffer, 1);
+                    if (selectedMask != null) {
+                        selectedMask.readPixels(box.x, box.y, box.width, box.height, maskBuffer);
+                    }
 
-                        double sum = 0;
-                        double sumSqr = 0;
-                        int n = 0;
+                    final int centerIndex = box.width * (box.height / 2) + (box.width / 2);
+                    if (maskBuffer[centerIndex] == 0) {
+                        continue;
+                    }
 
-                        for (int y = 0; y < box.height; y++) {
-                            for (int x = 0; x < box.width; x++) {
-                                final int index = y * box.height + x;
-                                if (raster.isPixelValid(x + box.x, y + box.y) && maskBuffer[index] != 0) {
-                                    final double rasterValue = rasterValues[index];
-                                    sum += rasterValue;
-                                    sumSqr += rasterValue * rasterValue;
-                                    n++;
-                                }
+                    double sum = 0;
+                    double sumSqr = 0;
+                    int n = 0;
+
+                    for (int y = 0; y < box.height; y++) {
+                        for (int x = 0; x < box.width; x++) {
+                            final int index = y * box.height + x;
+                            if (raster.isPixelValid(x + box.x, y + box.y) && maskBuffer[index] != 0) {
+                                final double rasterValue = rasterValues[index];
+                                sum += rasterValue;
+                                sumSqr += rasterValue * rasterValue;
+                                n++;
                             }
                         }
-
-                        double rasterMean = sum / n;
-                        double rasterSigma = n > 1 ? Math.sqrt((sumSqr - (sum * sum) / n) / (n - 1)) : 0.0;
-
-                        String localName = dataField.getLocalName();
-                        Number attribute = (Number) feature.getAttribute(localName);
-                        scatterValues.add(rasterMean, rasterMean - rasterSigma, rasterMean + rasterSigma,
-                                          attribute.doubleValue(), attribute.doubleValue(), attribute.doubleValue());
                     }
-                } finally {
-                    pm.done();
+
+                    double rasterMean = sum / n;
+                    double rasterSigma = n > 1 ? Math.sqrt((sumSqr - (sum * sum) / n) / (n - 1)) : 0.0;
+
+                    String localName = dataField.getLocalName();
+                    Number attribute = (Number) feature.getAttribute(localName);
+                    final double trackDataValue = attribute.doubleValue();
+                    scatterValues.add(rasterMean, rasterMean - rasterSigma, rasterMean + rasterSigma,
+                                      trackDataValue, trackDataValue, trackDataValue);
+                    final Point geoPos = (Point) feature.getAttribute("geoPos");
+                    final float lat = (float) geoPos.getY();
+                    final float lon = (float) geoPos.getX();
+                    locationList.add(new ScatterPlotTableModel.Location(centerX, centerY, lat, lon, (float)rasterMean, (float) rasterSigma, attribute.floatValue(), 0));
                 }
-                return scatterValues;
+                final ScatterPlotTableModel.Location[] locations;
+                locations = locationList.toArray(new ScatterPlotTableModel.Location[locationList.size()]);
+                return new ScatterPoints(scatterValues, locations);
             }
 
             @Override
             public void done() {
                 try {
+                    final ValueAxis xAxis = plot.getDomainAxis();
+                    final ValueAxis yAxis = plot.getRangeAxis();
+
+                    xAxis.setAutoRange(false);
+                    yAxis.setAutoRange(false);
+
                     scatterpointsDataset.removeAllSeries();
                     confidenceDataset.removeAllSeries();
 
-                    final XYIntervalSeries xySeries = get();
+                    final ScatterPoints scatterPoints = get();
+                    final XYIntervalSeries xySeries = scatterPoints.series;
 
                     if (xySeries.getItemCount() == 0) {
                         JOptionPane.showMessageDialog(getParentDialogContentPane(),
@@ -538,36 +565,30 @@ class ScatterPlotPanel extends ChartPagePanel {
                         return;
                     }
 
-                    final ValueAxis xAxis = plot.getDomainAxis();
-                    final ValueAxis yAxis = plot.getRangeAxis();
-
                     scatterpointsDataset.addSeries(xySeries);
+                    locations = scatterPoints.locations;
 
                     xAxis.setAutoRange(true);
                     yAxis.setAutoRange(true);
-                    xAxis.configure();
-                    yAxis.configure();
-
-                    xAutoRangeAxisRange = new Range(xAxis.getLowerBound(), xAxis.getUpperBound());
-                    yAutoRangeAxisRange = new Range(yAxis.getLowerBound(), yAxis.getUpperBound());
-
-                    setAxisRanges(xAxisRangeControl, xAxis);
-                    setAxisRanges(yAxisRangeControl, yAxis);
-
-                    setAxisRangeControlMinMax(xAxisRangeControl, xAxis);
-                    setAxisRangeControlMinMax(yAxisRangeControl, yAxis);
 
                     xAxis.setAutoRange(false);
                     yAxis.setAutoRange(false);
 
+                    xAutoRangeAxisRange = new Range(xAxis.getLowerBound(), xAxis.getUpperBound());
+                    yAutoRangeAxisRange = new Range(yAxis.getLowerBound(), yAxis.getUpperBound());
+
+                    if (xAxisRangeControl.isAutoMinMax()) {
+                        xAxisRangeControl.adjustComponents(xAxis, 3);
+                    } else {
+                        xAxisRangeControl.adjustAxis(xAxis, 3);
+                    }
+                    if (yAxisRangeControl.isAutoMinMax()) {
+                        yAxisRangeControl.adjustComponents(yAxis, 3);
+                    } else {
+                        yAxisRangeControl.adjustAxis(yAxis, 3);
+                    }
+
                     confidenceDataset.addSeries(computeConfidenceData(xAxis.getLowerBound(), xAxis.getUpperBound()));
-
-                    xAxis.setLabel(getAxisLabel(raster, "X", false));
-
-                    final String vdsName = scatterPlotModel.pointDataSource.getName();
-                    final String dataFieldName = scatterPlotModel.dataField.getLocalName();
-                    yAxis.setLabel(vdsName + " - " + dataFieldName);
-
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                     JOptionPane.showMessageDialog(getParentDialogContentPane(),
@@ -624,13 +645,7 @@ class ScatterPlotPanel extends ChartPagePanel {
         return xyIntervalSeries;
     }
 
-    private double cropToDecimals(double value, final int numDecimals) {
-        final double pow = Math.pow(10, numDecimals);
-        final double reverse = 1 / pow;
-        return Math.round(value * pow) * reverse;
-    }
-
-    private static class ScatterPlotModel {
+    static class ScatterPlotModel {
         private int boxSize = 1; // Don´t remove this field, it is be used via binding
         private boolean useRoiMask; // Don´t remove this field, it is be used via binding
         private Mask roiMask; // Don´t remove this field, it is be used via binding
@@ -640,6 +655,16 @@ class ScatterPlotPanel extends ChartPagePanel {
         private boolean yAxisLogScaled; // Don´t remove this field, it is be used via binding
         private boolean showConfidenceInterval; // Don´t remove this field, it is be used via binding
         private double confidenceInterval = 15; // Don´t remove this field, it is be used via binding
+    }
+
+    static class ScatterPoints {
+        XYIntervalSeries series;
+        ScatterPlotTableModel.Location[] locations;
+
+        ScatterPoints(XYIntervalSeries series, ScatterPlotTableModel.Location[] locations) {
+            this.locations = locations;
+            this.series = series;
+        }
     }
 }
 
