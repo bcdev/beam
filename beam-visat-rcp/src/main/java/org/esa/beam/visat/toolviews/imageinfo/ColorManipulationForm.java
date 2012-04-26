@@ -445,16 +445,6 @@ class ColorManipulationForm {
         return colorPaletteFileLoaded;
     }
 
-    /**
-     * Returns product data scale information. If the data is already logged, returns true. This variable is added to differentiate
-     * between the log option in "Basic Color Manipulation" and the pre-logged data.
-     *
-     * @return
-     */
-    public boolean isLog10ScaledProduct() {
-        return isLog10ScaledProduct;
-    }
-
     private void setShowExtraInfo(boolean selected) {
     }
 
@@ -551,6 +541,8 @@ class ColorManipulationForm {
 
     private void setImageInfoCopy(ImageInfo imageInfo) {
         this.imageInfo = imageInfo.createDeepCopy();
+        currentMaxValue = imageInfo.getColorPaletteDef().getMaxDisplaySample();
+        currentMinValue = imageInfo.getColorPaletteDef().getMinDisplaySample();
     }
 
     private void resetToDefaults() {

@@ -126,13 +126,12 @@ class Continuous1BandSwitcherForm implements ColorManipulationChildForm {
     private void switchForm(ProductSceneView productSceneView) {
         final ColorManipulationChildForm oldForm = childForm;
         final ColorManipulationChildForm newForm;
-        if (basicButton.isSelected())  {
+        if (basicButton.isSelected()) {
             if (basicPaletteEditorForm == null) {
                 basicPaletteEditorForm = new Continuous1BandBasicForm(parentForm);
             }
             newForm = basicPaletteEditorForm;
-        }
-        else if (tabularButton.isSelected()) {
+        } else if (tabularButton.isSelected()) {
             if (tabularPaletteEditorForm == null) {
                 tabularPaletteEditorForm = new Continuous1BandTabularForm(parentForm);
             }

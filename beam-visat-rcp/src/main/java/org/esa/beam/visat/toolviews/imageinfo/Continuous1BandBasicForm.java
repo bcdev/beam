@@ -44,7 +44,7 @@ class Continuous1BandBasicForm implements ColorManipulationChildForm {
     Continuous1BandBasicForm(final ColorManipulationForm parentForm) {
         this.parentForm = parentForm;
         imageInfoEditor = new ImageInfoEditor2(parentForm);
-        basicColorEditor = new BasicColorEditor(parentForm);
+        basicColorEditor = new BasicColorEditor(parentForm, imageInfoEditor);
         contentPanel = new JPanel(new BorderLayout(2, 2));
         contentPanel.add(basicColorEditor, BorderLayout.CENTER);
         moreOptionsForm = new MoreOptionsForm(parentForm, true);
@@ -96,20 +96,20 @@ class Continuous1BandBasicForm implements ColorManipulationChildForm {
     @Override
     public void updateFormModel(ProductSceneView productSceneView) {
 
-        basicColorEditor.resetMinMax();
-        basicColorEditor.recomputeSamplePoints();
+
         ImageInfoEditorModel1B model = new ImageInfoEditorModel1B(parentForm.getImageInfo());
         model.addChangeListener(applyEnablerCL);
         ImageInfoEditorModel oldModel = imageInfoEditor.getModel();
         setDisplayProperties(model, productSceneView.getRaster());
         imageInfoEditor.setModel(model);
+        basicColorEditor.resetMinMax();
 
         if (oldModel != null) {
             model.setHistogramViewGain(oldModel.getHistogramViewGain());
             model.setMinHistogramViewSample(oldModel.getMinHistogramViewSample());
             model.setMaxHistogramViewSample(oldModel.getMaxHistogramViewSample());
         }
-        imageInfoEditor.computeZoomInToSliderLimits();
+        //imageInfoEditor.computeZoomInToSliderLimits();
         if (model.getSliderSample(0) < model.getMinHistogramViewSample() ||
                 model.getSliderSample(model.getSliderCount() - 1) > model.getMaxHistogramViewSample()) {
             imageInfoEditor.computeZoomInToSliderLimits();
