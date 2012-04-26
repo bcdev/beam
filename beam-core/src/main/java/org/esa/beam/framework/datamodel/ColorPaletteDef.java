@@ -53,8 +53,6 @@ public class ColorPaletteDef implements Cloneable {
 
     private boolean logDisplay;
 
-    private static ColorPaletteDef.Point[] defaultSamplePoints;
-
     public ColorPaletteDef(double minSample, double maxSample) {
         this(minSample, 0.5 * (maxSample + minSample), maxSample);
     }
@@ -79,7 +77,10 @@ public class ColorPaletteDef implements Cloneable {
         this.points = new Vector<Point>(points.length);
         this.points.addAll(Arrays.asList(points));
         this.discrete = false;
-        this.logDisplay = false;
+//        this.logDisplay = false;
+//        this.currentMinSample =  points[0].getSample();
+//        this.currentMaxSample = points[points.length - 1].getSample();
+//        currentSamplePoints = points;
     }
 
     public boolean isDiscrete() {
@@ -87,8 +88,9 @@ public class ColorPaletteDef implements Cloneable {
     }
 
     public void setLogDisplay(boolean logDislay) {
-        this.logDisplay = logDislay;
-        //computeSamplePoints();
+
+           this.logDisplay = logDislay;
+
     }
 
     public void setDiscrete(boolean discrete) {
@@ -106,6 +108,7 @@ public class ColorPaletteDef implements Cloneable {
     public int getNumPoints() {
         return points.size();
     }
+
 
     public void setNumPoints(int numPoints) {
         while (getNumPoints() < numPoints) {
@@ -282,85 +285,15 @@ public class ColorPaletteDef implements Cloneable {
             lastSample = sample;
         }
         ColorPaletteDef paletteDef = new ColorPaletteDef(points, 256);
-        defaultSamplePoints = points;
         paletteDef.setAutoDistribute(propertyMap.getPropertyBool(_PROPERTY_KEY_AUTODISTRIBUTE, false));
         return paletteDef;
     }
 
-    /**
-     * Recomputes sample values for a color palette
-     *
-     * @param minSample, maxSample, log10Scaled
-     *                   <p/>
-     *                   This method is added to compute sample points for given min, max samples and scaling mode, such as log 10 or linear.
-     *                   It reads the <code>numberOfPoints</code> from the existing Points vector and only modifies the sample value of each
-     *                   point. The colors are remained unchanged.
-     */
-    public void computeSamplePoints(double minSample, double maxSample) {
-
-        final double min, max, range;
-
-        final int numberOfPoints = getNumPoints();
-
-        final ColorPaletteDef.Point[] points = getPoints();
-
-        final double inc;
-
-        if (logDisplay) {
-            min = Stx.LOG10_SCALING.scale(minSample);
-            max = Stx.LOG10_SCALING.scale(maxSample);
-            range = max - min;
-            inc = range / (numberOfPoints - 1);
-            for (int i = 0; i < numberOfPoints; i++) {
-                //final double sample =   Math.pow(10, min + i *inc);
-                points[i].setSample(Stx.LOG10_SCALING.scaleInverse(min + i * inc));
-            }
-        } else {
-            min = minSample;
-            max = maxSample;
-            range = max - min;
-            inc = range / (numberOfPoints - 1);
-            for (int i = 0; i < numberOfPoints; i++) {
-                //final double sample =  min + i *inc;
-                points[i].setSample(min + i * inc);
-
-            }
-
-        }
-
-        setPoints(points);
-    }
-
-    public void computeSamplePointsNew(double minSample, double maxSample) {
-
-        final double min, max, range;
-
-        final int numberOfPoints = getNumPoints();
-
-        final ColorPaletteDef.Point[] points = getPoints();
-
-        final double inc;
-
-        final double newRange = maxSample - minSample;
-        final double ratio = newRange / (defaultSamplePoints[defaultSamplePoints.length - 1].getSample() - defaultSamplePoints[0].getSample());
-
-        min = minSample;
-        max = maxSample;
-        range = max - min;
-        inc = range / (numberOfPoints - 1);
-        for (int i = 0; i < numberOfPoints; i++) {
-            //final double sample =  min + i *inc;
-            points[i].setSample(min + i * inc);
-            points[i].setSample(defaultSamplePoints[i].getSample() * range);
-        }
-
-        setPoints(points);
-    }
 
     /**
      * Stores this color palette definition in the given file
      *
-     * @param colorPaletteDef thje color palette definition
+     * @param colorPaletteDef the color palette definition
      * @param file            the file
      * @throws IOException if an I/O error occurs
      */
@@ -411,7 +344,7 @@ public class ColorPaletteDef implements Cloneable {
     public Color[] createColorPalette(Scaling scaling) {
 
         if (logDisplay) {
-            return createColorPaletteForLogScaledDisplay();
+           return createColorPaletteForLogScaledDisplay();
         }
         Debug.assertTrue(getNumPoints() >= 2);
         final int numColors = getNumColors();
@@ -492,8 +425,6 @@ public class ColorPaletteDef implements Cloneable {
                     final int green = (int) MathUtils.roundAndCrop(g1 + f * (g2 - g1), 0L, 255L);
                     final int blue = (int) MathUtils.roundAndCrop(b1 + f * (b2 - b1), 0L, 255L);
                     final int alpha = (int) MathUtils.roundAndCrop(a1 + f * (a2 - a1), 0L, 255L);
-                    //System.out.println(rawSample + " " + sample1 + " " + sample2);
-                    //System.out.println(red +  " " + green +  " " +  blue +  " " + alpha);
                     return new Color(red, green, blue, alpha);
                 }
             }
@@ -525,8 +456,6 @@ public class ColorPaletteDef implements Cloneable {
                     final int green = (int) MathUtils.roundAndCrop(g1 + f * (g2 - g1), 0L, 255L);
                     final int blue = (int) MathUtils.roundAndCrop(b1 + f * (b2 - b1), 0L, 255L);
                     final int alpha = (int) MathUtils.roundAndCrop(a1 + f * (a2 - a1), 0L, 255L);
-                    // System.out.println(rawSample + " " + sample1 + " " + sample2);
-                    //System.out.println(red +  " " + green +  " " +  blue +  " " + alpha);
                     return new Color(red, green, blue, alpha);
                 }
             }
