@@ -201,6 +201,15 @@ public class ImageInfoEditor extends JPanel {
         }
     }
 
+    public void updateMinMax(double minSample, double maxSample){
+        computeFactors();
+        setFirstSliderSample(minSample);
+        setLastSliderSample(maxSample);
+        partitionSliders(false);
+        computeZoomInToSliderLimits();
+
+    }
+
     private void partitionSliders(boolean adjusting) {
         final double pos1 = scaleInverse(getFirstSliderSample());
         final double pos2 = scaleInverse(getLastSliderSample());
