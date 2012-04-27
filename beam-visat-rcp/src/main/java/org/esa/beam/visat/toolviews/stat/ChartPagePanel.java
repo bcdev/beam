@@ -23,6 +23,7 @@ import org.esa.beam.framework.ui.GridBagUtils;
 import org.esa.beam.framework.ui.UIUtils;
 import org.esa.beam.framework.ui.application.ToolView;
 import org.esa.beam.framework.ui.tool.ToolButtonFactory;
+import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 
 import javax.swing.*;
@@ -30,6 +31,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import org.jfree.chart.StandardChartTheme;
 
 /**
  * A common class for chart based panels
@@ -42,8 +44,14 @@ abstract class ChartPagePanel extends PagePanel {
     private AbstractButton hideAndShowButton;
     private JPanel backgroundPanel;
     private RoiMaskSelector roiMaskSelector;
-    private AbstractButton refreshButton;
+    protected AbstractButton refreshButton;
     private final boolean refreshButtonEnabled;
+    private AbstractButton switchToTableButton;
+
+    static {
+        final StandardChartTheme theme = (StandardChartTheme) ChartFactory.getChartTheme();
+        theme.setPlotBackgroundPaint(new Color(225, 225, 225));
+    }
 
     ChartPagePanel(ToolView parentDialog, String helpId, String titlePrefix, boolean refreshButtonEnabled) {
         super(parentDialog, helpId, titlePrefix);
@@ -66,18 +74,22 @@ abstract class ChartPagePanel extends PagePanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 updateChartData();
+                refreshButton.setEnabled(false);
             }
         });
 
-        final AbstractButton switchToTableButton = ToolButtonFactory.createButton(
+        switchToTableButton = ToolButtonFactory.createButton(
                 UIUtils.loadImageIcon("icons/Table24.png"),
                 false);
         switchToTableButton.setToolTipText("Switch to Table View");
         switchToTableButton.setName("switchToTableButton");
+        switchToTableButton.setEnabled(hasAlternativeView());
         switchToTableButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Todo Switching between table and chart view be implemented (or delegated) here!
+
+                showAlternativeView();
+
             }
         });
 
@@ -175,8 +187,8 @@ abstract class ChartPagePanel extends PagePanel {
         GridBagConstraints extendedOptionsPanelConstraints = GridBagUtils.createConstraints("anchor=NORTHWEST,fill=HORIZONTAL,insets.top=2,weightx=1");
         GridBagUtils.addToPanel(extendedOptionsPanel, new JSeparator(), extendedOptionsPanelConstraints, "gridy=0");
         GridBagUtils.addToPanel(extendedOptionsPanel, roiMaskSelector.createPanel(), extendedOptionsPanelConstraints, "gridy=1");
-        GridBagUtils.addToPanel(extendedOptionsPanel, optionsPanel, extendedOptionsPanelConstraints, "gridy=2, fill=VERTICAL,fill=HORIZONTAL,weighty=1");
-        GridBagUtils.addToPanel(extendedOptionsPanel, new JSeparator(), extendedOptionsPanelConstraints, "gridy=4,fill=HORIZONTAL,weighty=0");
+        GridBagUtils.addToPanel(extendedOptionsPanel, optionsPanel, extendedOptionsPanelConstraints, "gridy=2,fill=VERTICAL,fill=HORIZONTAL,weighty=1");
+        GridBagUtils.addToPanel(extendedOptionsPanel, new JSeparator(), extendedOptionsPanelConstraints, "gridy=5,anchor=SOUTHWEST");
 
         final JScrollPane optionsScrollPane = new SimpleScrollPane(extendedOptionsPanel,
                                                                    ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,

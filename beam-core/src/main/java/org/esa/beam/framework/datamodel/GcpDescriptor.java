@@ -16,38 +16,14 @@
 
 package org.esa.beam.framework.datamodel;
 
-import com.vividsolutions.jts.geom.*;
-import org.esa.beam.framework.dataio.DecodeQualification;
-import org.opengis.feature.simple.SimpleFeatureType;
-
-import java.awt.*;
-import java.awt.Point;
-
-public class GcpDescriptor extends AbstractPlacemarkDescriptor {
-
-    private static final SimpleFeatureType DEFAULT_FEATURE_TYPE = Placemark.createPointFeatureType("org.esa.beam.GroundControlPoint");
+public class GcpDescriptor extends PointPlacemarkDescriptor {
 
     public static GcpDescriptor getInstance() {
         return (GcpDescriptor) PlacemarkDescriptorRegistry.getInstance().getPlacemarkDescriptor(GcpDescriptor.class.getName());
     }
 
-    @Override
-    public DecodeQualification getQualification(SimpleFeatureType featureType) {
-        if (featureType.getTypeName().equals("org.esa.beam.GroundControlPoint")) {
-            return DecodeQualification.INTENDED;
-        }
-        return DecodeQualification.UNABLE;
-    }
-
-    @Override
-    public void setUserData(SimpleFeatureType featureType) {
-        super.setUserData(featureType);
-        featureType.getUserData().put("defaultGeometry", DEFAULT_FEATURE_TYPE.getGeometryDescriptor().getLocalName());
-    }
-
-    @Override
-    public SimpleFeatureType getBaseFeatureType() {
-        return DEFAULT_FEATURE_TYPE;
+    public GcpDescriptor() {
+        super("org.esa.beam.GroundControlPoint");
     }
 
     @Override
@@ -70,31 +46,7 @@ public class GcpDescriptor extends AbstractPlacemarkDescriptor {
 
     @Override
     @Deprecated
-    public Image getCursorImage() {
-        return null;
-    }
-
-    @Override
-    @Deprecated
-    public Point getCursorHotSpot() {
-        return new Point();
-    }
-
-    @Override
-    @Deprecated
     public PlacemarkGroup getPlacemarkGroup(Product product) {
         return product.getGcpGroup();
-    }
-
-    @Override
-    @Deprecated
-    public PixelPos updatePixelPos(GeoCoding geoCoding, GeoPos geoPos, PixelPos pixelPos) {
-        return pixelPos;
-    }
-
-    @Override
-    @Deprecated
-    public GeoPos updateGeoPos(GeoCoding geoCoding, PixelPos pixelPos, GeoPos geoPos) {
-        return geoPos;
     }
 }

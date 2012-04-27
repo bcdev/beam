@@ -17,246 +17,241 @@
 package org.esa.beam.visat.toolviews.placemark;
 
 import com.bc.ceres.swing.selection.AbstractSelectionChangeListener;
+import com.bc.ceres.swing.selection.Selection;
 import com.bc.ceres.swing.selection.SelectionChangeEvent;
-import org.esa.beam.framework.datamodel.*;
+import com.bc.ceres.swing.selection.SelectionContext;
+import com.bc.ceres.swing.selection.SelectionManager;
+import org.esa.beam.framework.datamodel.VectorDataNode;
 import org.esa.beam.framework.ui.application.support.AbstractToolView;
-import org.esa.beam.framework.ui.product.ProductSceneView;
-import org.esa.beam.framework.ui.product.ProductTreeListenerAdapter;
 import org.esa.beam.framework.ui.product.SimpleFeatureFigure;
+import org.esa.beam.framework.ui.product.VectorDataFigureEditor;
 import org.esa.beam.visat.VisatApp;
+import org.opengis.feature.simple.SimpleFeature;
 
-import javax.swing.*;
-import javax.swing.event.InternalFrameAdapter;
-import javax.swing.event.InternalFrameEvent;
-import java.awt.*;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.AbstractTableModel;
+import java.awt.BorderLayout;
 
 /**
- * A dialog used to manage the list of pins or ground control points associated
- * with a selected product.
+ * A tool windows that lets users edit the attribute values of selected vector data features.
+ * <p/>
+ * <i>Note: the editor functionality is not implemented yet. Instead it is used as a tool windows that
+ * displays the attributes of selected vector data features.
+ * </i>
+ * <p/>
+ * <i>Implementation idea: Wrap the entire feature attribute set in a {@link com.bc.ceres.binding.PropertySet}
+ * so that we have {@link com.bc.ceres.swing.binding.BindingContext} and can then create a
+ * {@link com.bc.ceres.swing.binding.PropertyPane} for editing (or use the JIDE Property Pane). Furthermore, we
+ * will have to make better use of the {@link com.bc.ceres.core.Extensible} interface, since {@link Selection} already
+ * implements it. But currently the are no factories registered that will return a SimpleFeature or VectorDataNode
+ * instances for a given {@link Selection} object. (nf - 2012-04-25)</i>
+ *
+ * @author Norman
  */
 public class PlacemarkEditorToolView extends AbstractToolView {
 
+    public static final String NO_SELECTION_TEXT = "<html>No vector data feature selected<br/>Try selecting a geometry in a view.</html>";
+
     private VisatApp visatApp;
 
-    private Product product;
-    private VectorDataNode vectorDataNode;
-    private ProductSceneView view;
-    private JLabel editor;
-    private final PlacemarkEditorToolView.IFL ifl;
-    private final PTL ptl;
-    private final PNL pl;
-    private final SCL scl;
+    private JLabel infoLabel;
+    private JTable attributeTable;
     private String titleBase;
+    private JScrollPane attributeTablePane;
+    private final SCL scl;
+    private FeatureTableModel tableModel;
 
     public PlacemarkEditorToolView() {
         visatApp = VisatApp.getApp();
-        ptl = new PTL();
-        ifl = new IFL();
-        pl = new PNL();
         scl = new SCL();
     }
 
     @Override
     public JComponent createControl() {
         titleBase = getTitle();
-        editor = new JLabel();
-        return editor;
+        infoLabel = new JLabel();
+        tableModel = new FeatureTableModel();
+        attributeTable = new JTable(tableModel);
+        attributeTable.getColumnModel().getColumn(0).setPreferredWidth(80);
+        attributeTable.getColumnModel().getColumn(1).setPreferredWidth(60);
+        attributeTable.getColumnModel().getColumn(2).setPreferredWidth(320);
+        attributeTablePane = new JScrollPane(attributeTable);
+        attributeTablePane.setVisible(false);
+
+        final JPanel panel = new JPanel(new BorderLayout(4, 4));
+        panel.setBorder(new EmptyBorder(4, 4, 4, 4));
+        panel.add(infoLabel, BorderLayout.NORTH);
+        panel.add(attributeTablePane, BorderLayout.CENTER);
+
+        return panel;
     }
 
     @Override
-    public void componentOpened() {
-
-        setView(visatApp.getSelectedProductSceneView());
-        setProduct(visatApp.getSelectedProduct());
-        updateEditor();
-
-        visatApp.addInternalFrameListener(ifl);
-        visatApp.getProductTree().addProductTreeListener(ptl);
+    public void componentShown() {
+        SelectionManager selectionManager = visatApp.getApplicationPage().getSelectionManager();
+        selectionManager.addSelectionChangeListener(scl);
+        handleSelectionChange(selectionManager.getSelectionContext(),
+                              selectionManager.getSelection());
     }
 
     @Override
     public void componentHidden() {
-        visatApp.removeInternalFrameListener(ifl);
-        visatApp.getProductTree().removeProductTreeListener(ptl);
+        final SelectionManager selectionManager = visatApp.getApplicationPage().getSelectionManager();
+        selectionManager.removeSelectionChangeListener(scl);
     }
 
-    private void setView(ProductSceneView view) {
-        if (this.view != view) {
-            ProductSceneView oldView = this.view;
-            this.view = view;
-            handleViewChanged(oldView, this.view);
-        }
-    }
+    private void handleSelectionChange(SelectionContext selectionContext, Selection selection) {
 
-    private void handleViewChanged(ProductSceneView oldView, ProductSceneView newView) {
-        if (oldView != null) {
-            oldView.getSelectionContext().removeSelectionChangeListener(scl);
-        }
-        if (newView != null) {
-            newView.getSelectionContext().addSelectionChangeListener(scl);
-        }
-    }
-
-    private Product getProduct() {
-        return product;
-    }
-
-    public void setProduct(Product product) {
-        if (this.product != product) {
-            Product oldProduct = this.product;
-            this.product = product;
-            handleProductChanged(oldProduct, this.product);
-        }
-    }
-
-    private void handleProductChanged(Product oldProduct, Product newProduct) {
-        if (oldProduct != null) {
-            oldProduct.removeProductNodeListener(pl);
-        }
-        if (newProduct != null) {
-            newProduct.addProductNodeListener(pl);
-        }
-    }
-
-    public void setVectorDataNode(VectorDataNode vectorDataNode) {
-        if (this.vectorDataNode != vectorDataNode) {
-            VectorDataNode oldVectorDataNode = this.vectorDataNode;
-            this.vectorDataNode = vectorDataNode;
-            handleVectorDataNodeChanged(oldVectorDataNode, this.vectorDataNode);
-        }
-    }
-
-    private void handleVectorDataNodeChanged(VectorDataNode oldVectorDataNode, VectorDataNode newVectorDataNode) {
-
-        if (newVectorDataNode != null) {
-            setProduct(newVectorDataNode.getProduct());
-        } else {
-            setProduct(null);
+        if (selectionContext == null) {
+            return;
         }
 
-        if (vectorDataNode != null) {
-            setTitle(titleBase + " - " + vectorDataNode.getName());
-        } else {
-            setTitle(titleBase);
-        }
-
-        updateEditor();
-    }
-
-
-    private PlacemarkGroup getPlacemarkGroup() {
-        if (vectorDataNode != null) {
-            return vectorDataNode.getPlacemarkGroup();
-        }
-        return null;
-    }
-
-
-    private void updateEditor() {
-        if (vectorDataNode != null) {
-            int figureCount = 0;
-            if (view != null) {
-                SimpleFeatureFigure[] featureFigures = view.getFeatureFigures(true);
-                figureCount = featureFigures.length;
+        if (selection != null) {
+            final VectorDataNode vectorDataNode;
+            if (selectionContext instanceof VectorDataFigureEditor) {
+                vectorDataNode = ((VectorDataFigureEditor) selectionContext).getVectorDataNode();
+            } else {
+                vectorDataNode = null;
             }
 
-            editor.setText(String.format("<html>" +
-                                                 "Vector data node <b>%s</b><br>" +
-                                                 "Feature type <b>%s</b><br>" +
-                                                 "<br>" +
-                                                 "%d placemark(s)<br>" +
-                                                 "%d feature(s)<br>" +
-                                                 "%d figure(s) selected</html>",
-                                         vectorDataNode.getName(),
-                                         vectorDataNode.getFeatureType().getTypeName(),
-                                         vectorDataNode.getPlacemarkGroup().getNodeCount(),
-                                         vectorDataNode.getFeatureCollection().size(),
-                                         figureCount));
+            final Object selectedValue = selection.getSelectedValue();
+            final SimpleFeature feature;
+            if (selectedValue instanceof SimpleFeatureFigure) {
+                SimpleFeatureFigure figure = (SimpleFeatureFigure) selectedValue;
+                feature = figure.getSimpleFeature();
+            } else {
+                feature = null;
+            }
+
+            setTitle(getWindowTitle(vectorDataNode, feature));
+            infoLabel.setText(getInfoText(vectorDataNode, feature));
+
+            if (feature != null) {
+                attributeTablePane.setVisible(true);
+                tableModel.setFeature(feature);
+            } else {
+                attributeTablePane.setVisible(false);
+            }
         } else {
-            editor.setText("No selection.");
+            setTitle(getWindowTitle(null, null));
+            infoLabel.setText(getInfoText(null, null));
+        }
+
+    }
+
+    private String getInfoText(VectorDataNode vectorDataNode, SimpleFeature feature) {
+        final String infoText;
+        if (vectorDataNode != null) {
+            infoText = String.format("<html>" +
+                                             "Vector data node: <b>%s</b> with %d feature(s)<br>" +
+                                             "Feature type: <b>%s (%s)</b><br>" +
+                                             "Geometry attribute: <b>%s</b><br>" +
+                                             "<br>" +
+                                             "%s<br>" +
+                                             "</html>",
+                                     vectorDataNode.getName(),
+                                     vectorDataNode.getFeatureCollection().size(),
+                                     vectorDataNode.getFeatureType().getTypeName(),
+                                     vectorDataNode.getPlacemarkDescriptor().getClass().getSimpleName(),
+                                     vectorDataNode.getFeatureType().getGeometryDescriptor().getLocalName(),
+                                     feature != null ? String.format("Selected feature <b>%s</b>:", feature.getID()) : "No feature selected.");
+            infoLabel.setText(infoText);
+        } else {
+            infoText = NO_SELECTION_TEXT;
+            // infoText = getSelectionDebugText(selectionContext, selectedValue);
+        }
+        return infoText;
+    }
+
+    private String getSelectionDebugText(SelectionContext selectionContext, Object selectedValue) {
+        return String.format("<html>"
+                                     + "SelectionContext: <b>%s</b><br>"
+                                     + "SelectionContext.class: <b>%s</b><br>"
+                                     + "selectedValue: <b>%s</b><br>"
+                                     + "selectedValue.class: <b>%s</b><br>",
+                             selectionContext,
+                             selectionContext.getClass(),
+                             selectedValue,
+                             selectedValue != null ? selectedValue.getClass() : "-"
+        );
+    }
+
+    private String getWindowTitle(VectorDataNode vectorDataNode, SimpleFeature feature) {
+        final String titleText;
+        if (vectorDataNode != null) {
+            if (feature != null) {
+                titleText = titleBase + " - " + vectorDataNode.getName() + " - " + feature.getID();
+            } else {
+                titleText = titleBase + " - " + vectorDataNode.getName();
+            }
+        } else {
+            titleText = titleBase;
+        }
+        return titleText;
+    }
+
+    private static class FeatureTableModel extends AbstractTableModel {
+        private SimpleFeature feature;
+
+        public void setFeature(SimpleFeature newFeature) {
+            final SimpleFeature oldFeature = this.feature;
+            if (oldFeature != newFeature) {
+                this.feature = newFeature;
+                fireTableDataChanged();
+            }
+        }
+
+        @Override
+        public int getRowCount() {
+            return feature != null ? feature.getFeatureType().getAttributeCount() : 0;
+        }
+
+        @Override
+        public int getColumnCount() {
+            return 3;
+        }
+
+        @Override
+        public boolean isCellEditable(int rowIndex, int columnIndex) {
+            return false;
+        }
+
+        @Override
+        public String getColumnName(int columnIndex) {
+            if (columnIndex == 0) {
+                return "Name";
+            } else if (columnIndex == 1) {
+                return "Type";
+            } else {
+                return "Value";
+            }
+        }
+
+        @Override
+        public Object getValueAt(int rowIndex, int columnIndex) {
+            if (feature != null) {
+                if (columnIndex == 0) {
+                    return feature.getFeatureType().getDescriptor(rowIndex).getLocalName();
+                } else if (columnIndex == 1) {
+                    return feature.getFeatureType().getDescriptor(rowIndex).getType().getBinding().getSimpleName();
+                } else {
+                    return feature.getAttribute(rowIndex);
+                }
+            }
+            return null;
         }
     }
 
     private class SCL extends AbstractSelectionChangeListener {
         @Override
         public void selectionChanged(SelectionChangeEvent event) {
-            updateEditor();
+            handleSelectionChange(event.getSelectionContext(), event.getSelection());
         }
     }
-
-    private class PNL implements ProductNodeListener {
-
-        @Override
-        public void nodeChanged(ProductNodeEvent event) {
-            ProductNode sourceNode = event.getSourceNode();
-            if (sourceNode.getOwner() == getPlacemarkGroup() && sourceNode instanceof Placemark) {
-                updateEditor();
-            }
-        }
-
-        @Override
-        public void nodeDataChanged(ProductNodeEvent event) {
-            ProductNode sourceNode = event.getSourceNode();
-            if (sourceNode.getOwner() == getPlacemarkGroup() && sourceNode instanceof Placemark) {
-                updateEditor();
-            }
-        }
-
-        @Override
-        public void nodeAdded(ProductNodeEvent event) {
-            ProductNode sourceNode = event.getSourceNode();
-            if (sourceNode.getOwner() == getPlacemarkGroup() && sourceNode instanceof Placemark) {
-                updateEditor();
-            }
-        }
-
-        @Override
-        public void nodeRemoved(ProductNodeEvent event) {
-            ProductNode sourceNode = event.getSourceNode();
-            if (sourceNode.getOwner() == getPlacemarkGroup() && sourceNode instanceof Placemark) {
-                updateEditor();
-            }
-        }
-
-    }
-
-    private class IFL extends InternalFrameAdapter {
-
-        @Override
-        public void internalFrameActivated(InternalFrameEvent e) {
-            Container contentPane = e.getInternalFrame().getContentPane();
-            if (contentPane instanceof ProductSceneView) {
-                setView((ProductSceneView) contentPane);
-            }
-        }
-
-        @Override
-        public void internalFrameDeactivated(InternalFrameEvent e) {
-            Container contentPane = e.getInternalFrame().getContentPane();
-            if (contentPane instanceof ProductSceneView) {
-                ProductSceneView sceneView = (ProductSceneView) contentPane;
-                if (sceneView == view) {
-                    setView(null);
-                }
-            }
-        }
-
-    }
-
-    private class PTL extends ProductTreeListenerAdapter {
-
-        @Override
-        public void productRemoved(Product product) {
-            if (product == getProduct()) {
-                setProduct(null);
-            }
-        }
-
-        @Override
-        public void vectorDataSelected(VectorDataNode vectorDataNode, int clickCount) {
-            setVectorDataNode(vectorDataNode);
-        }
-    }
-
 
 }

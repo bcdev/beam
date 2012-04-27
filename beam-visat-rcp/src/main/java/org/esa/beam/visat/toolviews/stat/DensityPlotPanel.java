@@ -34,6 +34,7 @@ import org.esa.beam.framework.ui.application.ToolView;
 import org.esa.beam.util.Debug;
 import org.esa.beam.util.ProductUtils;
 import org.esa.beam.util.math.MathUtils;
+import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.ui.RectangleInsets;
@@ -44,6 +45,7 @@ import javax.swing.JComboBox;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JSeparator;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.GridBagConstraints;
@@ -67,9 +69,17 @@ import java.util.concurrent.ExecutionException;
  */
 class DensityPlotPanel extends ChartPagePanel {
 
-    private static final String NO_DATA_MESSAGE = "No density plot computed yet.\n" +
+    private static final String NO_DATA_MESSAGE = "No scatter plot computed yet.\n" +
             ZOOM_TIP_MESSAGE;
-    private static final String CHART_TITLE = "Density Plot";
+    private static final String CHART_TITLE = "Scatter Plot";
+
+    public final static String PROPERTY_NAME_AUTO_MIN_MAX = "autoMinMax";
+    public final static String PROPERTY_NAME_MIN = "min";
+    public final static String PROPERTY_NAME_MAX = "max";
+    public final static String PROPERTY_NAME_USE_ROI_MASK = "useRoiMask";
+    public final static String PROPERTY_NAME_ROI_MASK = "roiMask";
+    public final static String PROPERTY_NAME_X_BAND = "xBand";
+    public final static String PROPERTY_NAME_Y_BAND = "yBand";
 
     private static final int X_VAR = 0;
     private static final int Y_VAR = 1;
@@ -100,8 +110,20 @@ class DensityPlotPanel extends ChartPagePanel {
     protected void initComponents() {
         initParameters();
         createUI();
+        initActionEnablers();
         updateComponents();
     }
+
+    private void initActionEnablers(){
+        RefreshActionEnabler roiMaskActionEnabler = new RefreshActionEnabler(refreshButton,PROPERTY_NAME_USE_ROI_MASK,
+                PROPERTY_NAME_ROI_MASK,PROPERTY_NAME_X_BAND,PROPERTY_NAME_Y_BAND);
+        bindingContext.addPropertyChangeListener(roiMaskActionEnabler);
+        RefreshActionEnabler rangeControlActionEnabler = new RefreshActionEnabler(refreshButton,PROPERTY_NAME_MIN,PROPERTY_NAME_AUTO_MIN_MAX,
+                PROPERTY_NAME_MAX);
+        axisRangeControls[X_VAR].getBindingContext().addPropertyChangeListener(rangeControlActionEnabler);
+        axisRangeControls[Y_VAR].getBindingContext().addPropertyChangeListener(rangeControlActionEnabler);
+    }
+
 
     @Override
     protected void updateComponents() {
@@ -111,6 +133,7 @@ class DensityPlotPanel extends ChartPagePanel {
         xBandProperty.getDescriptor().setValueSet(new ValueSet(createAvailableBandList()));
         yBandProperty.getDescriptor().setValueSet(new ValueSet(createAvailableBandList()));
         toggleColorCheckBox.setEnabled(false);
+        refreshButton.setEnabled(xBandProperty.getValue()!=null && yBandProperty.getValue()!=null);
     }
 
     private void initParameters() {
@@ -132,8 +155,8 @@ class DensityPlotPanel extends ChartPagePanel {
                 return this;
             }
         });
-        bindingContext.bind("xBand", xBandList);
-        xBandProperty = bindingContext.getPropertySet().getProperty("xBand");
+        bindingContext.bind(PROPERTY_NAME_X_BAND, xBandList);
+        xBandProperty = bindingContext.getPropertySet().getProperty(PROPERTY_NAME_X_BAND);
         xBandProperty.getDescriptor().setValueSet(new ValueSet(createAvailableBandList()));
 
         yBandList = new JComboBox();
@@ -147,8 +170,8 @@ class DensityPlotPanel extends ChartPagePanel {
                 return this;
             }
         });
-        bindingContext.bind("yBand", yBandList);
-        yBandProperty = bindingContext.getPropertySet().getProperty("yBand");
+        bindingContext.bind(PROPERTY_NAME_Y_BAND, yBandList);
+        yBandProperty = bindingContext.getPropertySet().getProperty(PROPERTY_NAME_Y_BAND);
         yBandProperty.getDescriptor().setValueSet(new ValueSet(createAvailableBandList()));
     }
 
@@ -200,8 +223,10 @@ class DensityPlotPanel extends ChartPagePanel {
         plot.setNoDataMessage(NO_DATA_MESSAGE);
         plot.getRenderer().setBaseToolTipGenerator(new XYPlotToolTipGenerator());
         JFreeChart chart = new JFreeChart(CHART_TITLE, plot);
+        ChartFactory.getChartTheme().apply(chart);
+
         chart.removeLegend();
-        createUI(createChartPanel(chart), createMiddlePanel(), bindingContext);
+        createUI(createChartPanel(chart), createOptionsPanel(), bindingContext);
         updateUIState();
     }
 
@@ -219,9 +244,8 @@ class DensityPlotPanel extends ChartPagePanel {
         }
     }
 
-
-    private JPanel createMiddlePanel() {
-        toggleColorCheckBox = new JCheckBox("Invert Plot Colors");
+    private JPanel createOptionsPanel() {
+        toggleColorCheckBox = new JCheckBox("Invert plot colors");
         toggleColorCheckBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -229,16 +253,16 @@ class DensityPlotPanel extends ChartPagePanel {
             }
         });
         toggleColorCheckBox.setEnabled(false);
-        final JPanel middlePanel = GridBagUtils.createPanel();
-        final GridBagConstraints gbc = GridBagUtils.createConstraints("anchor=NORTHWEST,fill=HORIZONTAL");
-        GridBagUtils.setAttributes(gbc, "gridx=0,weightx=1,weighty=0");
-        GridBagUtils.addToPanel(middlePanel, axisRangeControls[X_VAR].getPanel(), gbc, "gridy=0,insets.top=0");
-        GridBagUtils.addToPanel(middlePanel, xBandList, gbc, "gridy=1");
-        GridBagUtils.addToPanel(middlePanel, axisRangeControls[Y_VAR].getPanel(), gbc, "gridy=2");
-        GridBagUtils.addToPanel(middlePanel, yBandList, gbc, "gridy=3");
-        GridBagUtils.addToPanel(middlePanel, new JPanel(), gbc, "gridy=4,weighty=1");
-        GridBagUtils.addToPanel(middlePanel, toggleColorCheckBox, gbc, "gridy=5,weighty=1");
-        return middlePanel;
+        final JPanel optionsPanel = GridBagUtils.createPanel();
+        final GridBagConstraints gbc = GridBagUtils.createConstraints("anchor=NORTHWEST,fill=HORIZONTAL,insets.top=0,weightx=1,gridx=0");
+        GridBagUtils.addToPanel(optionsPanel, axisRangeControls[X_VAR].getPanel(), gbc, "gridy=0");
+        GridBagUtils.addToPanel(optionsPanel, xBandList, gbc, "gridy=1");
+        GridBagUtils.addToPanel(optionsPanel, axisRangeControls[Y_VAR].getPanel(), gbc, "gridy=2");
+        GridBagUtils.addToPanel(optionsPanel, yBandList, gbc, "gridy=3");
+        GridBagUtils.addToPanel(optionsPanel, new JPanel(), gbc, "gridy=4");
+        GridBagUtils.addToPanel(optionsPanel, new JSeparator(), gbc, "gridy=5");
+        GridBagUtils.addToPanel(optionsPanel, toggleColorCheckBox, gbc, "gridy=6");
+        return optionsPanel;
     }
 
     private ChartPanel createChartPanel(JFreeChart chart) {
@@ -247,7 +271,7 @@ class DensityPlotPanel extends ChartPagePanel {
         MaskSelectionToolSupport maskSelectionToolSupport = new MaskSelectionToolSupport(this,
                 densityPlotDisplay,
                 "density_plot_area",
-                "Mask generated from selected density plot area",
+                "Mask generated from selected scatter plot area",
                 Color.RED,
                 PlotAreaSelectionTool.AreaType.ELLIPSE) {
             @Override
@@ -300,6 +324,13 @@ class DensityPlotPanel extends ChartPagePanel {
         super.updateComponents();
     }
 
+    private void checkBandsForRange() throws IllegalArgumentException {
+        if(axisRangeControls[X_VAR].getMin().equals(axisRangeControls[X_VAR].getMax()) &&
+                axisRangeControls[Y_VAR].getMin().equals(axisRangeControls[Y_VAR].getMax())){
+            throw new IllegalArgumentException("Value range of at least one band must be larger than one");
+        }
+    }
+
     @Override
     protected void updateChartData() {
 
@@ -311,12 +342,13 @@ class DensityPlotPanel extends ChartPagePanel {
         }
 
         ProgressMonitorSwingWorker<BufferedImage, Object> swingWorker = new ProgressMonitorSwingWorker<BufferedImage, Object>(
-                this, "Computing density plot") {
+                this, "Computing scatter plot") {
 
             @Override
             protected BufferedImage doInBackground(ProgressMonitor pm) throws Exception {
-                pm.beginTask("Computing density plot...", 100);
+                pm.beginTask("Computing scatter plot...", 100);
                 try {
+                    checkBandsForRange();
                     setRange(X_VAR, rasterX, dataSourceConfig.useRoiMask ? dataSourceConfig.roiMask : null, SubProgressMonitor.create(pm, 15));
                     setRange(Y_VAR, rasterY, dataSourceConfig.useRoiMask ? dataSourceConfig.roiMask : null, SubProgressMonitor.create(pm, 15));
                     final BufferedImage densityPlotImage = ProductUtils.createDensityPlotImage(rasterX,
@@ -325,7 +357,7 @@ class DensityPlotPanel extends ChartPagePanel {
                             rasterY,
                             axisRangeControls[Y_VAR].getMin().floatValue(),
                             axisRangeControls[Y_VAR].getMax().floatValue(),
-                            dataSourceConfig.roiMask,
+                            dataSourceConfig.useRoiMask ? dataSourceConfig.roiMask : null,
                             512,
                             512,
                             backgroundColor,
@@ -342,6 +374,7 @@ class DensityPlotPanel extends ChartPagePanel {
             @Override
             public void done() {
                 try {
+                    checkBandsForRange();
                     final BufferedImage densityPlotImage = get();
                     double minX = axisRangeControls[X_VAR].getMin();
                     double maxX = axisRangeControls[X_VAR].getMax();
@@ -349,7 +382,7 @@ class DensityPlotPanel extends ChartPagePanel {
                     double maxY = axisRangeControls[Y_VAR].getMax();
                     if (minX > maxX || minY > maxY) {
                         JOptionPane.showMessageDialog(getParentDialogContentPane(),
-                                "Failed to compute density plot.\n" +
+                                "Failed to compute scatter plot.\n" +
                                         "No Pixels considered..",
                                 /*I18N*/
                                 CHART_TITLE, /*I18N*/
@@ -379,7 +412,7 @@ class DensityPlotPanel extends ChartPagePanel {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                     JOptionPane.showMessageDialog(getParentDialogContentPane(),
-                            "Failed to compute density plot.\n" +
+                            "Failed to compute scatter plot.\n" +
                                     "Calculation canceled.",
                             /*I18N*/
                             CHART_TITLE, /*I18N*/
@@ -387,7 +420,7 @@ class DensityPlotPanel extends ChartPagePanel {
                 } catch (CancellationException e) {
                     e.printStackTrace();
                     JOptionPane.showMessageDialog(getParentDialogContentPane(),
-                            "Failed to compute density plot.\n" +
+                            "Failed to compute scatter plot.\n" +
                                     "Calculation canceled.",
                             /*I18N*/
                             CHART_TITLE, /*I18N*/
@@ -395,7 +428,15 @@ class DensityPlotPanel extends ChartPagePanel {
                 } catch (ExecutionException e) {
                     e.printStackTrace();
                     JOptionPane.showMessageDialog(getParentDialogContentPane(),
-                            "Failed to compute density plot.\n" +
+                            "Failed to compute scatter plot.\n" +
+                                    "An error occurred:\n" +
+                                    e.getCause().getMessage(),
+                            CHART_TITLE, /*I18N*/
+                            JOptionPane.ERROR_MESSAGE);
+                } catch (IllegalArgumentException e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(getParentDialogContentPane(),
+                            "Failed to compute scatter plot.\n" +
                                     "An error occurred:\n" +
                                     e.getCause().getMessage(),
                             CHART_TITLE, /*I18N*/
@@ -452,7 +493,7 @@ class DensityPlotPanel extends ChartPagePanel {
                         + excelLimit + " rows in a sheet.\n";   /*I18N*/
             }
             final String message = MessageFormat.format(
-                    "This density plot contains {0} non-empty bins.\n" +
+                    "This scatter plot contains {0} non-empty bins.\n" +
                             "For each bin, a text data row containing an x, y and z value will be created.\n" +
                             "{1}\nPress ''Yes'' if you really want to copy this amount of data to the system clipboard.\n",
                     numNonEmptyBins, excelNote);

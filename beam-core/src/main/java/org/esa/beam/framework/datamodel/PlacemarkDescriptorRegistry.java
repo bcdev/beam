@@ -23,15 +23,22 @@ import org.esa.beam.framework.dataio.DecodeQualification;
 import org.opengis.feature.simple.SimpleFeatureType;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
 public class PlacemarkDescriptorRegistry {
 
-    private static PlacemarkDescriptorRegistry instance = new PlacemarkDescriptorRegistry();
+    public final static String PROPERTY_NAME_PLACEMARK_DESCRIPTOR = AbstractPlacemarkDescriptor.PROPERTY_NAME_PLACEMARK_DESCRIPTOR;
+
     private ServiceRegistry<PlacemarkDescriptor> serviceRegistry;
 
-    public PlacemarkDescriptorRegistry() {
+    public PlacemarkDescriptorRegistry(ServiceRegistry<PlacemarkDescriptor> serviceRegistry) {
+        this.serviceRegistry = serviceRegistry;
+    }
+
+    private PlacemarkDescriptorRegistry() {
         ServiceRegistryManager serviceRegistryManager = ServiceRegistryManager.getInstance();
         serviceRegistry = serviceRegistryManager.getServiceRegistry(PlacemarkDescriptor.class);
         if (!BeamCoreActivator.isStarted()) {
@@ -40,51 +47,121 @@ public class PlacemarkDescriptorRegistry {
     }
 
     public static PlacemarkDescriptorRegistry getInstance() {
-        return instance;
+        return Holder.instance;
     }
 
     public static void setInstance(PlacemarkDescriptorRegistry instance) {
         Assert.notNull(instance, "instance");
-        PlacemarkDescriptorRegistry.instance = instance;
+        Holder.instance = instance;
     }
 
+    /**
+     * Gives a placemark descriptors from the service registry which is compatible with the given class which
+     * extends {@link PlacemarkDescriptor}.
+     *
+     * @param clazz  The class.
+     * @return  the placemark descriptor
+     */
     public PlacemarkDescriptor getPlacemarkDescriptor(Class<? extends PlacemarkDescriptor> clazz) {
         return getPlacemarkDescriptor(clazz.getName());
     }
 
+    /**
+     * Gives a placemark descriptor from the service registry which is compatible with the given class name.
+     *
+     * @param className  The class name.
+     * @return  the placemark descriptor
+     */
     public PlacemarkDescriptor getPlacemarkDescriptor(String className) {
         return serviceRegistry.getService(className);
     }
 
+    /**
+     * Gives all placemark descriptors from the service registry.
+     *
+     * @return  the placemark descriptors
+     */
     public Set<PlacemarkDescriptor> getPlacemarkDescriptors() {
         return serviceRegistry.getServices();
     }
 
-    public List<PlacemarkDescriptor> getValidPlacemarkDescriptors(SimpleFeatureType featureType) {
+    /**
+     * Returns an ordered list of placemark descriptors that are compatible with the given feature type.
+     * The list is sorted by by the level of compatibility (see {@link DecodeQualification}). A feature type may have
+     * given the class name of an appropriate placemark descriptor in its "user data", the key for that descriptor name is
+     * given by {@link AbstractPlacemarkDescriptor#PROPERTY_NAME_PLACEMARK_DESCRIPTOR}.
+     *
+     * @param featureType The feature type.
+     * @return An ordered list of descriptors, which may be empty.
+     */
+    public List<PlacemarkDescriptor> getPlacemarkDescriptors(final SimpleFeatureType featureType) {
         ArrayList<PlacemarkDescriptor> list = new ArrayList<PlacemarkDescriptor>();
         for (PlacemarkDescriptor placemarkDescriptor : getPlacemarkDescriptors()) {
-            if (placemarkDescriptor.getQualification(featureType) != DecodeQualification.UNABLE) {
-                list.add(placemarkDescriptor);
+            DecodeQualification qualification = placemarkDescriptor.getCompatibilityFor(featureType);
+            if (qualification != DecodeQualification.UNABLE) {
+                if (qualification == DecodeQualification.INTENDED) {
+                    list.add(placemarkDescriptor);
+                } else {
+                    list.add(placemarkDescriptor);
+                }
             }
         }
+        Collections.sort(list, new Comparator<PlacemarkDescriptor>() {
+            @Override
+            public int compare(PlacemarkDescriptor o1, PlacemarkDescriptor o2) {
+                boolean isO1Intended = o1.getCompatibilityFor(featureType) == DecodeQualification.INTENDED;
+                boolean isO2Intended = o2.getCompatibilityFor(featureType) == DecodeQualification.INTENDED;
+                if (isO1Intended && !isO2Intended) {
+                    return -1;
+                } else if (!isO1Intended && isO2Intended) {
+                    return 1;
+                } else if (isO1Intended && isO2Intended) {
+                    if (hasClassProperty(o1) && !hasClassProperty(o2)) {
+                        return -1;
+                    } else if (!hasClassProperty(o1) && hasClassProperty(o2)) {
+                        return 1;
+                    }
+                }
+                return 0;
+            }
+        });
         return list;
     }
 
+    /**
+     * Returns the 'best qualified' placemark descriptors which is compatible with the given feature type.
+     *
+     * @param featureType The feature type.
+     * @return the placemark descriptor
+     */
     public PlacemarkDescriptor getPlacemarkDescriptor(SimpleFeatureType featureType) {
-        ArrayList<PlacemarkDescriptor> list = new ArrayList<PlacemarkDescriptor>();
+        PlacemarkDescriptor suitablePlacemarkDescriptor = null;
+        PlacemarkDescriptor intendedPlacemarkDescriptor = null;
         for (PlacemarkDescriptor placemarkDescriptor : getPlacemarkDescriptors()) {
-            DecodeQualification qualification = placemarkDescriptor.getQualification(featureType);
+            DecodeQualification qualification = placemarkDescriptor.getCompatibilityFor(featureType);
             if (qualification == DecodeQualification.INTENDED) {
-                return placemarkDescriptor;
-            }  else if (qualification == DecodeQualification.SUITABLE) {
-                list.add(placemarkDescriptor);
+                if (hasClassProperty(placemarkDescriptor)) {
+                    return placemarkDescriptor;
+                } else {
+                    intendedPlacemarkDescriptor = placemarkDescriptor;
+                }
+            } else if (qualification == DecodeQualification.SUITABLE) {
+                suitablePlacemarkDescriptor = placemarkDescriptor;
             }
         }
-        if (!list.isEmpty()) {
-            return list.get(0);
-        } else {
-            return null;
+        if (intendedPlacemarkDescriptor != null) {
+            return intendedPlacemarkDescriptor;
         }
+        return suitablePlacemarkDescriptor;
+    }
+
+    private static boolean hasClassProperty(PlacemarkDescriptor placemarkDescriptor) {
+        return placemarkDescriptor.getBaseFeatureType().getUserData().containsKey(PROPERTY_NAME_PLACEMARK_DESCRIPTOR);
+    }
+
+    private static class Holder {
+
+        private static PlacemarkDescriptorRegistry instance = new PlacemarkDescriptorRegistry();
     }
 
 }

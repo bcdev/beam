@@ -16,6 +16,8 @@
 
 package org.esa.beam.visat.toolviews.stat;
 
+import javax.swing.Icon;
+
 /**
  * The tool view containing a scatter plot
  *
@@ -27,6 +29,13 @@ public class ScatterPlotToolView extends AbstractStatisticsToolView {
 
     @Override
     protected PagePanel createPagePanel() {
-        return new ScatterPlotPanel(this, getDescriptor().getHelpId());
+        final String helpId = getDescriptor().getHelpId();
+        final Icon largeIcon = getDescriptor().getLargeIcon();
+        final String chartTitle = ScatterPlotPanel.CHART_TITLE;
+        final ScatterPlotPanel scatterPlotPanel = new ScatterPlotPanel(this, helpId);
+        final TableViewPagePanel tableViewPanel = new TableViewPagePanel(this, helpId, chartTitle, largeIcon);
+        scatterPlotPanel.setAlternativeView(tableViewPanel);
+        tableViewPanel.setAlternativeView(scatterPlotPanel);
+        return scatterPlotPanel;
     }
 }

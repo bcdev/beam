@@ -18,7 +18,7 @@ package org.esa.beam.dataio.dimap;
 import com.bc.ceres.core.Assert;
 import com.bc.ceres.core.ProgressMonitor;
 import org.esa.beam.dataio.geometry.VectorDataNodeIO;
-import org.esa.beam.dataio.geometry.VectorDataNodeReader2;
+import org.esa.beam.dataio.geometry.VectorDataNodeReader;
 import org.esa.beam.framework.dataio.AbstractProductReader;
 import org.esa.beam.framework.dataio.DecodeQualification;
 import org.esa.beam.framework.dataio.ProductReaderPlugIn;
@@ -410,18 +410,20 @@ public class DimapProductReader extends AbstractProductReader {
                 FileReader reader = null;
                 try {
                     reader = new FileReader(vectorFile);
-                    VectorDataNode vectorDataNode = VectorDataNodeReader2.read(vectorFile.getName(), reader, product, new FeatureUtils.FeatureCrsProvider() {
+                    VectorDataNode vectorDataNode = VectorDataNodeReader.read(vectorFile.getName(), reader, product, new FeatureUtils.FeatureCrsProvider() {
                         @Override
                         public CoordinateReferenceSystem getFeatureCrs(Product product) {
                             return modelCrs != null ? modelCrs : DefaultGeographicCRS.WGS84;
                         }
                     }, new MyPlacemarkDescriptorProvider(), modelCrs, ProgressMonitor.NULL);
-                    final ProductNodeGroup<VectorDataNode> vectorDataGroup = product.getVectorDataGroup();
-                    final VectorDataNode existing = vectorDataGroup.get(vectorDataNode.getName());
-                    if (existing != null) {
-                        vectorDataGroup.remove(existing);
+                    if (vectorDataNode != null) {
+                        final ProductNodeGroup<VectorDataNode> vectorDataGroup = product.getVectorDataGroup();
+                        final VectorDataNode existing = vectorDataGroup.get(vectorDataNode.getName());
+                        if (existing != null) {
+                            vectorDataGroup.remove(existing);
+                        }
+                        vectorDataGroup.add(vectorDataNode);
                     }
-                    vectorDataGroup.add(vectorDataNode);
                 } catch (IOException e) {
                     BeamLogManager.getSystemLogger().log(Level.SEVERE, "Error reading '" + vectorFile + "'", e);
                 } finally {
@@ -433,14 +435,22 @@ public class DimapProductReader extends AbstractProductReader {
         }
     }
 
-    private static class MyPlacemarkDescriptorProvider implements VectorDataNodeReader2.PlacemarkDescriptorProvider {
+    private static class MyPlacemarkDescriptorProvider implements VectorDataNodeReader.PlacemarkDescriptorProvider {
         @Override
         public PlacemarkDescriptor getPlacemarkDescriptor(SimpleFeatureType simpleFeatureType) {
-            final PlacemarkDescriptor placemarkDescriptor = PlacemarkDescriptorRegistry.getInstance().getPlacemarkDescriptor(simpleFeatureType);
+            PlacemarkDescriptorRegistry placemarkDescriptorRegistry = PlacemarkDescriptorRegistry.getInstance();
+            if (simpleFeatureType.getUserData().containsKey(PlacemarkDescriptorRegistry.PROPERTY_NAME_PLACEMARK_DESCRIPTOR)) {
+                String placemarkDescriptorClass = simpleFeatureType.getUserData().get(PlacemarkDescriptorRegistry.PROPERTY_NAME_PLACEMARK_DESCRIPTOR).toString();
+                PlacemarkDescriptor placemarkDescriptor = placemarkDescriptorRegistry.getPlacemarkDescriptor(placemarkDescriptorClass);
+                if (placemarkDescriptor != null) {
+                    return placemarkDescriptor;
+                }
+            }
+            final PlacemarkDescriptor placemarkDescriptor = placemarkDescriptorRegistry.getPlacemarkDescriptor(simpleFeatureType);
             if (placemarkDescriptor != null) {
                 return placemarkDescriptor;
             } else {
-                return PlacemarkDescriptorRegistry.getInstance().getPlacemarkDescriptor(GeometryDescriptor.class);
+                return placemarkDescriptorRegistry.getPlacemarkDescriptor(GeometryDescriptor.class);
             }
         }
     }

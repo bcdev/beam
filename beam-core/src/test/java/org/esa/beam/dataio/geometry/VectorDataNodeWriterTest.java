@@ -37,23 +37,27 @@ import java.util.Map;
 
 public class VectorDataNodeWriterTest extends TestCase {
 
-    static final String OUTPUT_1 =
-            "#beam.placemarkDescriptor.class=GeometryDescriptor\n"
-            + "#defaultGeometry=geom\n"
-            + "#styleCss=color:0,0,255\n"
-            + "#separator=TAB\n"
-            + "org.esa.beam.FT1\tname:String\tgeom:Geometry\tpixel:Integer\tdescription:String\n"
+    private static final String INPUT_1 =
+            "# This is a test comment\n" +
+            "# separator=TAB\n" +
+            "# styleCss=color:0,0,255\n" +
+            "\n" +
+            "org.esa.beam.FT1\tname:String\tgeom:Geometry\tpixel:Integer\tdescription:String\n"
             + "ID65\tmark1\tPOINT (12.3 45.6)\t0\tThis is mark1.\n"
             + "ID66\tmark2\tPOINT (78.9 10.1)\t1\t[null]\n"
             + "ID67\tmark3\tPOINT (23.4 56.7)\t2\tThis is mark3.\n";
 
-    static final String OUTPUT_2 = VectorDataNodeReaderTest.INPUT_2;
+    private static final String INPUT_2 =
+            "#defaultGeometry=geom\n"
+            + "#placemarkDescriptor=org.esa.beam.framework.datamodel.GeometryDescriptor\n"
+            + "org.esa.beam.FT2\tname:String\tgeom:Point\tweight:Float\n"
+            + "ID65\tmark1\tPOINT (12.3 45.6)\t0.4\n";
 
-    private VectorDataNodeReader2.PlacemarkDescriptorProvider placemarkDescriptorProvider;
+    private VectorDataNodeReader.PlacemarkDescriptorProvider placemarkDescriptorProvider;
 
     @Override
     public void setUp() throws Exception {
-        placemarkDescriptorProvider = new VectorDataNodeReader2.PlacemarkDescriptorProvider() {
+        placemarkDescriptorProvider = new VectorDataNodeReader.PlacemarkDescriptorProvider() {
             @Override
             public PlacemarkDescriptor getPlacemarkDescriptor(SimpleFeatureType simpleFeatureType) {
                 return PlacemarkDescriptorRegistry.getInstance().getPlacemarkDescriptor(org.esa.beam.framework.datamodel.GeometryDescriptor.class);
@@ -62,15 +66,30 @@ public class VectorDataNodeWriterTest extends TestCase {
     }
 
     public void testOutput1() throws IOException {
-        testInputOutput(VectorDataNodeReaderTest.INPUT_1, OUTPUT_1);
+        testInputOutput(INPUT_1,
+                        new String[]{
+                                "#defaultGeometry=geom",
+                                "#styleCss=color:0,0,255",
+                                "#placemarkDescriptor=org.esa.beam.framework.datamodel.GeometryDescriptor",
+                                "#separator=TAB"
+                        },
+                        "\norg.esa.beam.FT1\tname:String\tgeom:Geometry\tpixel:Integer\tdescription:String\n"
+                        + "ID65\tmark1\tPOINT (12.3 45.6)\t0\tThis is mark1.\n"
+                        + "ID66\tmark2\tPOINT (78.9 10.1)\t1\t[null]\n"
+                        + "ID67\tmark3\tPOINT (23.4 56.7)\t2\tThis is mark3.\n");
     }
 
     public void testOutput2() throws IOException {
-        testInputOutput(VectorDataNodeReaderTest.INPUT_2, OUTPUT_2);
+        testInputOutput(INPUT_2,
+                        new String[]{
+                                "#defaultGeometry=geom",
+                                "#placemarkDescriptor=org.esa.beam.framework.datamodel.GeometryDescriptor"
+                        },
+                        "org.esa.beam.FT2\tname:String\tgeom:Point\tweight:Float\nID65\tmark1\tPOINT (12.3 45.6)\t0.4\n");
     }
 
-    private void testInputOutput(String input, String output) throws IOException {
-        final VectorDataNode dataNode = VectorDataNodeReader2.read("mem", new StringReader(input), createDummyProduct(), new FeatureUtils.FeatureCrsProvider() {
+    private void testInputOutput(String input, String[] expectedProperties, String expectedContent) throws IOException {
+        final VectorDataNode dataNode = VectorDataNodeReader.read("mem", new StringReader(input), createDummyProduct(), new FeatureUtils.FeatureCrsProvider() {
             @Override
             public CoordinateReferenceSystem getFeatureCrs(Product product) {
                 return DefaultGeographicCRS.WGS84;
@@ -87,12 +106,17 @@ public class VectorDataNodeWriterTest extends TestCase {
         vectorDataNodeWriter.writeProperties(properties, writer);
         vectorDataNodeWriter.writeFeatures(fc, writer);
 
-        assertEquals(output, writer.toString());
+
+        String writtenVDN = writer.toString();
+        for (String expectedProperty : expectedProperties) {
+            assertTrue(writtenVDN.contains(expectedProperty));
+        }
+        assertTrue(writtenVDN.endsWith(expectedContent));
     }
 
     private static Product createDummyProduct() {
         Product dummyProduct = new Product("blah", "blahType", 360, 180);
-        dummyProduct.setGeoCoding(new VectorDataNodeReader2Test.DummyGeoCoding());
+        dummyProduct.setGeoCoding(new VectorDataNodeReaderTest.DummyGeoCoding());
         return dummyProduct;
     }
 
