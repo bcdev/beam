@@ -378,10 +378,10 @@ public class ColorPaletteDef implements Cloneable {
     private Color computeColorRaw(Scaling scaling, double sample, double minDisplay, double maxDisplay) {
         final Color c;
         if (sample <= minDisplay) {
-            if (sample < 0) {
-                //if sample is equal to the nodata value, then the no_color value should be returned. This is a shortcut for the time being.
-                return new Color(51, 51, 51); //ImageInfo.NO_COLOR; ImageInfo.NO_COLOR is pure black, so used the background color.
-            }
+//            if (sample < 0) {
+//                //if sample is equal to the nodata value, then the no_color value should be returned. This is a shortcut for the time being.
+//                return new Color(51, 51, 51); //ImageInfo.NO_COLOR; ImageInfo.NO_COLOR is pure black, so used the background color.
+//            }
             c = getFirstPoint().getColor();
         } else if (sample >= maxDisplay) {
             c = getLastPoint().getColor();
