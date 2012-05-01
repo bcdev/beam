@@ -44,6 +44,7 @@
     <mapID target="importModisProduct" url="visat/ImportModis.html"/>
     <mapID target="importAtsrProduct" url="visat/ImportATSR.html"/>
     <mapID target="importGETASSE30" url="visat/ImportGETASSE30.html"/>
+    <mapID target="importCSV" url="visat/ImportCSV.html"/>
     <mapID target="importShapefile" url="visat/ImportShapefile.html"/>
     <mapID target="importLandsatTMProduct" url="visat/ImportLandsatTM.html"/>
     <mapID target="importAVHRR" url="visat/ImportAVHRR.html"/>
@@ -81,7 +82,7 @@
     <mapID target="geoCodingInfoDialog" url="visat/GeoCodingInfo.html"/>
     <mapID target="statisticsDialog" url="visat/StatisticsDialog.html"/>
     <mapID target="histogramDialog" url="visat/HistogramDialog.html"/>
-    <mapID target="densityplotDialog" url="visat/DensityplotDialog.html"/>
+    <mapID target="densityPlotDialog" url="visat/DensityPlotDialog.html"/>
     <mapID target="scatterplotDialog" url="visat/ScatterplotDialog.html"/>
     <mapID target="profilePlotDialog" url="visat/ProfilePlotDialog.html"/>
     <mapID target="coordinateListDialog" url="visat/CoordinateListDialog.html"/>
@@ -90,7 +91,7 @@
     <mapID target="expressionEditor" url="visat/ExpressionEditor.html"/>
     <mapID target="rgbImageProfile" url="visat/RGBImageProfile.html"/>
     <mapID target="bandArithmetic" url="visat/BandMaths.html"/>
-    <mapID target="geometryManagement" url="visat/GeometryManagement.html"/>
+    <mapID target="vectorDataManagement" url="visat/VectorDataManagement.html"/>
 
 
     <mapID target="reprojectionAction" url="visat/Reprojection.html"/>

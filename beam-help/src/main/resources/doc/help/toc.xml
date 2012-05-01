@@ -23,6 +23,7 @@
         <tocitem text="Tools">
             <tocitem text="Import and Export Tools">
                 <tocitem text="Import Shapefile" target="importShapefile"/>
+                <tocitem text="Import CSV" target="importCSV"/>
                 <tocitem text="Import ENVISAT Data Product" target="importEnvisatProduct"/>
                 <tocitem text="Import ERS1/2 Data Product" target="importErsProduct"/>
                 <tocitem text="Import ATSR Data Product" target="importAtsrProduct"/>
@@ -64,7 +65,7 @@
                 <tocitem text="Colour Manipulation" target="showColorManipulationWnd"/>
                 <tocitem text="RGB-Image Profile" target="rgbImageProfile"/>
                 <tocitem text="No-Data Overlay" target="noDataOverlay"/>
-                <tocitem text="Geometry Management" target="geometryManagement"/>
+                <tocitem text="Vector Data Management" target="vectorDataManagement"/>
                 <tocitem text="Mask and ROI Management" target="showMaskROIManagerWnd"/>
             </tocitem>
 
@@ -77,7 +78,7 @@
                 <tocitem text="Product/Band Geo-Coding Information" target="geoCodingInfoDialog"/>
                 <tocitem text="Band Statistics" target="statisticsDialog"/>
                 <tocitem text="Band Histogram" target="histogramDialog"/>
-                <tocitem text="Band Scatter Plot" target="densityplotDialog"/>
+                <tocitem text="Band Scatter Plot" target="densityPlotDialog"/>
                 <tocitem text="Correlative Plot" target="scatterplotDialog"/>
                 <tocitem text="Band Transect Profile Plot" target="profilePlotDialog"/>
                 <tocitem text="Band Transect Co-ordinate List" target="coordinateListDialog"/>
