@@ -298,7 +298,6 @@ public class ImageManager {
         Assert.notNull(raster, "raster");
         Assert.notNull(imageInfo, "imageInfo");
         RenderedImage sourceImage = getSourceImage(raster, level);
-        //printPixels(sourceImage);
         RenderedImage validMaskImage = getValidMaskImage(raster, level);
         PlanarImage image = createByteIndexedImage(raster, sourceImage, imageInfo);
         image = createMatchCdfImage(image, imageInfo.getHistogramMatching(), new Stx[]{raster.getStx()});
@@ -351,15 +350,18 @@ public class ImageManager {
                                                       double minSample,
                                                       double maxSample,
                                                       double gamma) {
+
+        minSample = (minSample == 0) ? 1.0E-9 : minSample;
         double newMin = raster.scaleInverse(minSample);
         double newMax = raster.scaleInverse(maxSample);
 
-        if (raster.getImageInfo().isLogScaled()) {
+        double offset = raster.getScalingOffset();
+        double factor = raster.getScalingFactor();
 
-            //sourceImage = LogDescriptor.create(sourceImage,createDefaultRenderingHints(sourceImage, null));
-            sourceImage = logScalePixels(sourceImage, raster);
-            newMin = Stx.LOG10_SCALING.scale(newMin);
-            newMax = Stx.LOG10_SCALING.scale(newMax);
+        if (raster.getImageInfo().isLogScaled()) {
+            newMin = Stx.LOG10_SCALING.scale(minSample);
+            newMax = Stx.LOG10_SCALING.scale(maxSample);
+            sourceImage = transformPixels(sourceImage, offset, factor);
         }
 
         PlanarImage image = createRescaleOp(sourceImage,
@@ -367,6 +369,7 @@ public class ImageManager {
                 255.0 * newMin / (newMin - newMax));
         // todo - make sure this is not needed, e.g. does "format" auto-clamp?? (nf, 10.2008)
         // image = createClampOp(image, 0, 255);
+        System.out.println(image.getSampleModel().getDataType());
         image = createByteFormatOp(image);
         if (gamma != 0.0 && gamma != 1.0) {
             byte[] gammaCurve = MathUtils.createGammaCurve(gamma, new byte[256]);
@@ -384,41 +387,34 @@ public class ImageManager {
      * @return returns a new image file with logged pixels.
      */
     //new method added by seadas team
-    private static TiledImage logScalePixels(RenderedImage sourceImage, RasterDataNode raster) {
+    private static TiledImage transformPixels(RenderedImage sourceImage, double r_offset, double r_factor) {
         int width = sourceImage.getWidth();
         int height = sourceImage.getHeight();
         SampleModel sm = sourceImage.getSampleModel();
         int nbands = sm.getNumBands();
         Raster inputRaster = sourceImage.getData();
-        WritableRaster outputRaster = inputRaster.createCompatibleWritableRaster();
+        SampleModel bsm = new BandedSampleModel(5, width, height, nbands);   //5 is TYPE_DOUBLE
         double[] pixels = new double[nbands * width * height];
+        WritableRaster outputRaster = Raster.createWritableRaster(bsm, new Point(0, 0));
         inputRaster.getPixels(0, 0, width, height, pixels);
-
         int offset;
         for (int h = 0; h < height; h++) {
             for (int w = 0; w < width; w++) {
                 offset = h * width * nbands + w * nbands;
                 for (int band = 0; band < nbands; band++) {
-                    double m = pixels[offset + band];
-                    //if (raster.getDataType()  == ProductData.TYPE_INT16 ) {
-                    //pixels[offset + band] = raster.scale(pixels[offset + band]);
-                    //System.out.println("before: " + m +  "  after: " + pixels[offset + band ]);
-                    //}   else
-                    //pixels[offset + band] = pixels[offset + band] > 0 ? Math.log10(pixels[offset + band]) : pixels[offset + band];
-                    pixels[offset + band] = Stx.LOG10_SCALING.scale(pixels[offset + band ]);
-                    //System.out.println("before: " + m +  "  after: " + pixels[offset + band ]);
+                    double m = pixels[offset + band] * r_factor + r_offset;
+                    pixels[offset + band] = Stx.LOG10_SCALING.scale(m);
                 }
             }
         }
         outputRaster.setPixels(0, 0, width, height, pixels);
-
-        TiledImage ti = new TiledImage(sourceImage, true);
+        TiledImage ti = new TiledImage(0, 0, width, height, 0, 0, bsm, null);
         ti.setData(outputRaster);
         return ti;
     } //seadas added method ends here
 
 
-        private static void printPixels(RenderedImage sourceImage) {
+    private static void printPixels(RenderedImage sourceImage) {
         int width = sourceImage.getWidth();
         int height = sourceImage.getHeight();
         SampleModel sm = sourceImage.getSampleModel();
@@ -433,7 +429,8 @@ public class ImageManager {
                 offset = h * width * nbands + w * nbands;
                 for (int band = 0; band < nbands; band++) {
                     double m = pixels[offset + band];
-                    System.out.println("pixel value in image: " + m);
+                    if (m > 0)
+                        System.out.println("pixel value in image: " + m);
                 }
             }
         }
