@@ -20,13 +20,12 @@ package org.esa.beam.visat.toolviews.imageinfo;
 import com.bc.ceres.binding.Property;
 import com.bc.ceres.binding.PropertyContainer;
 import com.bc.ceres.binding.ValueRange;
+import com.bc.ceres.swing.TableLayout;
 import com.bc.ceres.swing.binding.BindingContext;
 import org.esa.beam.framework.ui.ImageInfoEditor;
 import org.esa.beam.util.math.MathUtils;
 
 import javax.swing.*;
-import javax.swing.border.EtchedBorder;
-import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeListener;
 import javax.swing.text.NumberFormatter;
 import java.awt.*;
@@ -36,6 +35,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.File;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
@@ -62,6 +62,8 @@ class BasicColorEditor extends JPanel {
     private NumberFormat valFormat;
     private ImageInfoEditor imageInfoEditor;
     private double roundFactor;
+
+    private ColorPaletteChooser colorChooser;
 
     private ChangeListener applyEnablerCL;
 
@@ -109,39 +111,47 @@ class BasicColorEditor extends JPanel {
         JPanel simpleColorEditorPanel = new JPanel();
         simpleColorEditorPanel.setLayout(new GridLayout(0, 1));
 
+        //colorChooser = new ColorPaletteChooser(new File("/Users/aabduraz/.beam/beam-ui/auxdata/color-palettes"));
+         colorChooser = new ColorPaletteChooser(parentForm.getIODir());
+
+        colorChooser.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                ImageIcon currentColorBar = (ImageIcon) colorChooser.getSelectedItem();
+                String cpdFileName = currentColorBar.getDescription();
+                File cpdFile = colorChooser.getColorPaletteDir();
+                parentForm.loadColorPaletteFile(new File(cpdFile, cpdFileName));
+                parentForm.setApplyEnabled(true);
+            }
+        });
+
         final JPanel minPanel = new JPanel();
-        minPanel.setLayout(new FlowLayout());
+        minPanel.setLayout(new BoxLayout(minPanel, BoxLayout.Y_AXIS));
+        minPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         minPanel.add(new JLabel("Min:"));
 
         minValField = editSliderSampleMinMax(0, "minSample");
         minPanel.add(minValField);
 
+
         final JPanel maxPanel = new JPanel();
-        maxPanel.setLayout(new FlowLayout());
+        maxPanel.setLayout(new BoxLayout(maxPanel, BoxLayout.Y_AXIS));
+        maxPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         maxPanel.add(new JLabel("Max:"));
         maxValField = editSliderSampleMinMax(getSliderCount() - 1, "maxSample");
         maxPanel.add(maxValField);
 
 
         final JPanel minMaxPanel = new JPanel();
+        TableLayout basicPanelLayout = new TableLayout(2);
+        basicPanelLayout.setCellColspan(0, 0, 2);
+        basicPanelLayout.setTablePadding(10, 10);
 
-        minMaxPanel.setLayout(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
-        minMaxPanel.setBorder(new TitledBorder(new EtchedBorder(), ""));
+        minMaxPanel.setLayout(basicPanelLayout);
 
-        //c.fill = GridBagConstraints.HORIZONTAL;
-        c.weightx = 0;
-        c.gridx = 0;
-        c.gridy = 0;
-        c.gridwidth = 2;
-        c.anchor = GridBagConstraints.CENTER;
-
-        minMaxPanel.add(minPanel, c);
-
-        c.gridy = 1;
-
-        minMaxPanel.add(maxPanel, c);
-
+        minMaxPanel.add(colorChooser);
+        minMaxPanel.add(minPanel);
+        minMaxPanel.add(maxPanel);
 
         fileDefaultCheckBox = new JCheckBox("File Default");
         fileDefaultCheckBox.addActionListener(new ActionListener() {
@@ -181,11 +191,6 @@ class BasicColorEditor extends JPanel {
 
             }
         });
-        c.weightx = 1.0;
-        c.gridx = 0;
-        c.gridy = 2;
-        c.gridwidth = 1;
-        minMaxPanel.add(fileDefaultCheckBox, c);
 
         dataDefaultButton = new JButton("Data Default");
         dataDefaultButton.addActionListener(new ActionListener() {
@@ -201,16 +206,16 @@ class BasicColorEditor extends JPanel {
                 }
                 minValField.setValue(minVal);
                 maxValField.setValue(maxVal);
+                minValField.setEnabled(true);
+                maxValField.setEnabled(true);
                 minValField.setEditable(true);
                 maxValField.setEditable(true);
 
             }
         });
-        c.gridx = 1;
-        c.gridy = 2;
-        c.gridwidth = 1;
-        minMaxPanel.add(dataDefaultButton, c);
 
+        minMaxPanel.add(fileDefaultCheckBox);
+        minMaxPanel.add(dataDefaultButton);
         JPanel simpleColorManipulationPanel = new JPanel();
         simpleColorManipulationPanel.setLayout(new BoxLayout(simpleColorManipulationPanel, BoxLayout.Y_AXIS));
         simpleColorManipulationPanel.add(minMaxPanel);
@@ -314,8 +319,8 @@ class BasicColorEditor extends JPanel {
         final NumberFormatter formatter = new NumberFormatter(new DecimalFormat("#0.000000#"));
         formatter.setValueClass(Double.class); // to ensure that double values are returned
         final JFormattedTextField field = new JFormattedTextField(formatter);
-        field.setColumns(11);
-        field.setHorizontalAlignment(JFormattedTextField.RIGHT);
+        field.setColumns(9);
+        field.setHorizontalAlignment(JFormattedTextField.LEFT);
         field.setFocusLostBehavior(0);
         ctx.bind(sampleName, field);
 
@@ -342,7 +347,6 @@ class BasicColorEditor extends JPanel {
 
             @Override
             public void mouseExited(MouseEvent mouseEvent) {
-                System.out.println("validating min max ...");
                 double currentVal;
                 try {
                     currentVal = Double.parseDouble(field.getText());
@@ -352,10 +356,7 @@ class BasicColorEditor extends JPanel {
                     field.requestFocusInWindow();
                     return;
                 }
-
-                System.out.println(currentVal + " " + minVal + " " + maxVal);
-
-                boolean valid = sampleName.equals("minSample")? validateMinMax(currentVal, maxVal): validateMinMax(minVal, currentVal);
+                boolean valid = sampleName.equals("minSample") ? validateMinMax(currentVal, maxVal) : validateMinMax(minVal, currentVal);
                 if (valid) {
                     field.setValue(currentVal);
                 }

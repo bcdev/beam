@@ -351,7 +351,6 @@ public class ImageManager {
                                                       double maxSample,
                                                       double gamma) {
 
-        minSample = (minSample == 0) ? 1.0E-9 : minSample;
         double newMin = raster.scaleInverse(minSample);
         double newMax = raster.scaleInverse(maxSample);
 
@@ -369,7 +368,6 @@ public class ImageManager {
                 255.0 * newMin / (newMin - newMax));
         // todo - make sure this is not needed, e.g. does "format" auto-clamp?? (nf, 10.2008)
         // image = createClampOp(image, 0, 255);
-        System.out.println(image.getSampleModel().getDataType());
         image = createByteFormatOp(image);
         if (gamma != 0.0 && gamma != 1.0) {
             byte[] gammaCurve = MathUtils.createGammaCurve(gamma, new byte[256]);
@@ -411,30 +409,6 @@ public class ImageManager {
         TiledImage ti = new TiledImage(0, 0, width, height, 0, 0, bsm, null);
         ti.setData(outputRaster);
         return ti;
-    } //seadas added method ends here
-
-
-    private static void printPixels(RenderedImage sourceImage) {
-        int width = sourceImage.getWidth();
-        int height = sourceImage.getHeight();
-        SampleModel sm = sourceImage.getSampleModel();
-        int nbands = sm.getNumBands();
-        Raster inputRaster = sourceImage.getData();
-        double[] pixels = new double[nbands * width * height];
-        inputRaster.getPixels(0, 0, width, height, pixels);
-
-        int offset;
-        for (int h = 0; h < height; h++) {
-            for (int w = 0; w < width; w++) {
-                offset = h * width * nbands + w * nbands;
-                for (int band = 0; band < nbands; band++) {
-                    double m = pixels[offset + band];
-                    if (m > 0)
-                        System.out.println("pixel value in image: " + m);
-                }
-            }
-        }
-
     } //seadas added method ends here
 
     private static RenderingHints createDefaultRenderingHints(RenderedImage sourceImage, ImageLayout targetLayout) {

@@ -619,7 +619,7 @@ class ColorManipulationForm {
         ioDir = dir;
     }
 
-    private File getIODir() {
+    protected File getIODir() {
         if (ioDir == null) {
             if (preferences != null) {
                 ioDir = new File(
@@ -675,6 +675,26 @@ class ColorManipulationForm {
                 }
             }
         }
+    }
+
+    protected void loadColorPaletteFile(File file){
+                     final ImageInfo targetImageInfo = getImageInfo();
+                        try {
+                    final ColorPaletteDef colorPaletteDef = ColorPaletteDef.loadColorPaletteDef(file);
+                    setMinValueFile(colorPaletteDef.getMinDisplaySample());
+                    setMaxValueFile(colorPaletteDef.getMaxDisplaySample());
+                    applyColorPaletteDef(colorPaletteDef, getProductSceneView().getRaster(), targetImageInfo);
+                    setImageInfoCopy(targetImageInfo);
+                    if ( !colorPaletteFileLoaded ) {
+                        colorPaletteFileLoaded = true;
+                    }
+
+                    childForm.updateFormModel(getProductSceneView());
+                    setApplyEnabled(true);
+                } catch (IOException e) {
+                    showErrorDialog("Failed to import colour palette:\n" + e.getMessage());
+                }
+
     }
 
     protected void applyColorPaletteDef(ColorPaletteDef colorPaletteDef,
