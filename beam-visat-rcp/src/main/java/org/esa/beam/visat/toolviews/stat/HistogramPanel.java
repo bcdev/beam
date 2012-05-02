@@ -49,6 +49,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -64,7 +65,10 @@ import java.util.concurrent.ExecutionException;
  */
 class HistogramPanel extends ChartPagePanel {
 
-    private static final String NO_DATA_MESSAGE = "No histogram computed yet.\n" + ZOOM_TIP_MESSAGE;
+    private static final String NO_DATA_MESSAGE = "No histogram computed yet.\n"+
+            "If a band is selected, a histogram can be created by hitting the 'Refresh View' button.\n"+
+            HELP_TIP_MESSAGE+"\n"+
+            ZOOM_TIP_MESSAGE;
     private static final String CHART_TITLE = "Histogram";
 
     public final static String PROPERTY_NAME_AUTO_MIN_MAX = "autoMinMax";
@@ -91,6 +95,7 @@ class HistogramPanel extends ChartPagePanel {
     private boolean isInitialized;
     private boolean histogramComputing;
     private Enablement log10AxisEnablement;
+    private Enablement log10HistEnablement;
 
     HistogramPanel(final ToolView parentDialog, String helpID) {
         super(parentDialog, helpID, CHART_TITLE, true);
@@ -125,7 +130,7 @@ class HistogramPanel extends ChartPagePanel {
         }
         dataset = null;
         this.stx = null;
-        setStx(null);
+        handleStxChange();
         refreshButton.setEnabled(getRaster() != null);
     }
 
@@ -147,6 +152,7 @@ class HistogramPanel extends ChartPagePanel {
                 false   // url
         );
         final XYPlot xyPlot = chart.getXYPlot();
+        xyPlot.setDomainZeroBaselineStroke(new BasicStroke(0.2f));
 
         final XYBarRenderer renderer = (XYBarRenderer) xyPlot.getRenderer();
         renderer.setDrawBarOutline(false);
@@ -187,7 +193,7 @@ class HistogramPanel extends ChartPagePanel {
         final JLabel numBinsLabel = new JLabel("#Bins:");
         JTextField numBinsField = new JTextField(Integer.toString(NUM_BINS_DEFAULT));
         numBinsField.setPreferredSize(new Dimension(50, numBinsField.getPreferredSize().height));
-        final JCheckBox histoLogCheck = new JCheckBox("Logarithmic Histogram");
+        final JCheckBox histoLogCheck = new JCheckBox("Log10 scaled values");
 
         bindingContext.getPropertySet().getDescriptor(PROPERTY_NAME_NUM_BINS).setDescription(
                 "Set the number of bins in the histogram");
@@ -197,9 +203,15 @@ class HistogramPanel extends ChartPagePanel {
         bindingContext.bind(PROPERTY_NAME_NUM_BINS, numBinsField);
 
         bindingContext.getPropertySet().getDescriptor(PROPERTY_NAME_LOGARITHMIC_HISTOGRAM).setDescription(
-                "Compute a log-10 histogram for log-normal pixel distributions");
+                "Use log-10 scaled values for computation of histogram");
         bindingContext.getPropertySet().getDescriptor(PROPERTY_NAME_LOGARITHMIC_HISTOGRAM).setDefaultValue(false);
         bindingContext.bind(PROPERTY_NAME_LOGARITHMIC_HISTOGRAM, histoLogCheck);
+        log10HistEnablement = bindingContext.bindEnabledState(PROPERTY_NAME_LOGARITHMIC_HISTOGRAM, true, new Enablement.Condition() {
+            @Override
+            public boolean evaluate(BindingContext bindingContext) {
+                return getRaster() != null && getRaster().getStx().getMaximum() > 0;
+            }
+        });
 
         PropertyChangeListener logChangeListener = new AxisControlChangeListener();
 
@@ -209,7 +221,7 @@ class HistogramPanel extends ChartPagePanel {
         xAxisRangeControl.getBindingContext().getPropertySet().addProperty(
                 bindingContext.getPropertySet().getProperty(PROPERTY_NAME_LOG_SCALED));
         xAxisRangeControl.getBindingContext().getPropertySet().getDescriptor(PROPERTY_NAME_LOG_SCALED).setDescription(
-                "Toggle whether to use a logarithmic X-axis");
+                "Toggle whether to use a logarithmic x-axis");
         log10AxisEnablement = xAxisRangeControl.getBindingContext().bindEnabledState(PROPERTY_NAME_LOG_SCALED, true, new Enablement.Condition() {
             @Override
             public boolean evaluate(BindingContext bindingContext) {
@@ -224,13 +236,13 @@ class HistogramPanel extends ChartPagePanel {
         GridBagUtils.addToPanel(dataSourceOptionsPanel, new JLabel(" "), dataSourceOptionsConstraints,
                 "gridwidth=2,gridy=0,gridx=0,weightx=0");
         GridBagUtils.addToPanel(dataSourceOptionsPanel, numBinsLabel, dataSourceOptionsConstraints,
-                "gridwidth=1,gridy=1,gridx=0,weightx=1");
+                "insets.top=2,insets.left=4,gridwidth=1,gridy=1,gridx=0,weightx=1");
         GridBagUtils.addToPanel(dataSourceOptionsPanel, numBinsField, dataSourceOptionsConstraints,
-                "gridwidth=1,gridy=1,gridx=1");
+                "insets.top=0,insets.left=0,insets.right=2,gridwidth=1,gridy=1,gridx=1");
         GridBagUtils.addToPanel(dataSourceOptionsPanel, histoLogCheck, dataSourceOptionsConstraints,
-                "gridwidth=2,gridy=2,gridx=0");
+                "insets.right=0,gridwidth=2,gridy=2,gridx=0");
 
-        xAxisRangeControl.getBindingContext().bind(PROPERTY_NAME_LOG_SCALED, new JCheckBox("Logarithmic X-axis"));
+        xAxisRangeControl.getBindingContext().bind(PROPERTY_NAME_LOG_SCALED, new JCheckBox("Log10 scaled"));
         xAxisRangeControl.getBindingContext().addPropertyChangeListener(PROPERTY_NAME_LOG_SCALED, new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
@@ -340,6 +352,10 @@ class HistogramPanel extends ChartPagePanel {
             }
             dataset.addSeries(series);
         }
+        handleStxChange();
+    }
+
+    private void handleStxChange(){
         boolean noStx = this.stx == null;
         if((!noStx && !this.stx.isLogHistogram()) || (noStx && histogramPlotConfig.histogramLogScaled)) {
             bindingContext.getBinding(PROPERTY_NAME_LOGARITHMIC_HISTOGRAM).setPropertyValue(Boolean.FALSE);
@@ -348,6 +364,7 @@ class HistogramPanel extends ChartPagePanel {
                 refreshButton.setEnabled(false);
             }
         }
+        log10HistEnablement.apply();
         updateLogXAxisCheckBox();
         chart.getXYPlot().setDataset(dataset);
         updateXAxis();
@@ -505,15 +522,15 @@ class HistogramPanel extends ChartPagePanel {
                 } else {
                     handleError("Either the selected ROI is empty or no pixels have been found within the minimum and maximum values specified.\n" +
                             "No valid histogram could be computed.\n");
-                    setStx(null);
+                    handleStxChange();
                 }
             } catch (ExecutionException e) {
                 handleError("An internal error occurred.\n" +
                         "No valid histogram could be computed. Reason:\n" + e.getMessage());
-                setStx(null);
+                handleStxChange();
             } catch (InterruptedException e) {
                 handleError("The histogram computation has been interrupted.");
-                setStx(null);
+                handleStxChange();
             }
         }
 

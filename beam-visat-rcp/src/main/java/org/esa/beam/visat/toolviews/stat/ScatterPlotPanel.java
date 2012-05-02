@@ -16,7 +16,6 @@
 
 package org.esa.beam.visat.toolviews.stat;
 
-import static org.esa.beam.visat.toolviews.stat.StatisticChartStyling.getAxisLabel;
 import com.bc.ceres.binding.Property;
 import com.bc.ceres.binding.PropertyContainer;
 import com.bc.ceres.binding.PropertyDescriptor;
@@ -25,31 +24,6 @@ import com.bc.ceres.binding.Validator;
 import com.bc.ceres.binding.ValueRange;
 import com.bc.ceres.swing.binding.BindingContext;
 import com.vividsolutions.jts.geom.Point;
-import java.awt.BasicStroke;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.Rectangle;
-import java.awt.Shape;
-import java.awt.geom.Rectangle2D;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import javax.swing.JCheckBox;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JSeparator;
-import javax.swing.JSpinner;
-import javax.swing.JTextField;
-import javax.swing.SwingWorker;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableModel;
 import org.esa.beam.framework.datamodel.Mask;
 import org.esa.beam.framework.datamodel.Placemark;
 import org.esa.beam.framework.datamodel.ProductNodeEvent;
@@ -92,6 +66,34 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JSeparator;
+import javax.swing.JSpinner;
+import javax.swing.JTextField;
+import javax.swing.SwingWorker;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
+import java.awt.BasicStroke;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.Rectangle;
+import java.awt.Shape;
+import java.awt.geom.Rectangle2D;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+
+import static org.esa.beam.visat.toolviews.stat.StatisticChartStyling.getAxisLabel;
+
 /**
  * The scatter plot pane within the statistics window.
  *
@@ -101,7 +103,15 @@ import org.opengis.feature.type.AttributeDescriptor;
 class ScatterPlotPanel extends ChartPagePanel {
 
     public static final String CHART_TITLE = "Correlative Plot";
-    private static final String NO_DATA_MESSAGE = "No correlative plot computed yet.\n" + ZOOM_TIP_MESSAGE;
+    private static final String NO_DATA_MESSAGE = "No correlative plot computed yet.\n" +
+            "To create a correlative plot\n" +
+            "   -Select a band" + "\n" +
+            "   -Select vector data (e.g., a SeaDAS 6.x track)" + "\n" +
+            "   -Select the data as point data source" + "\n" +
+            "   -Select a data field" + "\n" +
+            "   -Hit the 'Refresh View' button" + "\n" +
+            HELP_TIP_MESSAGE + "\n" +
+            ZOOM_TIP_MESSAGE;
 
     private final String PROPERTY_NAME_X_AXIS_LOG_SCALED = "xAxisLogScaled";
     private final String PROPERTY_NAME_Y_AXIS_LOG_SCALED = "yAxisLogScaled";
@@ -161,13 +171,13 @@ class ScatterPlotPanel extends ChartPagePanel {
     protected String getDataAsText() {
         if (scatterpointsDataset.getItemCount(0) > 0) {
             final ScatterPlotTableModel scatterPlotTableModel;
-            scatterPlotTableModel = new ScatterPlotTableModel(getRasterName(), getCorrelativDataName(), computedDatas);
+            scatterPlotTableModel = new ScatterPlotTableModel(getRasterName(), getCorrelativeDataName(), computedDatas);
             return scatterPlotTableModel.toCVS();
         }
         return "";
     }
 
-    private String getCorrelativDataName() {
+    private String getCorrelativeDataName() {
         return scatterPlotModel.dataField.getLocalName();
     }
 
@@ -221,7 +231,7 @@ class ScatterPlotPanel extends ChartPagePanel {
     protected void showAlternativeView() {
         final TableModel model;
         if (computedDatas != null && computedDatas.length > 0) {
-            model = new ScatterPlotTableModel(getRasterName(), getCorrelativDataName(), computedDatas);
+            model = new ScatterPlotTableModel(getRasterName(), getCorrelativeDataName(), computedDatas);
         } else {
             model = new DefaultTableModel();
         }
@@ -461,13 +471,13 @@ class ScatterPlotPanel extends ChartPagePanel {
         pointDataFieldPanel.add(correlativeFieldSelector.dataFieldLabel, BorderLayout.NORTH);
         pointDataFieldPanel.add(correlativeFieldSelector.dataFieldList);
 
-        final JCheckBox xLogCheck = new JCheckBox("Log scaled");
+        final JCheckBox xLogCheck = new JCheckBox("Log10 scaled");
         bindingContext.bind(PROPERTY_NAME_X_AXIS_LOG_SCALED, xLogCheck);
         final JPanel xAxisOptionPanel = new JPanel(new BorderLayout());
         xAxisOptionPanel.add(xAxisRangeControl.getPanel());
         xAxisOptionPanel.add(xLogCheck, BorderLayout.SOUTH);
 
-        final JCheckBox yLogCheck = new JCheckBox("Log scaled");
+        final JCheckBox yLogCheck = new JCheckBox("Log10 scaled");
         bindingContext.bind(PROPERTY_NAME_Y_AXIS_LOG_SCALED, yLogCheck);
         final JPanel yAxisOptionPanel = new JPanel(new BorderLayout());
         yAxisOptionPanel.add(yAxisRangeControl.getPanel());
@@ -482,10 +492,12 @@ class ScatterPlotPanel extends ChartPagePanel {
         bindingContext.bind("confidenceInterval", confidenceField);
         bindingContext.getBinding("confidenceInterval").addComponent(percentLabel);
         bindingContext.bindEnabledState("confidenceInterval", true, "showConfidenceInterval", true);
-        final JPanel confidencePanel = new JPanel(new BorderLayout(5, 3));
-        confidencePanel.add(confidenceCheck, BorderLayout.NORTH);
-        confidencePanel.add(confidenceField);
-        confidencePanel.add(percentLabel, BorderLayout.EAST);
+
+        final JPanel confidencePanel = GridBagUtils.createPanel();
+        GridBagConstraints confidencePanelConstraints = GridBagUtils.createConstraints("anchor=NORTHWEST,fill=HORIZONTAL,insets.top=5,weighty=0,weightx=1");
+        GridBagUtils.addToPanel(confidencePanel, confidenceCheck, confidencePanelConstraints, "gridy=0");
+        GridBagUtils.addToPanel(confidencePanel, confidenceField, confidencePanelConstraints, "gridy=1,gridx=0,insets.left=4,insets.top=2");
+        GridBagUtils.addToPanel(confidencePanel, percentLabel, confidencePanelConstraints, "gridy=1,gridx=1,insets.left=0,insets.top=4");
 
         final JCheckBox regressionCheck = new JCheckBox("Show regression line");
         bindingContext.bind("showRegressionLine", regressionCheck);
@@ -494,14 +506,14 @@ class ScatterPlotPanel extends ChartPagePanel {
 
         JPanel middlePanel = GridBagUtils.createPanel();
         GridBagConstraints middlePanelConstraints = GridBagUtils.createConstraints("anchor=NORTHWEST,fill=HORIZONTAL,insets.top=6,weighty=0,weightx=1");
-        GridBagUtils.addToPanel(middlePanel, boxSizePanel, middlePanelConstraints, "gridy=0");
+        GridBagUtils.addToPanel(middlePanel, boxSizePanel, middlePanelConstraints, "gridy=0,insets.left=6");
         GridBagUtils.addToPanel(middlePanel, pointDataSourcePanel, middlePanelConstraints, "gridy=1");
         GridBagUtils.addToPanel(middlePanel, pointDataFieldPanel, middlePanelConstraints, "gridy=2");
-        GridBagUtils.addToPanel(middlePanel, xAxisOptionPanel, middlePanelConstraints, "gridy=3");
+        GridBagUtils.addToPanel(middlePanel, xAxisOptionPanel, middlePanelConstraints, "gridy=3,insets.left=0");
         GridBagUtils.addToPanel(middlePanel, yAxisOptionPanel, middlePanelConstraints, "gridy=4");
-        GridBagUtils.addToPanel(middlePanel, new JSeparator(), middlePanelConstraints, "gridy=5");
-        GridBagUtils.addToPanel(middlePanel, confidencePanel, middlePanelConstraints, "gridy=6,fill=HORIZONTAL");
-        GridBagUtils.addToPanel(middlePanel, regressionCheck, middlePanelConstraints, "gridy=7,fill=NONE");
+        GridBagUtils.addToPanel(middlePanel, new JSeparator(), middlePanelConstraints, "gridy=5,insets.left=4");
+        GridBagUtils.addToPanel(middlePanel, confidencePanel, middlePanelConstraints, "gridy=6,fill=HORIZONTAL,insets.left=-4");
+        GridBagUtils.addToPanel(middlePanel, regressionCheck, middlePanelConstraints, "gridy=7,insets.left=-4,insets.top=8");
 
         return middlePanel;
     }
@@ -635,11 +647,15 @@ class ScatterPlotPanel extends ChartPagePanel {
 
                     String localName = dataField.getLocalName();
                     Number attribute = (Number) feature.getAttribute(localName);
+                    final float correlativeData = attribute.floatValue();
+                    float lat = 0.0f;
+                    float lon = 0.0f;
                     final Point geoPos = (Point) feature.getAttribute("geoPos");
-                    final float lat = (float) geoPos.getY();
-                    final float lon = (float) geoPos.getX();
-                    final float correlativData = attribute.floatValue();
-                    computedDataList.add(new ComputedData(centerX, centerY, lat, lon, (float) rasterMean, (float) rasterSigma, correlativData));
+                    if (geoPos != null) {
+                        lat = (float) geoPos.getY();
+                        lon = (float) geoPos.getX();
+                    }
+                    computedDataList.add(new ComputedData(centerX, centerY, lat, lon, (float) rasterMean, (float) rasterSigma, correlativeData));
                 }
 
                 return computedDataList.toArray(new ComputedData[computedDataList.size()]);
@@ -667,7 +683,7 @@ class ScatterPlotPanel extends ChartPagePanel {
 
                     computedDatas = data;
 
-                    final XYIntervalSeries scatterValues = new XYIntervalSeries(getCorrelativDataName());
+                    final XYIntervalSeries scatterValues = new XYIntervalSeries(getCorrelativeDataName());
                     for (int i = 0; i < computedDatas.length; i++) {
                         ComputedData computedData = computedDatas[i];
                         final float rasterMean = computedData.rasterMean;

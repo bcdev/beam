@@ -828,7 +828,7 @@
             <id>importShapefile</id>
             <class>org.esa.beam.visat.actions.ImportVectorDataNodeFromShapefileAction</class>
             <parent>importVectorData</parent>
-            <text>ESRI Shapefile</text>
+            <text>ESRI Shape File</text>
             <mnemonic>S</mnemonic>
             <shortDescr>Import geometry from ESRI Shapefile.</shortDescr>
             <description>Import geometry from ESRI Shapefile.</description>
@@ -840,6 +840,7 @@
             <class>org.esa.beam.visat.actions.ImportTrackAction</class>
             <text>SeaDAS 6.x Track</text>
             <parent>importVectorData</parent>
+            <helpId>importSeaDASTrack</helpId>
         </action>
 
         <action>
@@ -851,6 +852,15 @@
         </action>
 
         <action>
+            <id>importMermaid</id>
+            <class>org.esa.beam.visat.actions.ImportVectorDataNodeFromMermaidAction</class>
+            <text>MERMAID Extraction File</text>
+            <parent>importVectorData</parent>
+            <helpId>importMermaid</helpId>
+        </action>
+
+
+        <action>
             <parent>importRasterData</parent>
             <id>importDimapProduct</id>
             <class>org.esa.beam.visat.actions.ProductImportAction</class>
@@ -860,6 +870,18 @@
             <shortDescr>Import a BEAM-DIMAP data product or product subset.</shortDescr>
             <description>Import a BEAM-DIMAP data product or product subset.</description>
             <helpId>importDimapProduct</helpId>
+        </action>
+
+        <action>
+            <parent>importRasterData</parent>
+            <id>importImageProduct</id>
+            <class>org.esa.beam.visat.actions.ProductImportAction</class>
+            <formatName>IMAGE</formatName>
+            <text>RGB-Image</text>
+            <useAllFileFilter>false</useAllFileFilter>
+            <shortDescr>Import a data product or product subset from an ordinary RGB image.</shortDescr>
+            <description>Import a data product or product subset from an ordinary RGB image.</description>
+            <helpId>importImageProduct</helpId>
         </action>
 
         <!--####################-->
