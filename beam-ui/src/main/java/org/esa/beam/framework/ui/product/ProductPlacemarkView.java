@@ -22,18 +22,24 @@ import org.esa.beam.framework.datamodel.ProductNodeListener;
 import org.esa.beam.framework.datamodel.VectorDataNode;
 import org.esa.beam.framework.ui.BasicView;
 import org.esa.beam.framework.ui.PopupMenuHandler;
+import org.esa.beam.framework.ui.io.TableModelCsvEncoder;
+import org.esa.beam.util.SystemUtils;
 
 import javax.swing.AbstractAction;
-import javax.swing.JPanel;
+import javax.swing.JLabel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseEvent;
+import java.io.IOException;
+import java.io.StringWriter;
 import java.util.Enumeration;
 
 /**
@@ -50,26 +56,22 @@ public class ProductPlacemarkView extends BasicView implements ProductNodeView {
         this.vectorDataNode.getProduct().addProductNodeListener(new PNL());
         placemarkTable = new SortableTable();
         placemarkTable.addMouseListener(new PopupMenuHandler(this));
+        placemarkTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
         tableModel = new PlacemarkTableModel();
         placemarkTable.setModel(tableModel);
 
-        final TableCellRenderer defaultRenderer = placemarkTable.getTableHeader().getDefaultRenderer();
+        final TableCellRenderer renderer = placemarkTable.getTableHeader().getDefaultRenderer();
+        final int margin = placemarkTable.getTableHeader().getColumnModel().getColumnMargin();
 
         Enumeration<TableColumn> columns = placemarkTable.getColumnModel().getColumns();
         while (columns.hasMoreElements()) {
             TableColumn tableColumn = columns.nextElement();
-            tableColumn.setHeaderRenderer(defaultRenderer);
-            tableColumn.sizeWidthToFit();
-            tableColumn.setMaxWidth(Integer.MAX_VALUE);
+            final int width = getColumnMinWith(tableColumn, renderer, margin);
+            tableColumn.setMinWidth(width);
         }
 
-        // the following 4 lines are needed, therewith the scroll pane displays
-        // not only a vertical scroll bar if needed but also a horizontal scroll bar if needed.
-        final JPanel tablePanel = new JPanel(new BorderLayout());
-        tablePanel.add(placemarkTable, BorderLayout.CENTER);
-        final JScrollPane scrollPane = new JScrollPane(tablePanel);
-        scrollPane.setColumnHeaderView(placemarkTable.getTableHeader());
+        final JScrollPane scrollPane = new JScrollPane(placemarkTable);
 
         setLayout(new BorderLayout());
         add(scrollPane, BorderLayout.CENTER);
@@ -93,13 +95,19 @@ public class ProductPlacemarkView extends BasicView implements ProductNodeView {
         if (getCommandUIFactory() != null) {
             getCommandUIFactory().addContextDependentMenuItems("placemark", popupMenu);
         }
-        popupMenu.add(new HelloAction());
+        popupMenu.add(new CopyToClipboardAction());
         return popupMenu;
     }
 
     @Override
     public JPopupMenu createPopupMenu(MouseEvent event) {
         return null;
+    }
+
+    private int getColumnMinWith(TableColumn column, TableCellRenderer renderer, int margin) {
+        final Object headerValue = column.getHeaderValue();
+        final JLabel label = (JLabel) renderer.getTableCellRendererComponent(null, headerValue, false, false, 0, 0);
+        return label.getPreferredSize().width + margin;
     }
 
     private void onNodeChange(ProductNodeEvent event) {
@@ -164,17 +172,39 @@ public class ProductPlacemarkView extends BasicView implements ProductNodeView {
         tableModel.fireTableDataChanged();
     }
 
-    private class HelloAction extends AbstractAction {
-
-        public HelloAction() {
-            super("Hello");
-            putValue(SHORT_DESCRIPTION, "Says hello.");
-        }
-
-
-        @Override
-        public void actionPerformed(ActionEvent e) {
+    private void copyTextDataToClipboard() {
+        final Cursor oldCursor = getCursor();
+        try {
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            final String dataAsText = getDataAsText();
+            if (dataAsText != null) {
+                SystemUtils.copyToClipboard(dataAsText);
+            }
+        } finally {
+            setCursor(oldCursor);
         }
     }
 
+    private String getDataAsText() {
+        final StringWriter writer = new StringWriter();
+        try {
+            new TableModelCsvEncoder(tableModel).encodeCsv(writer);
+            writer.close();
+        } catch (IOException ignore) {
+        }
+        return writer.toString();
+    }
+
+    private class CopyToClipboardAction extends AbstractAction {
+
+        public CopyToClipboardAction() {
+            super("Copy to clipboard");
+            putValue(SHORT_DESCRIPTION, "The entire table content will be copied to the clipboard.");
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            copyTextDataToClipboard();
+        }
+    }
 }

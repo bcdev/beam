@@ -81,7 +81,7 @@ public class TransectProfileData {
             geoPositions = new GeoPos[pixelPositions.length];
             Arrays.fill(geoPositions, NO_GEO_POS);
         } else {
-            geoPositions = null;
+            geoPositions = new GeoPos[0];
         }
 
         final Rectangle sceneRect = new Rectangle(config.raster.getSceneRasterWidth(), config.raster.getSceneRasterHeight());
@@ -119,7 +119,7 @@ public class TransectProfileData {
             int n = 0;
             for (int y = 0; y < box.height; y++) {
                 for (int x = 0; x < box.width; x++) {
-                    final int index = y * box.height + x;
+                    final int index = y * box.width + x;
                     if (config.raster.isPixelValid(box.x + x, box.y + y)
                         && (maskBuffer == null || maskBuffer[index] != 0)) {
                         final float v = sampleBuffer[index];
@@ -143,7 +143,7 @@ public class TransectProfileData {
                 sampleSigmas[i] = n > 1 ? (float) Math.sqrt((sumSqr - (sum * sum) / n) / (n - 1)) : 0.0F;
             }
 
-            if (geoPositions != null) {
+            if (geoCoding != null) {
                 pixelPos.x = (float) pixelPositions[i].getX() + 0.5f;
                 pixelPos.y = (float) pixelPositions[i].getY() + 0.5f;
                 geoPositions[i] = geoCoding.getGeoPos(pixelPos, null);

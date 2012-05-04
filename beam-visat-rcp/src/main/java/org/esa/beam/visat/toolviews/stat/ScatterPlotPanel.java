@@ -24,7 +24,10 @@ import com.bc.ceres.binding.Validator;
 import com.bc.ceres.binding.ValueRange;
 import com.bc.ceres.swing.binding.BindingContext;
 import com.vividsolutions.jts.geom.Point;
+import org.esa.beam.framework.datamodel.GeoCoding;
+import org.esa.beam.framework.datamodel.GeoPos;
 import org.esa.beam.framework.datamodel.Mask;
+import org.esa.beam.framework.datamodel.PixelPos;
 import org.esa.beam.framework.datamodel.Placemark;
 import org.esa.beam.framework.datamodel.ProductNodeEvent;
 import org.esa.beam.framework.datamodel.RasterDataNode;
@@ -32,6 +35,7 @@ import org.esa.beam.framework.datamodel.VectorDataNode;
 import org.esa.beam.framework.dataop.barithm.BandArithmetic;
 import org.esa.beam.framework.ui.GridBagUtils;
 import org.esa.beam.framework.ui.application.ToolView;
+import org.esa.beam.jai.ImageManager;
 import org.esa.beam.util.math.MathUtils;
 import org.geotools.feature.FeatureCollection;
 import org.jfree.chart.ChartFactory;
@@ -59,6 +63,7 @@ import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYIntervalSeries;
 import org.jfree.data.xy.XYIntervalSeriesCollection;
 import org.jfree.data.xy.XYSeries;
+import org.jfree.ui.HorizontalAlignment;
 import org.jfree.ui.RectangleAnchor;
 import org.jfree.ui.RectangleEdge;
 import org.jfree.ui.RectangleInsets;
@@ -83,11 +88,15 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.Rectangle;
 import java.awt.Shape;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -109,7 +118,6 @@ class ScatterPlotPanel extends ChartPagePanel {
             "   -Select vector data (e.g., a SeaDAS 6.x track)" + "\n" +
             "   -Select the data as point data source" + "\n" +
             "   -Select a data field" + "\n" +
-            "   -Hit the 'Refresh View' button" + "\n" +
             HELP_TIP_MESSAGE + "\n" +
             ZOOM_TIP_MESSAGE;
 
@@ -118,10 +126,9 @@ class ScatterPlotPanel extends ChartPagePanel {
     private final String PROPERTY_NAME_DATA_FIELD = "dataField";
     private final String PROPERTY_NAME_POINT_DATA_SOURCE = "pointDataSource";
     private final String PROPERTY_NAME_BOX_SIZE = "boxSize";
-    private final String PROPERTY_NAME_SHOW_CONFIDENCE_INTERVAL = "showConfidenceInterval";
-    private final String PROPERTY_NAME_CONFIDENCE_INTERVAL = "confidenceInterval";
+    private final String PROPERTY_NAME_SHOW_ACCEPTABLE_DEVIATION = "showAcceptableDeviation";
+    private final String PROPERTY_NAME_ACCEPTABLE_DEVIATION = "acceptableDeviationInterval";
     private final String PROPERTY_NAME_SHOW_REGRESSION_LINE = "showRegressionLine";
-
 
     private final int CONFIDENCE_DSINDEX = 0;
     private final int REGRESSION_DSINDEX = 1;
@@ -156,7 +163,7 @@ class ScatterPlotPanel extends ChartPagePanel {
         scatterpointsDataset = new XYIntervalSeriesCollection();
         confidenceDataset = new XYIntervalSeriesCollection();
         regressionDataset = new XYIntervalSeriesCollection();
-        r2Annotation = new XYTitleAnnotation(0,0,new TextTitle(""));
+        r2Annotation = new XYTitleAnnotation(0, 0, new TextTitle(""));
         chart = ChartFactory.createScatterPlot(CHART_TITLE, "", "", scatterpointsDataset, PlotOrientation.VERTICAL, true, true, false);
         chart.getXYPlot().setDatasetRenderingOrder(DatasetRenderingOrder.FORWARD);
         createDomainAxisChangeListener();
@@ -194,17 +201,17 @@ class ScatterPlotPanel extends ChartPagePanel {
         if (!isVisible()) {
             return;
         }
-        final RasterDataNode raster = getRaster();
-        xAxisRangeControl.setTitleSuffix(raster != null ? raster.getName() : null);
-
         final AttributeDescriptor dataField = scatterPlotModel.dataField;
-        yAxisRangeControl.setTitleSuffix(dataField != null ? dataField.getLocalName() : null);
+        xAxisRangeControl.setTitleSuffix(dataField != null ? dataField.getLocalName() : null);
+
+        final RasterDataNode raster = getRaster();
+        yAxisRangeControl.setTitleSuffix(raster != null ? raster.getName() : null);
 
         correlativeFieldSelector.updatePointDataSource(getProduct());
         correlativeFieldSelector.updateDataField();
 
         if (isRasterChanged()) {
-            getPlot().getDomainAxis().setLabel(getAxisLabel(raster, "X", false));
+            getPlot().getRangeAxis().setLabel(getAxisLabel(raster, "X", false));
             computeChartDataIfPossible();
         }
     }
@@ -224,6 +231,7 @@ class ScatterPlotPanel extends ChartPagePanel {
     public void nodeRemoved(ProductNodeEvent event) {
         if (event.getSourceNode() instanceof VectorDataNode) {
             updateComponents();
+            computeChartDataIfPossible();
         }
     }
 
@@ -264,8 +272,8 @@ class ScatterPlotPanel extends ChartPagePanel {
                 computeRegressionAndConfidenceData();
             }
         };
-        bindingContext.addPropertyChangeListener(PROPERTY_NAME_SHOW_CONFIDENCE_INTERVAL, computeLineDataListener);
-        bindingContext.addPropertyChangeListener(PROPERTY_NAME_CONFIDENCE_INTERVAL, computeLineDataListener);
+        bindingContext.addPropertyChangeListener(PROPERTY_NAME_SHOW_ACCEPTABLE_DEVIATION, computeLineDataListener);
+        bindingContext.addPropertyChangeListener(PROPERTY_NAME_ACCEPTABLE_DEVIATION, computeLineDataListener);
         bindingContext.addPropertyChangeListener(PROPERTY_NAME_SHOW_REGRESSION_LINE, computeLineDataListener);
 
 
@@ -275,11 +283,12 @@ class ScatterPlotPanel extends ChartPagePanel {
                 final VectorDataNode pointDataSource = scatterPlotModel.pointDataSource;
                 final AttributeDescriptor dataField = scatterPlotModel.dataField;
                 if (dataField != null && pointDataSource != null) {
-                    final String vdsName = pointDataSource.getName();
                     final String dataFieldName = dataField.getLocalName();
-                    getPlot().getRangeAxis().setLabel(vdsName + " - " + dataFieldName);
+                    getPlot().getDomainAxis().setLabel(dataFieldName);
+                    xAxisRangeControl.setTitleSuffix(dataFieldName);
                 } else {
-                    getPlot().getRangeAxis().setLabel("");
+                    getPlot().getDomainAxis().setLabel("");
+                    xAxisRangeControl.setTitleSuffix("");
                 }
             }
         };
@@ -443,7 +452,7 @@ class ScatterPlotPanel extends ChartPagePanel {
     }
 
     private JPanel createInputParameterPanel() {
-        final PropertyDescriptor boxSizeDescriptor = bindingContext.getPropertySet().getDescriptor("boxSize");
+        final PropertyDescriptor boxSizeDescriptor = bindingContext.getPropertySet().getDescriptor(PROPERTY_NAME_BOX_SIZE);
         boxSizeDescriptor.setValueRange(new ValueRange(1, 101));
         boxSizeDescriptor.setAttribute("stepSize", 2);
         boxSizeDescriptor.setValidator(new Validator() {
@@ -455,7 +464,7 @@ class ScatterPlotPanel extends ChartPagePanel {
             }
         });
         final JSpinner boxSizeSpinner = new JSpinner();
-        bindingContext.bind("boxSize", boxSizeSpinner);
+        bindingContext.bind(PROPERTY_NAME_BOX_SIZE, boxSizeSpinner);
 
         final JPanel boxSizePanel = new JPanel(new BorderLayout(5, 3));
         boxSizePanel.add(new JLabel("Box size:"), BorderLayout.WEST);
@@ -483,24 +492,24 @@ class ScatterPlotPanel extends ChartPagePanel {
         yAxisOptionPanel.add(yAxisRangeControl.getPanel());
         yAxisOptionPanel.add(yLogCheck, BorderLayout.SOUTH);
 
-        final JCheckBox confidenceCheck = new JCheckBox("Confidence interval");
-        final JTextField confidenceField = new JTextField();
-        confidenceField.setPreferredSize(new Dimension(40, confidenceField.getPreferredSize().height));
-        confidenceField.setHorizontalAlignment(JTextField.RIGHT);
+        final JCheckBox acceptableCheck = new JCheckBox("Acceptable deviation");
+        final JTextField acceptableField = new JTextField();
+        acceptableField.setPreferredSize(new Dimension(40, acceptableField.getPreferredSize().height));
+        acceptableField.setHorizontalAlignment(JTextField.RIGHT);
         final JLabel percentLabel = new JLabel(" %");
-        bindingContext.bind("showConfidenceInterval", confidenceCheck);
-        bindingContext.bind("confidenceInterval", confidenceField);
-        bindingContext.getBinding("confidenceInterval").addComponent(percentLabel);
-        bindingContext.bindEnabledState("confidenceInterval", true, "showConfidenceInterval", true);
+        bindingContext.bind(PROPERTY_NAME_SHOW_ACCEPTABLE_DEVIATION, acceptableCheck);
+        bindingContext.bind(PROPERTY_NAME_ACCEPTABLE_DEVIATION, acceptableField);
+        bindingContext.getBinding(PROPERTY_NAME_ACCEPTABLE_DEVIATION).addComponent(percentLabel);
+        bindingContext.bindEnabledState(PROPERTY_NAME_ACCEPTABLE_DEVIATION, true, PROPERTY_NAME_SHOW_ACCEPTABLE_DEVIATION, true);
 
         final JPanel confidencePanel = GridBagUtils.createPanel();
         GridBagConstraints confidencePanelConstraints = GridBagUtils.createConstraints("anchor=NORTHWEST,fill=HORIZONTAL,insets.top=5,weighty=0,weightx=1");
-        GridBagUtils.addToPanel(confidencePanel, confidenceCheck, confidencePanelConstraints, "gridy=0");
-        GridBagUtils.addToPanel(confidencePanel, confidenceField, confidencePanelConstraints, "gridy=1,gridx=0,insets.left=4,insets.top=2");
+        GridBagUtils.addToPanel(confidencePanel, acceptableCheck, confidencePanelConstraints, "gridy=0");
+        GridBagUtils.addToPanel(confidencePanel, acceptableField, confidencePanelConstraints, "gridy=1,gridx=0,insets.left=4,insets.top=2");
         GridBagUtils.addToPanel(confidencePanel, percentLabel, confidencePanelConstraints, "gridy=1,gridx=1,insets.left=0,insets.top=4");
 
         final JCheckBox regressionCheck = new JCheckBox("Show regression line");
-        bindingContext.bind("showRegressionLine", regressionCheck);
+        bindingContext.bind(PROPERTY_NAME_SHOW_REGRESSION_LINE, regressionCheck);
 
         // UI arrangement
 
@@ -597,31 +606,35 @@ class ScatterPlotPanel extends ChartPagePanel {
 
                 final Rectangle sceneRect = new Rectangle(raster.getSceneRasterWidth(), raster.getSceneRasterHeight());
 
+                final GeoCoding geoCoding = raster.getGeoCoding();
+                final AffineTransform imageToModelTransform;
+                imageToModelTransform = ImageManager.getImageToModelTransform(geoCoding);
                 for (SimpleFeature feature : features) {
-                    final Point point;
-                    point = (Point) feature.getDefaultGeometryProperty().getValue();
-                    final int centerX = (int) point.getX();
-                    final int centerY = (int) point.getY();
+                    final Point point = (Point) feature.getDefaultGeometryProperty().getValue();
+                    Point2D modelPos = new Point2D.Float((float) point.getX(), (float) point.getY());
+                    final Point2D imagePos = imageToModelTransform.inverseTransform(modelPos, null);
 
-                    if (!sceneRect.contains(centerX, centerY)) {
+                    if (!sceneRect.contains(imagePos)) {
                         continue;
                     }
-                    final Rectangle box = sceneRect.intersection(new Rectangle(centerX - boxSize / 2,
-                                                                               centerY - boxSize / 2,
-                                                                               boxSize, boxSize));
-                    if (box.isEmpty()) {
+                    final float imagePosX = (float) imagePos.getX();
+                    final float imagePosY = (float) imagePos.getY();
+                    final Rectangle imageRect = sceneRect.intersection(new Rectangle(((int) imagePosX) - boxSize / 2,
+                                                                                     ((int) imagePosY) - boxSize / 2,
+                                                                                     boxSize, boxSize));
+                    if (imageRect.isEmpty()) {
                         continue;
                     }
-                    final double[] rasterValues = new double[box.width * box.height];
-                    raster.readPixels(box.x, box.y, box.width, box.height, rasterValues);
+                    final double[] rasterValues = new double[imageRect.width * imageRect.height];
+                    raster.readPixels(imageRect.x, imageRect.y, imageRect.width, imageRect.height, rasterValues);
 
-                    final int[] maskBuffer = new int[box.width * box.height];
+                    final int[] maskBuffer = new int[imageRect.width * imageRect.height];
                     Arrays.fill(maskBuffer, 1);
                     if (selectedMask != null) {
-                        selectedMask.readPixels(box.x, box.y, box.width, box.height, maskBuffer);
+                        selectedMask.readPixels(imageRect.x, imageRect.y, imageRect.width, imageRect.height, maskBuffer);
                     }
 
-                    final int centerIndex = box.width * (box.height / 2) + (box.width / 2);
+                    final int centerIndex = imageRect.width * (imageRect.height / 2) + (imageRect.width / 2);
                     if (maskBuffer[centerIndex] == 0) {
                         continue;
                     }
@@ -629,17 +642,23 @@ class ScatterPlotPanel extends ChartPagePanel {
                     double sum = 0;
                     double sumSqr = 0;
                     int n = 0;
+                    boolean valid = false;
 
-                    for (int y = 0; y < box.height; y++) {
-                        for (int x = 0; x < box.width; x++) {
-                            final int index = y * box.height + x;
-                            if (raster.isPixelValid(x + box.x, y + box.y) && maskBuffer[index] != 0) {
+                    for (int y = 0; y < imageRect.height; y++) {
+                        for (int x = 0; x < imageRect.width; x++) {
+                            final int index = y * imageRect.height + x;
+                            if (raster.isPixelValid(x + imageRect.x, y + imageRect.y) && maskBuffer[index] != 0) {
                                 final double rasterValue = rasterValues[index];
                                 sum += rasterValue;
                                 sumSqr += rasterValue * rasterValue;
                                 n++;
+                                valid = true;
                             }
                         }
+                    }
+
+                    if (!valid) {
+                        continue;
                     }
 
                     double rasterMean = sum / n;
@@ -647,15 +666,18 @@ class ScatterPlotPanel extends ChartPagePanel {
 
                     String localName = dataField.getLocalName();
                     Number attribute = (Number) feature.getAttribute(localName);
+
+                    final Collection<org.opengis.feature.Property> featureProperties = feature.getProperties();
+
                     final float correlativeData = attribute.floatValue();
-                    float lat = 0.0f;
-                    float lon = 0.0f;
-                    final Point geoPos = (Point) feature.getAttribute("geoPos");
-                    if (geoPos != null) {
-                        lat = (float) geoPos.getY();
-                        lon = (float) geoPos.getX();
+                    final GeoPos geoPos = new GeoPos();
+                    if (geoCoding.canGetGeoPos()) {
+                        final PixelPos pixelPos = new PixelPos(imagePosX, imagePosY);
+                        geoCoding.getGeoPos(pixelPos, geoPos);
+                    } else {
+                        geoPos.setInvalid();
                     }
-                    computedDataList.add(new ComputedData(centerX, centerY, lat, lon, (float) rasterMean, (float) rasterSigma, correlativeData));
+                    computedDataList.add(new ComputedData(imagePosX, imagePosY, geoPos.getLat(), geoPos.getLon(), (float) rasterMean, (float) rasterSigma, correlativeData, featureProperties));
                 }
 
                 return computedDataList.toArray(new ComputedData[computedDataList.size()]);
@@ -689,8 +711,8 @@ class ScatterPlotPanel extends ChartPagePanel {
                         final float rasterMean = computedData.rasterMean;
                         final float rasterSigma = computedData.rasterSigma;
                         final float correlativeData = computedData.correlativeData;
-                        scatterValues.add(rasterMean, rasterMean - rasterSigma, rasterMean + rasterSigma,
-                                          correlativeData, correlativeData, correlativeData);
+                        scatterValues.add(correlativeData, correlativeData, correlativeData,
+                                          rasterMean, rasterMean - rasterSigma, rasterMean + rasterSigma);
                     }
 
                     computingData = true;
@@ -765,21 +787,27 @@ class ScatterPlotPanel extends ChartPagePanel {
     }
 
     private XYIntervalSeries computeRegressionData(double xStart, double xEnd) {
-        final double[] coefficients = Regression.getOLSRegression(scatterpointsDataset, 0);
-        final Function2D curve = new LineFunction2D(coefficients[0], coefficients[1]);
-        final XYSeries regressionData = DatasetUtilities.sampleFunction2DToSeries(
-                curve, xStart, xEnd, 100, "regression");
-        final XYIntervalSeries xyIntervalRegression = new XYIntervalSeries(regressionData.getKey());
-        final List<XYDataItem> regressionDataItems = regressionData.getItems();
-        for (XYDataItem item : regressionDataItems) {
-            final double x = item.getXValue();
-            final double y = item.getYValue();
-            xyIntervalRegression.add(x, x, x, y, y, y);
+        if (scatterpointsDataset.getItemCount(0) > 1) {
+            final double[] coefficients = Regression.getOLSRegression(scatterpointsDataset, 0);
+            final Function2D curve = new LineFunction2D(coefficients[0], coefficients[1]);
+            final XYSeries regressionData = DatasetUtilities.sampleFunction2DToSeries(
+                    curve, xStart, xEnd, 100, "regression line");
+            final XYIntervalSeries xyIntervalRegression = new XYIntervalSeries(regressionData.getKey());
+            final List<XYDataItem> regressionDataItems = regressionData.getItems();
+            for (XYDataItem item : regressionDataItems) {
+                final double x = item.getXValue();
+                final double y = item.getYValue();
+                xyIntervalRegression.add(x, x, x, y, y, y);
+            }
+            return xyIntervalRegression;
+        } else {
+            JOptionPane.showMessageDialog(this, "Unable to compute regression line.\n" +
+                    "At least 2 values are needed to compute regression coefficients.");
+            return null;
         }
-        return xyIntervalRegression;
     }
 
-    private void computeCoefficientOfDetermination(){
+    private void computeCoefficientOfDetermination() {
         int numberOfItems = scatterpointsDataset.getSeries(0).getItemCount();
         double arithmeticMeanOfX = 0;  //arithmetic mean of X
         double arithmeticMeanOfY = 0;  //arithmetic mean of Y
@@ -787,29 +815,41 @@ class ScatterPlotPanel extends ChartPagePanel {
         double varY = 0;    //variance of Y
         double coVarXY = 0;  //covariance of X and Y;
         //compute arithmetic means
-        for(int i=0; i<numberOfItems; i++){
-            arithmeticMeanOfX += scatterpointsDataset.getXValue(0,i);
-            arithmeticMeanOfY += scatterpointsDataset.getYValue(0,i);
+        for (int i = 0; i < numberOfItems; i++) {
+            arithmeticMeanOfX += scatterpointsDataset.getXValue(0, i);
+            arithmeticMeanOfY += scatterpointsDataset.getYValue(0, i);
         }
         arithmeticMeanOfX /= numberOfItems;
         arithmeticMeanOfY /= numberOfItems;
         //compute variances and covariance
-        for(int i=0; i<numberOfItems; i++){
-            varX += Math.pow(scatterpointsDataset.getXValue(0,i)-arithmeticMeanOfX,2);
-            varY += Math.pow(scatterpointsDataset.getYValue(0, i)-arithmeticMeanOfY,2);
-            coVarXY += (scatterpointsDataset.getXValue(0,i)-arithmeticMeanOfX)*(scatterpointsDataset.getYValue(0,i)-arithmeticMeanOfY);
+        for (int i = 0; i < numberOfItems; i++) {
+            varX += Math.pow(scatterpointsDataset.getXValue(0, i) - arithmeticMeanOfX, 2);
+            varY += Math.pow(scatterpointsDataset.getYValue(0, i) - arithmeticMeanOfY, 2);
+            coVarXY += (scatterpointsDataset.getXValue(0, i) - arithmeticMeanOfX) * (scatterpointsDataset.getYValue(0, i) - arithmeticMeanOfY);
         }
         //computation of coefficient of determination
-        double r2 = coVarXY/(Math.sqrt(varX * varY));
+        double r2 = coVarXY / (Math.sqrt(varX * varY));
         r2 = MathUtils.round(r2, Math.pow(10.0, 5));
-        TextTitle tt = new TextTitle("R²: " + r2);
+
+        final double[] coefficients = Regression.getOLSRegression(scatterpointsDataset, 0);
+        final double intercept = coefficients[0];
+        final double slope = coefficients[1];
+        final String linearEquation;
+        if (intercept >= 0) {
+            linearEquation = "y = " + (float) slope + "x + " + (float) intercept;
+        } else {
+            linearEquation = "y = " + (float) slope + "x - " + Math.abs((float) intercept);
+        }
+
+        TextTitle tt = new TextTitle(linearEquation + "\nR² = " + r2);
+        tt.setTextAlignment(HorizontalAlignment.RIGHT);
         tt.setFont(chart.getLegend().getItemFont());
         tt.setBackgroundPaint(new Color(200, 200, 255, 100));
         tt.setFrame(new BlockBorder(Color.white));
         tt.setPosition(RectangleEdge.BOTTOM);
 
         r2Annotation = new XYTitleAnnotation(0.98, 0.02, tt,
-                RectangleAnchor.BOTTOM_RIGHT);
+                                             RectangleAnchor.BOTTOM_RIGHT);
         r2Annotation.setMaxWidth(0.48);
         getPlot().addAnnotation(r2Annotation);
     }
@@ -822,14 +862,14 @@ class ScatterPlotPanel extends ChartPagePanel {
             }
         };
 
-        final XYSeries identity = DatasetUtilities.sampleFunction2DToSeries(identityFunction, lowerBound, upperBound, 100, "identity");
+        final XYSeries identity = DatasetUtilities.sampleFunction2DToSeries(identityFunction, lowerBound, upperBound, 100, "1:1 line");
         final XYIntervalSeries xyIntervalSeries = new XYIntervalSeries(identity.getKey());
         final List<XYDataItem> items = identity.getItems();
         for (XYDataItem item : items) {
             final double x = item.getXValue();
             final double y = item.getYValue();
-            if (scatterPlotModel.showConfidenceInterval) {
-                final double confidenceInterval = scatterPlotModel.confidenceInterval;
+            if (scatterPlotModel.showAcceptableDeviation) {
+                final double confidenceInterval = scatterPlotModel.acceptableDeviationInterval;
                 final double xOff = confidenceInterval * x / 100;
                 final double yOff = confidenceInterval * y / 100;
                 xyIntervalSeries.add(x, x - xOff, x + xOff, y, y - yOff, y + yOff);
@@ -848,8 +888,8 @@ class ScatterPlotPanel extends ChartPagePanel {
         private AttributeDescriptor dataField; // Don´t remove this field, it is be used via binding
         private boolean xAxisLogScaled; // Don´t remove this field, it is be used via binding
         private boolean yAxisLogScaled; // Don´t remove this field, it is be used via binding
-        private boolean showConfidenceInterval; // Don´t remove this field, it is be used via binding
-        private double confidenceInterval = 15; // Don´t remove this field, it is be used via binding
+        private boolean showAcceptableDeviation; // Don´t remove this field, it is be used via binding
+        private double acceptableDeviationInterval = 15; // Don´t remove this field, it is be used via binding
         public boolean showRegressionLine; // Don´t remove this field, it is be used via binding
     }
 
@@ -861,8 +901,9 @@ class ScatterPlotPanel extends ChartPagePanel {
         final float rasterMean;
         final float rasterSigma;
         final float correlativeData;
+        final Collection<org.opengis.feature.Property> featureProperties;
 
-        ComputedData(float x, float y, float lat, float lon, float rasterMean, float rasterSigma, float correlativeData) {
+        ComputedData(float x, float y, float lat, float lon, float rasterMean, float rasterSigma, float correlativeData, Collection<org.opengis.feature.Property> featureProperties) {
             this.x = x;
             this.y = y;
             this.lat = lat;
@@ -870,6 +911,7 @@ class ScatterPlotPanel extends ChartPagePanel {
             this.rasterMean = rasterMean;
             this.rasterSigma = rasterSigma;
             this.correlativeData = correlativeData;
+            this.featureProperties = featureProperties;
         }
     }
 }

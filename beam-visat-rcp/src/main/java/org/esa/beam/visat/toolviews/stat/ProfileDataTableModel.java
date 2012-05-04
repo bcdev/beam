@@ -2,6 +2,8 @@ package org.esa.beam.visat.toolviews.stat;
 
 import org.esa.beam.framework.datamodel.GeoPos;
 import org.esa.beam.framework.datamodel.TransectProfileData;
+import org.esa.beam.framework.ui.io.CsvEncoder;
+import org.esa.beam.framework.ui.io.TableModelCsvEncoder;
 import org.opengis.feature.simple.SimpleFeature;
 
 import javax.swing.table.AbstractTableModel;
@@ -108,10 +110,10 @@ public class ProfileDataTableModel extends AbstractTableModel implements CsvEnco
             return profileData.getPixelPositions()[pixelIndex].getY();
         } else if (column == 3) {
             GeoPos[] geoPositions = profileData.getGeoPositions();
-            return geoPositions != null ? geoPositions[pixelIndex].getLat() : null;
+            return geoPositions.length > 0 ? geoPositions[pixelIndex].getLat() : null;
         } else if (column == 4) {
             GeoPos[] geoPositions = profileData.getGeoPositions();
-            return geoPositions != null ? geoPositions[pixelIndex].getLon() : null;
+            return geoPositions.length > 0 ? geoPositions[pixelIndex].getLon() : null;
         } else if (column == 5) {
             return profileData.getSampleValues()[pixelIndex];
         } else if (column == 6) {

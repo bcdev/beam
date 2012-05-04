@@ -40,7 +40,7 @@ public class ImportVectorDataNodeFromCsvAction extends AbstractImportVectorDataN
         final BeamFileFilter filter = new BeamFileFilter("CSV",
                                                          new String[]{".txt", ".dat", ".csv"},
                                                          "Plain text");
-        importer = new VectorDataNodeImporter(getHelpId(), filter, new MyVectorDataNodeReader(), "Import CSV file", "csv.io.dir");
+        importer = new VectorDataNodeImporter(getHelpId(), filter, new DefaultVectorDataNodeReader(), "Import CSV file", "csv.io.dir");
         importer.importGeometry(VisatApp.getApp());
         VisatApp.getApp().updateState();
     }
@@ -57,15 +57,13 @@ public class ImportVectorDataNodeFromCsvAction extends AbstractImportVectorDataN
         return importer.getDialogTitle();
     }
 
-    private class MyVectorDataNodeReader implements VectorDataNodeImporter.VectorDataNodeReader {
+    private class DefaultVectorDataNodeReader implements VectorDataNodeImporter.VectorDataNodeReader {
 
         @Override
-        public VectorDataNode readVectorDataNode(VisatApp visatApp, File file, Product product, String helpId, ProgressMonitor pm) throws IOException {
+        public VectorDataNode readVectorDataNode(File file, Product product, ProgressMonitor pm) throws IOException {
             FileReader reader = null;
             try {
-                final CoordinateReferenceSystem modelCrs =
-                        product.getGeoCoding() != null ? ImageManager.getModelCrs(product.getGeoCoding()) :
-                        ImageManager.DEFAULT_IMAGE_CRS;
+                final CoordinateReferenceSystem modelCrs = ImageManager.getModelCrs(product.getGeoCoding());
                 reader = new FileReader(file);
                 return VectorDataNodeReader.read(file.getName(), reader, product, crsProvider, placemarkDescriptorProvider,
                                                  modelCrs, VectorDataNodeIO.DEFAULT_DELIMITER_CHAR, pm);

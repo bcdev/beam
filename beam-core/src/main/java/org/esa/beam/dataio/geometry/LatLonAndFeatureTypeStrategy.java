@@ -18,24 +18,15 @@ package org.esa.beam.dataio.geometry;
 
 import com.bc.ceres.binding.ConversionException;
 import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
-import org.esa.beam.framework.datamodel.GeoCoding;
-import org.esa.beam.framework.datamodel.GeoPos;
-import org.esa.beam.framework.datamodel.PixelPos;
-import org.esa.beam.jai.ImageManager;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
-import org.geotools.geometry.jts.GeometryCoordinateSequenceTransformer;
-import org.geotools.referencing.crs.DefaultGeographicCRS;
-import org.geotools.referencing.operation.transform.AffineTransform2D;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.TransformException;
 
-import java.awt.geom.AffineTransform;
 import java.io.IOException;
 
 /**
@@ -44,15 +35,13 @@ import java.io.IOException;
  */
 class LatLonAndFeatureTypeStrategy extends AbstractInterpretationStrategy {
 
-    private GeoCoding geoCoding;
     private String featureTypeName;
     private double lat;
     private double lon;
     private int latIndex;
     private int lonIndex;
 
-    LatLonAndFeatureTypeStrategy(GeoCoding geoCoding, String featureTypeName, int latIndex, int lonIndex) {
-        this.geoCoding = geoCoding;
+    LatLonAndFeatureTypeStrategy(String featureTypeName, int latIndex, int lonIndex) {
         this.featureTypeName = featureTypeName;
         this.latIndex = latIndex;
         this.lonIndex = lonIndex;
@@ -60,9 +49,8 @@ class LatLonAndFeatureTypeStrategy extends AbstractInterpretationStrategy {
 
     @Override
     public void setDefaultGeometry(String defaultGeometry, CoordinateReferenceSystem featureCrs, SimpleFeatureTypeBuilder builder) throws IOException {
-        builder.add("geoPos", Point.class, DefaultGeographicCRS.WGS84);
-        builder.add("pixelPos", Point.class, featureCrs);
-        builder.setDefaultGeometry("geoPos");
+        builder.add("geometry", Point.class, featureCrs);
+        builder.setDefaultGeometry("geometry");
     }
 
     @Override
@@ -88,35 +76,15 @@ class LatLonAndFeatureTypeStrategy extends AbstractInterpretationStrategy {
             setAttributeValue(builder, simpleFeatureType, attributeIndex, token);
             attributeIndex++;
         }
-
-        builder.set("geoPos", new GeometryFactory().createPoint(new Coordinate(lon, lat)));
-        PixelPos pixelPos = geoCoding.getPixelPos(new GeoPos((float) lat, (float) lon), null);
-        builder.set("pixelPos", new GeometryFactory().createPoint(new Coordinate(pixelPos.x, pixelPos.y)));
-
-        if (pixelPos.isValid()) {
-            Geometry geometry = createPointGeometry(pixelPos);
-            CoordinateReferenceSystem modelCrs = ImageManager.getModelCrs(geoCoding);
-            AffineTransform imageToModelTransform = ImageManager.getImageToModelTransform(geoCoding);
-            GeometryCoordinateSequenceTransformer transformer = new GeometryCoordinateSequenceTransformer();
-            transformer.setMathTransform(new AffineTransform2D(imageToModelTransform));
-            transformer.setCoordinateReferenceSystem(modelCrs);
-            geometry = transformer.transform(geometry);
-            builder.set("pixelPos", geometry);
-            String featureId = getFeatureId(tokens);
-            return builder.buildFeature(featureId);
-        }
-        return null;
-    }
-
-    @Override
-    public void transformGeoPosToPixelPos(SimpleFeature simpleFeature) {
-        // not needed
+        builder.set("geometry", new GeometryFactory().createPoint(new Coordinate(lon, lat)));
+        String featureId = getFeatureId(tokens);
+        return builder.buildFeature(featureId);
     }
 
     @Override
     public int getExpectedTokenCount(int attributeCount) {
         int expectedTokenCount = attributeCount;
-        expectedTokenCount -= 2; // pixelPos and geoPos added as attributes
+        expectedTokenCount -= 1; // geometry added as attribute
         expectedTokenCount += 1; // column for feature id
         return expectedTokenCount;
     }

@@ -40,7 +40,6 @@ import org.esa.beam.util.Debug;
 import org.esa.beam.util.FeatureUtils;
 import org.esa.beam.util.io.FileUtils;
 import org.esa.beam.util.logging.BeamLogManager;
-import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.jdom.Document;
 import org.jdom.input.DOMBuilder;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -152,14 +151,14 @@ public class DimapProductReader extends AbstractProductReader {
 
         bindBandsToFiles(dom);
         if (existingProduct == null) {
-            final CoordinateReferenceSystem crs = DimapProductHelpers.getCRS(dom);
-            readVectorData(crs);
+            readVectorData(ImageManager.DEFAULT_IMAGE_CRS, true);
 
             // read GCPs and pins from DOM (old-style)
             DimapProductHelpers.addGcps(dom, this.product);
             DimapProductHelpers.addPins(dom, this.product);
 
             initGeoCodings(dom);
+            readVectorData(ImageManager.getModelCrs(product.getGeoCoding()), false);
             DimapProductHelpers.addMaskUsages(dom, this.product);
         }
         this.product.setProductReader(this);
@@ -394,7 +393,7 @@ public class DimapProductReader extends AbstractProductReader {
         return null;
     }
 
-    private void readVectorData(final CoordinateReferenceSystem crs) throws IOException {
+    private void readVectorData(final CoordinateReferenceSystem modelCrs, final boolean onlyGCPs) throws IOException {
         File dataDir = new File(inputDir, FileUtils.getFilenameWithoutExtension(
                 inputFile) + DimapProductConstants.DIMAP_DATA_DIRECTORY_EXTENSION);
         File vectorDataDir = new File(dataDir, "vector_data");
@@ -402,10 +401,16 @@ public class DimapProductReader extends AbstractProductReader {
             File[] vectorFiles = vectorDataDir.listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
-                    return name.endsWith(VectorDataNodeIO.FILENAME_EXTENSION);
+                    if(name.endsWith(VectorDataNodeIO.FILENAME_EXTENSION)) {
+                        if(onlyGCPs) {
+                            return name.equals("ground_control_points.csv");
+                        } else {
+                            return true;
+                        }
+                    }
+                    return false;
                 }
             });
-            final CoordinateReferenceSystem modelCrs = product.getGeoCoding() != null ? ImageManager.getModelCrs(product.getGeoCoding()) : crs;
             for (File vectorFile : vectorFiles) {
                 FileReader reader = null;
                 try {
@@ -413,9 +418,9 @@ public class DimapProductReader extends AbstractProductReader {
                     VectorDataNode vectorDataNode = VectorDataNodeReader.read(vectorFile.getName(), reader, product, new FeatureUtils.FeatureCrsProvider() {
                         @Override
                         public CoordinateReferenceSystem getFeatureCrs(Product product) {
-                            return modelCrs != null ? modelCrs : DefaultGeographicCRS.WGS84;
+                            return modelCrs;
                         }
-                    }, new MyPlacemarkDescriptorProvider(), modelCrs, VectorDataNodeIO.DEFAULT_DELIMITER_CHAR, ProgressMonitor.NULL);
+                    }, new OptimalPlacemarkDescriptorProvider(), modelCrs, VectorDataNodeIO.DEFAULT_DELIMITER_CHAR, ProgressMonitor.NULL);
                     if (vectorDataNode != null) {
                         final ProductNodeGroup<VectorDataNode> vectorDataGroup = product.getVectorDataGroup();
                         final VectorDataNode existing = vectorDataGroup.get(vectorDataNode.getName());
@@ -435,7 +440,7 @@ public class DimapProductReader extends AbstractProductReader {
         }
     }
 
-    private static class MyPlacemarkDescriptorProvider implements VectorDataNodeReader.PlacemarkDescriptorProvider {
+    private static class OptimalPlacemarkDescriptorProvider implements VectorDataNodeReader.PlacemarkDescriptorProvider {
         @Override
         public PlacemarkDescriptor getPlacemarkDescriptor(SimpleFeatureType simpleFeatureType) {
             PlacemarkDescriptorRegistry placemarkDescriptorRegistry = PlacemarkDescriptorRegistry.getInstance();
