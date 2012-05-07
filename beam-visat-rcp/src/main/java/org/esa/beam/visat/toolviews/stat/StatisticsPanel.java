@@ -288,7 +288,7 @@ class StatisticsPanel extends PagePanel implements MultipleRoiComputePanel.Compu
         ChartPanel percentilePanel = createChartPanel(percentileSeries, "Percentile (%)", "Value Threshold", new Color(127, 0, 0));
 
         Object[][] tableData = new Object[][]{
-                new Object[]{"Total:", histogram.getTotals()[0]},
+                new Object[]{"#Pixels total:", histogram.getTotals()[0]},
                 new Object[]{"Minimum:", histogram.getLowValue()[0]},
                 new Object[]{"Maximum:", histogram.getHighValue()[0]},
                 new Object[]{"Mean:", histogram.getMean()[0]},
@@ -342,7 +342,6 @@ class StatisticsPanel extends PagePanel implements MultipleRoiComputePanel.Compu
         statPanel.add(new JLabel(getSubPanelTitle(mask)), BorderLayout.NORTH);
         statPanel.add(textContainerPanel, BorderLayout.WEST);
         statPanel.add(plotContainerPanel, BorderLayout.CENTER);
-        // statPanel.addMouseListener(popupHandler);
 
         return statPanel;
     }

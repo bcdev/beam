@@ -49,6 +49,7 @@
                 </tocitem>
                 <tocitem text="Export Raster Data">
                     <tocitem text="BEAM-DIMAP" target="exportDimapProduct"/>
+                    <tocitem text="CSV" target="exportCsv"/>
                     <tocitem text="HDF-5" target="exportHdf5Product"/>
                     <tocitem text="NetCDF/CF" target="exportNetCdfProduct"/>
                 </tocitem>
@@ -90,7 +91,7 @@
                 <tocitem text="Band Scatter Plot" target="densityPlotDialog"/>
                 <tocitem text="Correlative Plot" target="correlativePlotDialog"/>
                 <tocitem text="Band Transect Profile Plot" target="profilePlotDialog"/>
-                <tocitem text="Table View" target="coordinateListDialog"/>
+                <tocitem text="Table View" target="tableView"/>
                 <tocitem text="Compute Mask Area" target="computeMaskArea"/>
             </tocitem>
 

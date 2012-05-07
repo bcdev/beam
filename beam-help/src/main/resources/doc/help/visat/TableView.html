@@ -35,7 +35,7 @@
 
 <p>
     A table view can be accessed from the <a href="CorrelativePlotDialog.html">correlative plot</a> or the <a href="ProfilePlotDialog.html">profile plot</a>.
-    It refers to the vector data used to create the according plot and the selected band.<br>
+    It refers to the data used to create the according plot and the selected band.<br>
     You can switch back to the chart view by clicking the chart icon in the upper right.
     The screenshot below shows the table view for a correlative plot.
 </p>
@@ -44,7 +44,7 @@
 </blockquote>
 
 <p>
-    The view enumerates information not only for each vertex but for each pixel along the vector data.
+    Note the following rules:
     For the correlative plot, only those pixels which contain points are considered.
     For the profile plot, also pixels between pixels containing vector points are considered (you can disable this
     by deselecting 'Compute in-between points' in the chart view).
@@ -58,11 +58,11 @@
     </li>
 
     <li>
-        The pixel coordinates
+        The pixel's image coordinates
     </li>
 
     <li>
-       The geographic coordinates of the pixel centroids
+       The pixel's geographic coordinates
     </li>
 
     <li>
@@ -70,20 +70,15 @@
     </li>
 
     <li>
-        The pixel sigma, which indicates the value deviation within the box set in the chart view
+        The pixel sigma, which indicates the standard deviation within the box set in the chart view
     </li>
 
     <li>
-        The selected data field of the correlative data (only if the plot uses correlative data and if the pixel
-        contains a vector point).
+        The selected data field of the correlative data (only if there is correlative data available for the pixel)
     </li>
 
     <li>
-        The pixel coordinates of the correlative data (only in the correlative plot)
-    </li>
-
-    <li>
-        The geographic coordinates of the correlative data (only in the correlative plot)
+        The geometry of the correlative data (only in the correlative plot)
     </li>
 
 </ul>
