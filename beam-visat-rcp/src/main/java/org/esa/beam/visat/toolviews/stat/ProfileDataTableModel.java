@@ -4,21 +4,29 @@ import org.esa.beam.framework.datamodel.GeoPos;
 import org.esa.beam.framework.datamodel.TransectProfileData;
 import org.esa.beam.framework.ui.io.CsvEncoder;
 import org.esa.beam.framework.ui.io.TableModelCsvEncoder;
+import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 
 import javax.swing.table.AbstractTableModel;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Norman Fomferra
  */
-public class ProfileDataTableModel extends AbstractTableModel implements CsvEncoder {
+class ProfileDataTableModel extends AbstractTableModel implements CsvEncoder {
+    private final static String REF_SUFFIX = "_ref";
+
     private final TransectProfileData profileData;
-    private final String[] columnNames;
-    private final Class[] columnClasses;
+    private final List<String> columnNames;
+    private final Map<Integer, Integer> propertyIndices;
     private final int[] pointDataIndexes;
     private final int dataFieldIndex;
     private final SimpleFeature[] features;
@@ -41,55 +49,53 @@ public class ProfileDataTableModel extends AbstractTableModel implements CsvEnco
         computeInBetweenPoints = dataSourceConfig.computeInBetweenPoints;
 
         final String corrDataName;
-        final Class corrDataClass;
         if (dataSourceConfig.pointDataSource != null && dataSourceConfig.dataField != null) {
             corrDataName = dataSourceConfig.dataField.getLocalName();
-            corrDataClass = dataSourceConfig.dataField.getType().getBinding();
             features = dataSourceConfig.pointDataSource.getFeatureCollection().toArray(new SimpleFeature[0]);
             dataFieldIndex = dataSourceConfig.pointDataSource.getFeatureType().indexOf(corrDataName);
         } else {
             corrDataName = "";
-            corrDataClass = Object.class;
             features = null;
             dataFieldIndex = -1;
         }
 
-        columnNames = new String[]{
-                "pixel_no",
-                "pixel_x",
-                "pixel_y",
-                "latitude",
-                "longitude",
-                sampleName + "_mean",
-                sampleName + "_sigma",
-                corrDataName
-        };
+        columnNames = new ArrayList<String>();
+        columnNames.add("pixel_no");
+        columnNames.add("pixel_x");
+        columnNames.add("pixel_y");
+        columnNames.add("latitude");
+        columnNames.add("longitude");
+        columnNames.add(sampleName + "_mean");
+        columnNames.add(sampleName + "_sigma");
+        columnNames.add(corrDataName.trim().length() == 0 ? "" : corrDataName + REF_SUFFIX);
 
-        columnClasses = new Class[]{
-                Integer.class,
-                Integer.class,
-                Integer.class,
-                Float.class,
-                Float.class,
-                Float.class,
-                Float.class,
-                corrDataClass
-        };
+        propertyIndices = new HashMap<Integer, Integer>();
+        if (features != null && features.length > 0) {
+            final int colStart = 8;
+
+            int validPropertyCount = 0;
+            final Collection<Property> props = features[0].getProperties();
+            final Property[] properties = props.toArray(new Property[props.size()]);
+            for (int i = 0; i < properties.length; i++) {
+                Property property = properties[i];
+                final String name = property.getName().toString();
+                if (!corrDataName.equals(name)) {
+                    columnNames.add(name + REF_SUFFIX);
+                    propertyIndices.put(colStart + validPropertyCount, i);
+                    validPropertyCount++;
+                }
+            }
+        }
     }
 
     @Override
     public int getColumnCount() {
-        return columnNames.length;
+        return columnNames.size();
     }
 
     @Override
     public String getColumnName(int column) {
-        return columnNames[column];
-    }
-
-    @Override
-    public Class<?> getColumnClass(int column) {
-        return columnClasses[column];
+        return columnNames.get(column);
     }
 
     @Override
@@ -127,6 +133,15 @@ public class ProfileDataTableModel extends AbstractTableModel implements CsvEnco
                 return null;
             }
             return features[pointDataIndex].getAttribute(dataFieldIndex);
+        } else if (column < getColumnCount()) {
+            int pointDataIndex = pointDataIndexes[pixelIndex];
+            if (pointDataIndex == -1) {
+                return null;
+            }
+            final Collection<Property> propColl = features[pointDataIndex].getProperties();
+            final Property[] properties = propColl.toArray(new Property[propColl.size()]);
+            final Integer propertyIndex = propertyIndices.get(column);
+            return properties[propertyIndex].getValue();
         }
         return null;
     }

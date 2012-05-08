@@ -64,7 +64,7 @@ public class ProfileDataTableModelTest {
 
         TableModel tableModel = new ProfileDataTableModel(band.getName(), profileData, dataSourceConfig);
 
-        assertEquals(8, tableModel.getColumnCount());
+        assertEquals(10, tableModel.getColumnCount());
 
         assertEquals("pixel_no", tableModel.getColumnName(0));
         assertEquals("pixel_x", tableModel.getColumnName(1));
@@ -73,16 +73,9 @@ public class ProfileDataTableModelTest {
         assertEquals("longitude", tableModel.getColumnName(4));
         assertEquals("b_mean", tableModel.getColumnName(5));
         assertEquals("b_sigma", tableModel.getColumnName(6));
-        assertEquals("data", tableModel.getColumnName(7));
-
-        assertEquals(Integer.class, tableModel.getColumnClass(0));
-        assertEquals(Integer.class, tableModel.getColumnClass(1));
-        assertEquals(Integer.class, tableModel.getColumnClass(2));
-        assertEquals(Float.class, tableModel.getColumnClass(3));
-        assertEquals(Float.class, tableModel.getColumnClass(4));
-        assertEquals(Float.class, tableModel.getColumnClass(5));
-        assertEquals(Float.class, tableModel.getColumnClass(6));
-        assertEquals(Double.class, tableModel.getColumnClass(7));
+        assertEquals("data_ref", tableModel.getColumnName(7));
+        assertEquals("lat_ref", tableModel.getColumnName(8));
+        assertEquals("lon_ref", tableModel.getColumnName(9));
 
         assertEquals(10, tableModel.getRowCount());
 
@@ -94,6 +87,8 @@ public class ProfileDataTableModelTest {
         assertEquals(0.1F, tableModel.getValueAt(0, 5));
         assertEquals(0.0F, tableModel.getValueAt(0, 6));
         assertEquals(0.3, tableModel.getValueAt(0, 7));
+        assertEquals(0, tableModel.getValueAt(0, 8));
+        assertEquals(0, tableModel.getValueAt(0, 9));
 
         assertEquals(2, tableModel.getValueAt(1, 0));
         assertEquals(1.0, tableModel.getValueAt(1, 1));
@@ -103,6 +98,8 @@ public class ProfileDataTableModelTest {
         assertEquals(1.1F, tableModel.getValueAt(1, 5));
         assertEquals(0.0F, tableModel.getValueAt(1, 6));
         assertEquals(null, tableModel.getValueAt(1, 7));
+        assertEquals(null, tableModel.getValueAt(1, 8));
+        assertEquals(null, tableModel.getValueAt(1, 9));
 
         assertEquals(10, tableModel.getValueAt(9, 0));
         assertEquals(3.0, tableModel.getValueAt(9, 1));
@@ -112,6 +109,8 @@ public class ProfileDataTableModelTest {
         assertEquals(15.1F, tableModel.getValueAt(9, 5));
         assertEquals(0.0F, tableModel.getValueAt(9, 6));
         assertEquals(0.1, tableModel.getValueAt(9, 7));
+        assertEquals(0, tableModel.getValueAt(9, 8));
+        assertEquals(0, tableModel.getValueAt(9, 9));
 
     }
 
@@ -138,15 +137,6 @@ public class ProfileDataTableModelTest {
         assertEquals("b_mean", tableModel.getColumnName(5));
         assertEquals("b_sigma", tableModel.getColumnName(6));
         assertEquals("", tableModel.getColumnName(7));
-
-        assertEquals(Integer.class, tableModel.getColumnClass(0));
-        assertEquals(Integer.class, tableModel.getColumnClass(1));
-        assertEquals(Integer.class, tableModel.getColumnClass(2));
-        assertEquals(Float.class, tableModel.getColumnClass(3));
-        assertEquals(Float.class, tableModel.getColumnClass(4));
-        assertEquals(Float.class, tableModel.getColumnClass(5));
-        assertEquals(Float.class, tableModel.getColumnClass(6));
-        assertEquals(Object.class, tableModel.getColumnClass(7));
 
         assertEquals(10, tableModel.getRowCount());
 
@@ -190,17 +180,17 @@ public class ProfileDataTableModelTest {
 
         ProfileDataTableModel tableModel = new ProfileDataTableModel(band.getName(), profileData, dataSourceConfig);
         String csv = tableModel.toCsv();
-        assertEquals("pixel_no\tpixel_x\tpixel_y\tlatitude\tlongitude\tb_mean\tb_sigma\tdata\n" +
-                             "1\t0.0\t0.0\t\t\t0.1\t0.0\t0.3\n" +
-                             "2\t1.0\t0.0\t\t\t1.1\t0.0\t\n" +
-                             "3\t2.0\t0.0\t\t\t2.1\t0.0\t\n" +
-                             "4\t3.0\t0.0\t\t\t3.1\t0.0\t0.5\n" +
-                             "5\t2.0\t1.0\t\t\t6.1\t0.0\t\n" +
-                             "6\t1.0\t2.0\t\t\t9.1\t0.0\t\n" +
-                             "7\t0.0\t3.0\t\t\t12.1\t0.0\t0.7\n" +
-                             "8\t1.0\t3.0\t\t\t13.1\t0.0\t\n" +
-                             "9\t2.0\t3.0\t\t\t14.1\t0.0\t\n" +
-                             "10\t3.0\t3.0\t\t\t15.1\t0.0\t0.1\n", csv);
+        assertEquals("pixel_no\tpixel_x\tpixel_y\tlatitude\tlongitude\tb_mean\tb_sigma\tdata_ref\tlat_ref\tlon_ref\n" +
+                             "1\t0.0\t0.0\t\t\t0.1\t0.0\t0.3\t0\t0\n" +
+                             "2\t1.0\t0.0\t\t\t1.1\t0.0\t\t\t\n" +
+                             "3\t2.0\t0.0\t\t\t2.1\t0.0\t\t\t\n" +
+                             "4\t3.0\t0.0\t\t\t3.1\t0.0\t0.5\t0\t0\n" +
+                             "5\t2.0\t1.0\t\t\t6.1\t0.0\t\t\t\n" +
+                             "6\t1.0\t2.0\t\t\t9.1\t0.0\t\t\t\n" +
+                             "7\t0.0\t3.0\t\t\t12.1\t0.0\t0.7\t0\t0\n" +
+                             "8\t1.0\t3.0\t\t\t13.1\t0.0\t\t\t\n" +
+                             "9\t2.0\t3.0\t\t\t14.1\t0.0\t\t\t\n" +
+                             "10\t3.0\t3.0\t\t\t15.1\t0.0\t0.1\t0\t0\n", csv);
     }
 
     @Test
@@ -216,10 +206,10 @@ public class ProfileDataTableModelTest {
 
         ProfileDataTableModel tableModel = new ProfileDataTableModel(band.getName(), profileData, dataSourceConfig);
         String csv = tableModel.toCsv();
-        assertEquals("pixel_no\tpixel_x\tpixel_y\tlatitude\tlongitude\tb_mean\tb_sigma\tdata\n" +
-                             "1\t0.0\t0.0\t\t\t0.1\t0.0\t0.3\n" +
-                             "4\t3.0\t0.0\t\t\t3.1\t0.0\t0.5\n" +
-                             "7\t0.0\t3.0\t\t\t12.1\t0.0\t0.7\n" +
-                             "10\t3.0\t3.0\t\t\t15.1\t0.0\t0.1\n", csv);
+        assertEquals("pixel_no\tpixel_x\tpixel_y\tlatitude\tlongitude\tb_mean\tb_sigma\tdata_ref\tlat_ref\tlon_ref\n" +
+                             "1\t0.0\t0.0\t\t\t0.1\t0.0\t0.3\t0\t0\n" +
+                             "4\t3.0\t0.0\t\t\t3.1\t0.0\t0.5\t0\t0\n" +
+                             "7\t0.0\t3.0\t\t\t12.1\t0.0\t0.7\t0\t0\n" +
+                             "10\t3.0\t3.0\t\t\t15.1\t0.0\t0.1\t0\t0\n", csv);
     }
 }

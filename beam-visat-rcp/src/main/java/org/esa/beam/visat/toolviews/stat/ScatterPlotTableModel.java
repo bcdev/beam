@@ -18,7 +18,9 @@ import java.util.Map;
 /**
  * @author Sabine Embacher
  */
-public class ScatterPlotTableModel extends AbstractTableModel implements CsvEncoder {
+class ScatterPlotTableModel extends AbstractTableModel implements CsvEncoder {
+
+    private final static String REF_SUFFIX = "_ref";
 
     private final List<String> colNames;
     private final Map<Integer, Integer> propertyIndices;
@@ -35,7 +37,7 @@ public class ScatterPlotTableModel extends AbstractTableModel implements CsvEnco
         colNames.add("longitude");
         colNames.add(rasterName + "_mean");
         colNames.add(rasterName + "_sigma");
-        colNames.add(correlativDataName);
+        colNames.add(correlativDataName + REF_SUFFIX);
 
         final int colStart = 8;
         propertyIndices = new HashMap<Integer, Integer>();
@@ -46,7 +48,7 @@ public class ScatterPlotTableModel extends AbstractTableModel implements CsvEnco
         for (int i = 0; i < properties.length; i++) {
             final String name = properties[i].getName().toString();
             if (!correlativDataName.equals(name)) {
-                colNames.add(name);
+                colNames.add(name + REF_SUFFIX);
                 propertyIndices.put(colStart + validPropertyCount, i);
                 validPropertyCount++;
             }
