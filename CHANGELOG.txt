@@ -2,7 +2,7 @@
 
 This file contains all significant changes for each BEAM release.
 
-    o 08.05.2012: Version 4.10
+    o 09.05.2012: Version 4.10
     o 12.05.2011: Version 4.9
     o 29.07.2010: Version 4.8
     o 29.04.2010: Version 4.7.1
@@ -79,7 +79,10 @@ o Double-clicking the imported vector data in the product browser window display
 o Imported point data can now be interpreted as a path or track and will be displayed accordingly in an image view.
   Additional numerical columns of such imported point data can be directly displayed in the profile plot.
 
-o The VISAT colour manipulation tool window has been enhanced by log10-scaled colour bars.
+o The VISAT navigation window can now synchronise multiple image views based on the changing geographical
+  center coordinate of a currently moved image.
+
+o The VISAT colour manipulation tool window has been enhanced by log10 scaled colour bars.
 
 o Three new readers have been added which allow for
     (1) reading data products of the new VIIRS (Visible Infrared Imaging Radiometer Suite) instrument.
@@ -94,6 +97,11 @@ o Three new readers have been added which allow for
 
 o The VISAT file import / export menus have been revised due to the meanwhile large number of various data formats
   BEAM is able to import from and export to.
+
+o The following BEAM command-line tool enhancements (see 'gpt -h' on the command-line) have been added
+  - The pixel extraction operator 'PixEx' now uses an extended wild-card syntax to recursively collect source
+    products from a list of directories.
+  - A new operator 'Merge' allows for copying raster data from other data products to a specified 'master' product.
 
 o The BEAM Java core data model has been revised: vector data is now based on the OGC-standard for simple features.
 
