@@ -36,11 +36,11 @@ public class IndexCoding extends SampleCoding {
     }
     
     /**
-     * Returns a metadata attribute wich is the representation of the index with the given name. This method delegates to
+     * Returns a metadata attribute which is the representation of the index with the given name. This method delegates to
      * getPropertyValue(String).
      *
      * @param name the flag name
-     * @return a metadata attribute wich is the representation of the flag with the given name
+     * @return a metadata attribute which is the representation of the flag with the given name
      */
     public MetadataAttribute getIndex(String name) {
         return getAttribute(name);

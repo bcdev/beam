@@ -101,6 +101,7 @@ class ImageInfoEditor2 extends ImageInfoEditor {
             return stxOverlayComponent;
         }
 
+
         labels.add(new JLabel("Min: " + getValueForDisplay(model.getMinSample())));
         labels.add(new JLabel("Max: " + getValueForDisplay(model.getMaxSample())));
         if (stx.getResolutionLevel() > 0 && model.getSampleScaling() == Scaling.IDENTITY) {

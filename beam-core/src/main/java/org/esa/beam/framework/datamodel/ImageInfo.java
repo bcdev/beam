@@ -130,6 +130,7 @@ public class ImageInfo implements Cloneable {
 
     public void setLogScaled(boolean logScaled) {
         this.logScaled = logScaled;
+        colorPaletteDef.setLogDisplay(logScaled );
     }
 
     public Color[] getColors() {

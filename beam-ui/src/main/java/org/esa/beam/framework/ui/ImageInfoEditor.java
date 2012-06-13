@@ -135,7 +135,7 @@ public class ImageInfoEditor extends JPanel {
                 oldModel.removeChangeListener(modelCL);
             }
             if (this.model != null) {
-                roundFactor = MathUtils.computeRoundFactor(this.model.getMinSample(), this.model.getMaxSample(), 2);
+                roundFactor = MathUtils.computeRoundFactor(this.model.getMinSample(), this.model.getMaxSample(), 8);
                 installMouseListener();
                 model.addChangeListener(modelCL);
             }
@@ -199,6 +199,15 @@ public class ImageInfoEditor extends JPanel {
             final double value = scale(pos1 + evenSpace * i);
             setSliderSample(i, value, false);
         }
+    }
+
+    public void updateMinMax(double minSample, double maxSample){
+        computeFactors();
+        setFirstSliderSample(minSample);
+        setLastSliderSample(maxSample);
+        partitionSliders(false);
+        computeZoomInToSliderLimits();
+
     }
 
     private void partitionSliders(boolean adjusting) {
