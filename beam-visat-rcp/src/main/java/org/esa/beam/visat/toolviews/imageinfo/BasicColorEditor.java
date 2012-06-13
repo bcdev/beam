@@ -22,6 +22,7 @@ import com.bc.ceres.binding.PropertyContainer;
 import com.bc.ceres.binding.ValueRange;
 import com.bc.ceres.swing.TableLayout;
 import com.bc.ceres.swing.binding.BindingContext;
+import org.esa.beam.framework.datamodel.ColorPaletteDef;
 import org.esa.beam.framework.ui.ImageInfoEditor;
 import org.esa.beam.util.math.MathUtils;
 
@@ -55,6 +56,7 @@ class BasicColorEditor extends JPanel {
 
     private double maxVal;
     private double minVal;
+    private double minValData, maxValData;
     private JFormattedTextField maxValField;
     private JFormattedTextField minValField;
     private JCheckBox fileDefaultCheckBox;
@@ -67,10 +69,15 @@ class BasicColorEditor extends JPanel {
 
     private ChangeListener applyEnablerCL;
 
+    private ColorPaletteDef defaultColorPaletteDef;
+
     BasicColorEditor(final ColorManipulationForm parentForm, ImageInfoEditor imageInfoEditor) {
         this.parentForm = parentForm;
         maxVal = parentForm.getMaxValueData();
         minVal = parentForm.getMinValueData();
+        minValData = minVal;
+        maxValData = maxVal;
+        defaultColorPaletteDef = parentForm.getImageInfo().getColorPaletteDef();
         setLayout(new BorderLayout());
         setShowExtraInfo(true);
         valFormat = NumberFormat.getNumberInstance();
@@ -112,8 +119,7 @@ class BasicColorEditor extends JPanel {
         simpleColorEditorPanel.setLayout(new GridLayout(0, 1));
 
         //colorChooser = new ColorPaletteChooser(new File("/Users/aabduraz/.beam/beam-ui/auxdata/color-palettes"));
-         colorChooser = new ColorPaletteChooser(parentForm.getIODir());
-
+        colorChooser = new ColorPaletteChooser(parentForm.getIODir(), defaultColorPaletteDef);
         colorChooser.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
@@ -121,10 +127,17 @@ class BasicColorEditor extends JPanel {
                 String cpdFileName = currentColorBar.getDescription();
                 File cpdFile = colorChooser.getColorPaletteDir();
                 parentForm.loadColorPaletteFile(new File(cpdFile, cpdFileName));
+                fileDefaultCheckBox.doClick();
                 parentForm.setApplyEnabled(true);
             }
         });
 
+        parentForm.getProductSceneView().addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent propertyChangeEvent) {
+                //To change body of implemented methods use File | Settings | File Templates.
+            }
+        });
         final JPanel minPanel = new JPanel();
         minPanel.setLayout(new BoxLayout(minPanel, BoxLayout.Y_AXIS));
         minPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -254,6 +267,11 @@ class BasicColorEditor extends JPanel {
         maxVal = parentForm.getCurrentMaxValue();
         minValField.setValue(MathUtils.round((new Double(minVal)).doubleValue(), 100000000));
         maxValField.setValue(MathUtils.round((new Double(maxVal)).doubleValue(), 100000000));
+        if (minValData != parentForm.getMinValueData() || maxValData != parentForm.getMaxValueData()) {
+            resetDefaultColorFile(parentForm.getImageInfo().getColorPaletteDef());
+            minValData = parentForm.getMinValueData();
+            maxValData = parentForm.getMaxValueData();
+        }
     }
 
 
@@ -262,6 +280,14 @@ class BasicColorEditor extends JPanel {
 
     }
 
+    protected void resetDefaultColorFile(ColorPaletteDef colorPaletteDef) {
+        defaultColorPaletteDef = colorPaletteDef;
+        colorChooser.resetToDefaultGrayColorPalette(defaultColorPaletteDef);
+    }
+
+    protected void resetDefaultColorBar() {
+        colorChooser.resetToDefaultGrayColorPalette(defaultColorPaletteDef);
+    }
 
     private boolean validateMinMax(double min, double max) {
 

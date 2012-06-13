@@ -23,9 +23,12 @@ import java.util.Comparator;
 public class ColorPaletteChooser extends JComboBox {
     private final int COLORBAR_HEIGHT = 15;
     private final int COLORBAR_WIDTH = 204;
+    private final String DEFAULT_GRAY_COLOR_PALETTE_FILE_NAME = "defaultGrayColor.cpd";
 
     private File colorPaletteDir;
     private Dimension colorBarDimension;
+    private ComboBoxModel colorModel;
+    private ArrayList<ImageIcon> icons;
 
     public ColorPaletteChooser(File colorPaletteDir) {
         super();
@@ -35,6 +38,18 @@ public class ColorPaletteChooser extends JComboBox {
         setColorPaletteDir(colorPaletteDir);
         setEditable(false);
         setRenderer(new ComboBoxRenderer());
+    }
+
+    public ColorPaletteChooser(File colorPaletteDir, ColorPaletteDef defaultColorPaletteDef) {
+        super();
+        colorBarDimension = new Dimension(COLORBAR_WIDTH, COLORBAR_HEIGHT);
+        this.colorPaletteDir = colorPaletteDir;
+        createDefaultGrayColorPaletteFile(defaultColorPaletteDef);
+        updateDisplay();
+        setColorPaletteDir(colorPaletteDir);
+        setEditable(false);
+        setRenderer(new ComboBoxRenderer());
+
     }
 
     public void distributeSlidersEvenly(ColorPaletteDef colorPaletteDef) {
@@ -70,6 +85,26 @@ public class ColorPaletteChooser extends JComboBox {
         }
     }
 
+       private ImageIcon createGrayColorBarIcon(ColorPaletteDef colorPaletteDef, Dimension dimension) {
+       BufferedImage bufferedImage = new BufferedImage(dimension.width, dimension.height,
+                BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2 = bufferedImage.createGraphics();
+        drawPalette(g2, colorPaletteDef, new Rectangle(dimension));
+        ImageIcon icon = new ImageIcon(bufferedImage);
+        icon.setDescription(DEFAULT_GRAY_COLOR_PALETTE_FILE_NAME);
+        return icon;
+    }
+
+    private void createDefaultGrayColorPaletteFile(ColorPaletteDef defaultGrayColorPaletteDef) {
+
+        File grayColorFile = new File(colorPaletteDir, DEFAULT_GRAY_COLOR_PALETTE_FILE_NAME);
+        try {
+            ColorPaletteDef.storeColorPaletteDef(defaultGrayColorPaletteDef, grayColorFile);
+        } catch (IOException ioe) {
+            System.err.println("Default Gray Color File is not created!");
+        }
+    }
+
     private void drawPalette(Graphics2D g2, File paletteFile, Rectangle paletteRect) throws IOException {
         ColorPaletteDef colorPaletteDef = ColorPaletteDef.loadColorPaletteDef(paletteFile);
         distributeSlidersEvenly(colorPaletteDef);
@@ -89,29 +124,43 @@ public class ColorPaletteChooser extends JComboBox {
     ComboBoxModel createColorBarModel() {
         ArrayList<ImageIcon> icons = new ArrayList<ImageIcon>();
         File[] files = colorPaletteDir.listFiles();
-
+        Icon defaultIcon = null;
         for (File file : files) {
             try {
                 ImageIcon icon = createColorBarIcon(file, colorBarDimension);
                 icons.add(icon);
+                if (file.getName().indexOf(DEFAULT_GRAY_COLOR_PALETTE_FILE_NAME) != -1) {
+                    defaultIcon = icon;
+                }
             } catch (IOException e) {
             }
         }
-
         Collections.sort(icons, new Comparator<ImageIcon>() {
             @Override
             public int compare(ImageIcon o1, ImageIcon o2) {
                 return o1.getDescription().compareTo(o2.getDescription());
             }
         });
-
-        return new DefaultComboBoxModel(icons.toArray(new ImageIcon[icons.size()]));
+        this.icons = icons;
+        DefaultComboBoxModel colorBarModel = new DefaultComboBoxModel(icons.toArray(new ImageIcon[icons.size()]));
+        colorBarModel.setSelectedItem(defaultIcon);
+        return  colorBarModel;
     }
 
     private void updateDisplay() {
-        setModel(createColorBarModel());
+        colorModel = createColorBarModel();
+        setModel(colorModel);
     }
 
+    public void resetToDefaultGrayColorPalette(ColorPaletteDef colorPaletteDef){
+       createDefaultGrayColorPaletteFile(colorPaletteDef);
+       ImageIcon defaultGrayColorBarIcon = createGrayColorBarIcon(colorPaletteDef, colorBarDimension);
+//        icons.remove();
+        icons.add(defaultGrayColorBarIcon);
+      colorModel.setSelectedItem(defaultGrayColorBarIcon);
+        setModel(colorModel);
+
+    }
     public File getColorPaletteDir() {
         return colorPaletteDir;
     }

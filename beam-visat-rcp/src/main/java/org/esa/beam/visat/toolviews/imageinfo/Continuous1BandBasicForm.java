@@ -82,6 +82,7 @@ class Continuous1BandBasicForm implements ColorManipulationChildForm {
 
     @Override
     public void handleFormShown(ProductSceneView productSceneView) {
+
         updateFormModel(productSceneView);
     }
 
@@ -131,8 +132,7 @@ class Continuous1BandBasicForm implements ColorManipulationChildForm {
     @Override
     public void handleRasterPropertyChange(ProductNodeEvent event, RasterDataNode raster) {
         if (imageInfoEditor.getModel() != null) {
-
-            setDisplayProperties(imageInfoEditor.getModel(), raster);
+             setDisplayProperties(imageInfoEditor.getModel(), raster);
             if (event.getPropertyName().equals(RasterDataNode.PROPERTY_NAME_STX)) {
                 updateFormModel(parentForm.getProductSceneView());
             }
