@@ -20,29 +20,31 @@ import org.esa.beam.dataio.modis.hdf.HdfDataField;
 import org.esa.beam.framework.dataio.ProductIOException;
 import org.esa.beam.framework.datamodel.GeoCoding;
 
-import java.awt.Dimension;
+import java.awt.*;
+import java.io.IOException;
 import java.util.Date;
+import java.util.List;
 
 
 public interface ModisGlobalAttributes {
 
-    String getProductName();
+    String getProductName() throws IOException;
 
-    String getProductType();
+    String getProductType() throws IOException;
 
-    Dimension getProductDimensions();
+    Dimension getProductDimensions(List<ucar.nc2.Dimension> netcdfFileDimensions);
 
     HdfDataField getDatafield(String name) throws ProductIOException;
 
-    Date getSensingStart();
+    Date getSensingStart() throws ProductIOException;
 
-    Date getSensingStop();
+    Date getSensingStop() throws ProductIOException;
 
-    int[] getSubsamplingAndOffset(String dimensionName);
+    int[] getSubsamplingAndOffset(String dimensionName) throws IOException;
 
     boolean isImappFormat();
 
-    String getEosType();
+    String getEosType() throws IOException;
 
-    GeoCoding createGeocoding();
+    GeoCoding  createGeocoding();
 }
