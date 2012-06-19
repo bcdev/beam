@@ -124,7 +124,7 @@ public class ColorPaletteChooser extends JComboBox {
     ComboBoxModel createColorBarModel() {
         ArrayList<ImageIcon> icons = new ArrayList<ImageIcon>();
         File[] files = colorPaletteDir.listFiles();
-        Icon defaultIcon = null;
+        ImageIcon defaultIcon = null;
         for (File file : files) {
             try {
                 ImageIcon icon = createColorBarIcon(file, colorBarDimension);
@@ -142,6 +142,10 @@ public class ColorPaletteChooser extends JComboBox {
             }
         });
         this.icons = icons;
+        System.out.println("number of icons before sorting :"  + this.icons.size() );
+        this.icons.remove(defaultIcon);
+        this.icons.add(0, defaultIcon);
+              System.out.println("number of icons after sorting :"  + this.icons.size() );
         DefaultComboBoxModel colorBarModel = new DefaultComboBoxModel(icons.toArray(new ImageIcon[icons.size()]));
         colorBarModel.setSelectedItem(defaultIcon);
         return  colorBarModel;
