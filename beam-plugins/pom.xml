@@ -25,7 +25,7 @@
         TODO: Move the sourceEncoding property to the build tag if version 3.0 is released -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <system.beam.version>4.10.3-SNAPSHOT</system.beam.version>
-        <system.ceres.version>0.13.2-SNAPSHOT</system.ceres.version>
+        <system.ceres.version>0.13.1</system.ceres.version>
         <system.geotools.version>2.7.4</system.geotools.version>
         <system.jide.version>3.3.7</system.jide.version>
         <system.hdf.version>2.7</system.hdf.version>
