@@ -8,9 +8,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -30,10 +28,13 @@ public class ColorPaletteChooser extends JComboBox {
     private ComboBoxModel colorModel;
     private ArrayList<ImageIcon> icons;
 
+    private ColorHashMap colorBarMap;
+
     public ColorPaletteChooser(File colorPaletteDir) {
         super();
         colorBarDimension = new Dimension(COLORBAR_WIDTH, COLORBAR_HEIGHT);
         this.colorPaletteDir = colorPaletteDir;
+        colorBarMap = new ColorHashMap();
         updateDisplay();
         setColorPaletteDir(colorPaletteDir);
         setEditable(false);
@@ -44,6 +45,7 @@ public class ColorPaletteChooser extends JComboBox {
         super();
         colorBarDimension = new Dimension(COLORBAR_WIDTH, COLORBAR_HEIGHT);
         this.colorPaletteDir = colorPaletteDir;
+        colorBarMap = new ColorHashMap();
         createDefaultGrayColorPaletteFile(defaultColorPaletteDef);
         updateDisplay();
         setColorPaletteDir(colorPaletteDir);
@@ -85,12 +87,13 @@ public class ColorPaletteChooser extends JComboBox {
         }
     }
 
-       private ImageIcon createGrayColorBarIcon(ColorPaletteDef colorPaletteDef, Dimension dimension) {
-       BufferedImage bufferedImage = new BufferedImage(dimension.width, dimension.height,
+    private ImageIcon createGrayColorBarIcon(ColorPaletteDef colorPaletteDef, Dimension dimension) {
+        BufferedImage bufferedImage = new BufferedImage(dimension.width, dimension.height,
                 BufferedImage.TYPE_INT_RGB);
         Graphics2D g2 = bufferedImage.createGraphics();
         drawPalette(g2, colorPaletteDef, new Rectangle(dimension));
         ImageIcon icon = new ImageIcon(bufferedImage);
+        colorBarMap.put(colorPaletteDef.createColorPalette(Scaling.IDENTITY), icon);
         icon.setDescription(DEFAULT_GRAY_COLOR_PALETTE_FILE_NAME);
         return icon;
     }
@@ -99,6 +102,7 @@ public class ColorPaletteChooser extends JComboBox {
 
         File grayColorFile = new File(colorPaletteDir, DEFAULT_GRAY_COLOR_PALETTE_FILE_NAME);
         try {
+            defaultGrayColorPaletteDef.setAutoDistribute(true);
             ColorPaletteDef.storeColorPaletteDef(defaultGrayColorPaletteDef, grayColorFile);
         } catch (IOException ioe) {
             System.err.println("Default Gray Color File is not created!");
@@ -118,6 +122,7 @@ public class ColorPaletteChooser extends JComboBox {
         drawPalette(g2, cpdFile, new Rectangle(dimension));
         ImageIcon icon = new ImageIcon(bufferedImage);
         icon.setDescription(cpdFile.getName());
+        colorBarMap.put(ColorPaletteDef.loadColorPaletteDef(cpdFile).createColorPalette(Scaling.IDENTITY), icon);
         return icon;
     }
 
@@ -142,13 +147,13 @@ public class ColorPaletteChooser extends JComboBox {
             }
         });
         this.icons = icons;
-        System.out.println("number of icons before sorting :"  + this.icons.size() );
         this.icons.remove(defaultIcon);
         this.icons.add(0, defaultIcon);
-              System.out.println("number of icons after sorting :"  + this.icons.size() );
         DefaultComboBoxModel colorBarModel = new DefaultComboBoxModel(icons.toArray(new ImageIcon[icons.size()]));
         colorBarModel.setSelectedItem(defaultIcon);
-        return  colorBarModel;
+
+
+        return colorBarModel;
     }
 
     private void updateDisplay() {
@@ -156,15 +161,25 @@ public class ColorPaletteChooser extends JComboBox {
         setModel(colorModel);
     }
 
-    public void resetToDefaultGrayColorPalette(ColorPaletteDef colorPaletteDef){
-       createDefaultGrayColorPaletteFile(colorPaletteDef);
-       ImageIcon defaultGrayColorBarIcon = createGrayColorBarIcon(colorPaletteDef, colorBarDimension);
-//        icons.remove();
-        icons.add(defaultGrayColorBarIcon);
-      colorModel.setSelectedItem(defaultGrayColorBarIcon);
-        setModel(colorModel);
+    public void resetToDefaultColorPalette(ColorPaletteDef colorPaletteDef) {
+        ImageIcon currentColorBarIcon;
+        if (colorPaletteDef.getNumColors() == 3) {
+            createDefaultGrayColorPaletteFile(colorPaletteDef);
+            currentColorBarIcon = createGrayColorBarIcon(colorPaletteDef, colorBarDimension);
+            icons.add(currentColorBarIcon);
+            colorModel.setSelectedItem(currentColorBarIcon);
+            setModel(colorModel);
 
+        } else {
+            currentColorBarIcon = colorBarMap.getImageIcon(colorPaletteDef.createColorPalette(Scaling.IDENTITY));
+            if (currentColorBarIcon != null) {
+                colorModel.setSelectedItem(currentColorBarIcon);
+                setModel(colorModel);
+            }
+
+        }
     }
+
     public File getColorPaletteDir() {
         return colorPaletteDir;
     }
@@ -231,6 +246,25 @@ public class ColorPaletteChooser extends JComboBox {
             return this;
         }
 
+    }
+
+    private class ColorHashMap extends HashMap<Color[], ImageIcon> {
+        ColorHashMap() {
+            super();
+        }
+
+        protected ImageIcon getImageIcon(Color[] currentColors) {
+            Set<Color[]> keys = keySet();
+            Iterator itr = keys.iterator();
+            Color[] colors;
+            while (itr.hasNext()) {
+                colors = (Color[]) itr.next();
+                if (Arrays.equals(colors, currentColors)) {
+                    return get(colors);
+                }
+            }
+            return null;
+        }
     }
 
 

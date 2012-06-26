@@ -70,6 +70,7 @@ class BasicColorEditor extends JPanel {
     private ChangeListener applyEnablerCL;
 
     private ColorPaletteDef defaultColorPaletteDef;
+    private String cpdFileName;
 
     BasicColorEditor(final ColorManipulationForm parentForm, ImageInfoEditor imageInfoEditor) {
         this.parentForm = parentForm;
@@ -83,7 +84,6 @@ class BasicColorEditor extends JPanel {
         valFormat = NumberFormat.getNumberInstance();
         valFormat.setMaximumFractionDigits(4);
         this.imageInfoEditor = imageInfoEditor;
-        //addChangeListener(new RepaintCL());
         applyEnablerCL = parentForm.createApplyEnablerChangeListener();
     }
 
@@ -124,13 +124,21 @@ class BasicColorEditor extends JPanel {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 ImageIcon currentColorBar = (ImageIcon) colorChooser.getSelectedItem();
-                String cpdFileName = currentColorBar.getDescription();
+                cpdFileName = currentColorBar.getDescription();
                 File cpdFile = colorChooser.getColorPaletteDir();
                 parentForm.loadColorPaletteFile(new File(cpdFile, cpdFileName));
                 fileDefaultCheckBox.doClick();
                 parentForm.setApplyEnabled(true);
             }
         });
+
+        colorChooser.addPropertyChangeListener("color_bar_changed", new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent propertyChangeEvent) {
+                //To change body of implemented methods use File | Settings | File Templates.
+            }
+        });
+
 
         parentForm.getProductSceneView().addPropertyChangeListener(new PropertyChangeListener() {
             @Override
@@ -282,11 +290,7 @@ class BasicColorEditor extends JPanel {
 
     protected void resetDefaultColorFile(ColorPaletteDef colorPaletteDef) {
         defaultColorPaletteDef = colorPaletteDef;
-        colorChooser.resetToDefaultGrayColorPalette(defaultColorPaletteDef);
-    }
-
-    protected void resetDefaultColorBar() {
-        colorChooser.resetToDefaultGrayColorPalette(defaultColorPaletteDef);
+        colorChooser.resetToDefaultColorPalette(defaultColorPaletteDef);
     }
 
     private boolean validateMinMax(double min, double max) {
