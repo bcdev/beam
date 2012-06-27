@@ -40,7 +40,7 @@
           [BEAM-1372] Use latest XStream library<br/>
           [BEAM-1352] When exporting a product a SubsetInfo is always added to metadata tree<br/>
           [BEAM-1323] Add "magic stick" to VISAT that lets users create masks of similar pixels<br/>
-          [BEAM-1314] Processor menus are not autoTab on Mac<br/>
+          [BEAM-1314] Processor menus are not visible on Mac<br/>
           [BEAM-1286] Link images shall use currently displayed image setting when a new band is opened<br/>
           [BEAM-1247] Masks can not be displayed over RGB-images<br/>
         <p>Changes in 4.9<br/>
@@ -72,7 +72,7 @@
           [BEAM-1109] Pixel Info View does not update if "Snap to selected pin" is clicked<br/>
           [BEAM-1108] Import of Pins/GCPs fails<br/>
           [BEAM-1106] ToolViews do not reflect the selected state correctly in all cases<br/>
-          [BEAM-1105] NullPointerException is thrown, if editor for geometry layer is autoTab<br/>
+          [BEAM-1105] NullPointerException is thrown, if editor for geometry layer is visible<br/>
           [BEAM-1095] Pixel position is updated when geo-location is changed for GCPs<br/>
           [BEAM-1097] Exception when reprojection results in large target product<br/>
           [BEAM-1094] Not possible to add placemarks if scrollbars are used<br/>
@@ -186,7 +186,7 @@
         [BEAM-716] Module repository location from preferences overwrites location from beam.config<br/>
         [BEAM-710] Not able to copy a product using new product dialog<br/>
         [BEAM-709] Open dialog should use 'All Files' as default filter<br/>
-        [BEAM-693] ROI not autoTab if converted from shape<br/>
+        [BEAM-693] ROI not visible if converted from shape<br/>
         <br/>Changes in 4.1<br/>
         [BEAM-482] Pins shall not be selected by default<br/>
         [BEAM-603] Select multiple pins<br/>
@@ -201,7 +201,7 @@
         [BEAM-673] Allow for multiple spectra in spectrum view<br/>
         [BEAM-677] Support for ground control points (GCPs)<br/>
         [BEAM-678] Change pin location by dragging<br/>
-        [BEAM-684] Pixel-info view functions only if initially autoTab<br/>
+        [BEAM-684] Pixel-info view functions only if initially visible<br/>
         [BEAM-696] Placemarks should be copied to output product<br/>
         [BEAM-698] Sortable table of pins and GCPs<br/>
         [BEAM-699] Editable cells of pin and GCP tables<br/>

@@ -186,7 +186,7 @@ MetadataRoot
                 "noTime", "00:00", ...
             - in all this cases, it should be possible to pick from predefined date or time patterns
             - in the case, that a user defined export is not selected, all the fields should
-              be autoTab but not enabled. Inside the fields, the defined export format (default
-              od ODESA) should be autoTab.
+              be visible but not enabled. Inside the fields, the defined export format (default
+              od ODESA) should be visible.
 
 - NavigationPanel shall allow linking by geo-coordinates

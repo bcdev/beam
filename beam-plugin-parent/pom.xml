@@ -17,10 +17,8 @@
     <description>This POM serves as parent for all internal plugin modules, providing their dependency management.</description>
 
     <properties>
-        <beam.version>4.10.3</beam.version>
-        <ceres.version>0.13.1</ceres.version>
-        <!--<beam.version>[4.10,5-SNAPSHOT)</beam.version>-->
-        <!--<ceres.version>[0.13,0.14-SNAPSHOT)</ceres.version>-->
+        <beam.version>[4.10,5-SNAPSHOT)</beam.version>
+        <ceres.version>[0.13,0.14-SNAPSHOT)</ceres.version>
         <geotools.version>2.7.4</geotools.version>
         <jide.version>3.3.7</jide.version>
         <hdf.version>2.7</hdf.version>

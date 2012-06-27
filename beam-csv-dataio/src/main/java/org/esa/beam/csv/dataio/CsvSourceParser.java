@@ -18,8 +18,6 @@ package org.esa.beam.csv.dataio;
 
 import java.io.IOException;
 
-import java.io.IOException;
-
 /**
  * Interface providing methods for parsing a csv source.
  *
