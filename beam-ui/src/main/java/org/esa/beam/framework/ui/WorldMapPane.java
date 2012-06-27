@@ -25,6 +25,7 @@ import org.esa.beam.util.ProductUtils;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 
 import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.JPanel;
 import javax.swing.event.MouseInputAdapter;
 import java.awt.BorderLayout;
@@ -42,7 +43,9 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * This class displays a world map specified by the {@link WorldMapPaneDataModel}.
@@ -59,6 +62,7 @@ public class WorldMapPane extends JPanel {
     private WakefulComponent navControlWrapper;
     private PanSupport panSupport;
     private MouseHandler mouseHandler;
+    private Set<ScrollListener> scrollListeners;
 
     public WorldMapPane(WorldMapPaneDataModel dataModel) {
         this(dataModel, null);
@@ -68,6 +72,7 @@ public class WorldMapPane extends JPanel {
         this.dataModel = dataModel;
         layerCanvas = new LayerCanvas();
         this.panSupport = new DefaultPanSupport(layerCanvas);
+        this.scrollListeners = new HashSet<ScrollListener>();
         getLayerCanvas().getModel().getViewport().setModelYAxisDown(false);
         if (overlay == null) {
             getLayerCanvas().addOverlay(new BoundaryOverlayImpl(dataModel));
@@ -88,9 +93,9 @@ public class WorldMapPane extends JPanel {
         dataModel.addModelChangeListener(new ModelChangeListener());
 
         worldMapLayer = dataModel.getWorldMapLayer(new WorldMapLayerContext(rootLayer));
-        installLayerCanvasNavigation(getLayerCanvas(), worldMapLayer);
+        installLayerCanvasNavigation(getLayerCanvas());
         getLayerCanvas().getLayer().getChildren().add(worldMapLayer);
-        getLayerCanvas().getViewport().zoom(worldMapLayer.getModelBounds());
+        zoomAll();
         setNavControlVisible(true);
 
         addComponentListener(new ComponentAdapter() {
@@ -123,7 +128,7 @@ public class WorldMapPane extends JPanel {
                         getLayerCanvas().getBounds().intersects(westBorder) ||
                         getLayerCanvas().getBounds().intersects(eastBorder);
                 if (isWorldMapFullyVisible) {
-                    getLayerCanvas().getViewport().zoom(worldMapLayer.getModelBounds());
+                    zoomAll();
                 }
             }
         });
@@ -175,6 +180,12 @@ public class WorldMapPane extends JPanel {
         modelBounds = cropToMaxModelBounds(modelBounds);
 
         viewport.zoom(modelBounds);
+        fireScrolled();
+    }
+
+    public void zoomAll() {
+        getLayerCanvas().getViewport().zoom(worldMapLayer.getModelBounds());
+        fireScrolled();
     }
 
     /**
@@ -186,8 +197,8 @@ public class WorldMapPane extends JPanel {
         boolean oldValue = this.navControlShown;
         if (oldValue != navControlShown) {
             if (navControlShown) {
-                final ButtonOverlayControl navControl = new ButtonOverlayControl(new ZoomAllAction(),
-                        new ZoomToSelectedAction());
+                final Action[] overlayActions = getOverlayActions();
+                final ButtonOverlayControl navControl = new ButtonOverlayControl(overlayActions.length, overlayActions);
                 navControlWrapper = new WakefulComponent(navControl);
                 navControlWrapper.setMinAlpha(0.3f);
                 getLayerCanvas().add(navControlWrapper);
@@ -205,7 +216,7 @@ public class WorldMapPane extends JPanel {
         layerCanvas.removeMouseMotionListener(mouseHandler);
 
         this.panSupport = panSupport;
-        mouseHandler = new MouseHandler(layerCanvas, worldMapLayer, panSupport);
+        mouseHandler = new MouseHandler();
         layerCanvas.addMouseListener(mouseHandler);
         layerCanvas.addMouseMotionListener(mouseHandler);
     }
@@ -217,6 +228,24 @@ public class WorldMapPane extends JPanel {
     static GeneralPath[] getGeoBoundaryPaths(Product product) {
         final int step = Math.max(16, (product.getSceneRasterWidth() + product.getSceneRasterHeight()) / 250);
         return ProductUtils.createGeoBoundaryPaths(product, null, step);
+    }
+
+    public boolean addScrollListener(ScrollListener scrollListener) {
+        return scrollListeners.add(scrollListener);
+    }
+
+    public boolean removeScrollListener(ScrollListener scrollListener) {
+        return scrollListeners.remove(scrollListener);
+    }
+
+    protected Action[] getOverlayActions() {
+        return new Action[] {new ZoomAllAction(), new ZoomToSelectedAction()};
+    }
+
+    private void fireScrolled() {
+        for (ScrollListener scrollListener : scrollListeners) {
+            scrollListener.scrolled();
+        }
     }
 
     private void updateUiState(PropertyChangeEvent evt) {
@@ -249,7 +278,7 @@ public class WorldMapPane extends JPanel {
         final Layer rootLayer = getLayerCanvas().getLayer();
         worldMapLayer = dataModel.getWorldMapLayer(new WorldMapLayerContext(rootLayer));
         children.add(worldMapLayer);
-        getLayerCanvas().getViewport().zoom(worldMapLayer.getModelBounds());
+        zoomAll();
     }
 
     private Rectangle2D cropToMaxModelBounds(Rectangle2D modelBounds) {
@@ -261,8 +290,8 @@ public class WorldMapPane extends JPanel {
         return modelBounds;
     }
 
-    private void installLayerCanvasNavigation(LayerCanvas layerCanvas, Layer worldMapLayer) {
-        mouseHandler = new MouseHandler(layerCanvas, worldMapLayer, panSupport);
+    private void installLayerCanvasNavigation(LayerCanvas layerCanvas) {
+        mouseHandler = new MouseHandler();
         layerCanvas.addMouseListener(mouseHandler);
         layerCanvas.addMouseMotionListener(mouseHandler);
         layerCanvas.addMouseWheelListener(mouseHandler);
@@ -304,17 +333,7 @@ public class WorldMapPane extends JPanel {
         }
     }
 
-    private static class MouseHandler extends MouseInputAdapter {
-
-        private final LayerCanvas layerCanvas;
-        private final Layer worldMapLayer;
-        private PanSupport panSupport;
-
-        private MouseHandler(LayerCanvas layerCanvas, Layer worldMapLayer, PanSupport panSupport) {
-            this.layerCanvas = layerCanvas;
-            this.worldMapLayer = worldMapLayer;
-            this.panSupport = panSupport;
-        }
+    private class MouseHandler extends MouseInputAdapter {
 
         @Override
         public void mousePressed(MouseEvent e) {
@@ -324,6 +343,11 @@ public class WorldMapPane extends JPanel {
         @Override
         public void mouseDragged(MouseEvent e) {
             panSupport.performPan(e);
+        }
+
+        @Override
+        public void mouseReleased(MouseEvent e) {
+            panSupport.panStopped(e);
         }
 
         @Override
@@ -337,8 +361,9 @@ public class WorldMapPane extends JPanel {
                     viewBounds.getHeight() / modelBounds.getHeight());
             layerCanvas.getViewport().setZoomFactor(Math.max(newZoomFactor, minZoomFactor));
 
-            if (viewportIsInWorldMapBounds(0, 0, layerCanvas) ||
-                    layerCanvas.getViewport().getZoomFactor() > oldFactor) {
+            if (layerCanvas.getViewport().getZoomFactor() > oldFactor
+                    || viewportIsInWorldMapBounds(0, 0, layerCanvas)) {
+                fireScrolled();
                 return;
             }
             layerCanvas.getViewport().setZoomFactor(oldFactor);
@@ -373,7 +398,7 @@ public class WorldMapPane extends JPanel {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            getLayerCanvas().getViewport().zoom(worldMapLayer.getModelBounds());
+            zoomAll();
         }
     }
 
@@ -389,15 +414,19 @@ public class WorldMapPane extends JPanel {
         }
     }
 
+    public interface ScrollListener {
+        void scrolled();
+    }
+
     public interface PanSupport {
         void panStarted(MouseEvent event);
-
         void performPan(MouseEvent event);
+        void panStopped(MouseEvent event);
     }
 
     protected static class DefaultPanSupport implements PanSupport {
-
         private Point p0;
+
         private final LayerCanvas layerCanvas;
 
         protected DefaultPanSupport(LayerCanvas layerCanvas) {
@@ -419,6 +448,9 @@ public class WorldMapPane extends JPanel {
                 layerCanvas.getViewport().moveViewDelta(dx, dy);
             }
             p0 = p;
+        }
+        @Override
+        public void panStopped(MouseEvent event) {
         }
     }
 

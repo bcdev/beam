@@ -24,7 +24,7 @@
     <parent>
         <artifactId>beam-system</artifactId>
         <groupId>org.esa.beam</groupId>
-        <version>4.10.3-SNAPSHOT</version>
+        <version>4.10.3</version>
         <relativePath>../beam-system/pom.xml</relativePath>
     </parent>
 
@@ -124,7 +124,7 @@
                                 <artifactItem>
                                     <groupId>org.esa.beam</groupId>
                                     <artifactId>beam-meris-case2-regional</artifactId>
-                                    <version>1.5.4-SNAPSHOT</version>
+                                    <version>1.5.5</version>
                                     <outputDirectory>${basedir}/../target/beam-bin/modules</outputDirectory>
                                 </artifactItem>
                                 <artifactItem>

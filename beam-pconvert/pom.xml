@@ -20,15 +20,15 @@
 
     <parent>
         <groupId>org.esa.beam</groupId>
-        <artifactId>beam-plugins</artifactId>
-        <version>1-SNAPSHOT</version>
-        <relativePath>../beam-plugins/pom.xml</relativePath>
+        <artifactId>beam-plugin-parent</artifactId>
+        <version>1.0</version>
+        <relativePath>../beam-plugin-parent/pom.xml</relativePath>
     </parent>
 
     <groupId>org.esa.beam</groupId>
     <artifactId>beam-pconvert</artifactId>
     <packaging>jar</packaging>
-    <version>1.4</version>
+    <version>1.4.1</version>
     <name>BEAM Product Conversion Tool</name>
 
     <dependencies>

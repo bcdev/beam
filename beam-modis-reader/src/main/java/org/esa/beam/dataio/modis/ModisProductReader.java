@@ -24,7 +24,6 @@ import org.esa.beam.dataio.modis.netcdf.NetCDFUtils;
 import org.esa.beam.dataio.modis.netcdf.NetCDFVariables;
 import org.esa.beam.dataio.modis.productdb.ModisProductDb;
 import org.esa.beam.framework.dataio.AbstractProductReader;
-import org.esa.beam.framework.dataio.ProductFlipper;
 import org.esa.beam.framework.dataio.ProductIOException;
 import org.esa.beam.framework.datamodel.Band;
 import org.esa.beam.framework.datamodel.MetadataElement;
@@ -32,6 +31,7 @@ import org.esa.beam.framework.datamodel.Product;
 import org.esa.beam.framework.datamodel.ProductData;
 import ucar.nc2.Attribute;
 import ucar.nc2.NetcdfFile;
+import ucar.nc2.Variable;
 
 import java.awt.*;
 import java.io.File;
@@ -79,6 +79,12 @@ public class ModisProductReader extends AbstractProductReader {
     ////// END OF PUBLIC
     ///////////////////////////////////////////////////////////////////////////
 
+    // package access for testing only tb 2012-06-19
+    static boolean isGlobalAttributeName(String variableName) {
+        return "StructMetadata.0".equalsIgnoreCase(variableName)
+                || "CoreMetadata.0".equalsIgnoreCase(variableName)
+                || "ArchiveMetadata.0".equalsIgnoreCase(variableName);
+    }
 
     /**
      * The template method which is called by the method after an optional spatial subset has
@@ -177,16 +183,16 @@ public class ModisProductReader extends AbstractProductReader {
 //                            prod.getDescription());
 //                    prod.setFileLocation(inFile);
 //                }
-        final ModisProductDb productDb = ModisProductDb.getInstance();
-        if (productDb.mustFlip(globalAttributes.getProductType())) {
-            // @todo 1 tb/tb this creates weired geo-codings!!!!!
+//        final ModisProductDb productDb = ModisProductDb.getInstance();
+//        if (productDb.mustFlip(globalAttributes.getProductType())) {
+//            // @todo 1 tb/tb this creates weired geo-codings!!!!!
 //            product = ProductFlipper.createFlippedProduct(product,
 //                                                          ProductFlipper.FLIP_BOTH,
 //                                                          product.getName(),
 //                                                          product.getDescription());
-//                    prod.setFileLocation(inFile);
-            System.out.println("FLIP_IT!!!!!!!!!!!!!!!!!!");
-        }
+//            product.setFileLocation(inFile);
+//            System.out.println("FLIP_IT!!!!!!!!!!!!!!!!!!");
+//        }
         return product;
     }
 
@@ -230,7 +236,7 @@ public class ModisProductReader extends AbstractProductReader {
      *
      * @param prod the product
      */
-    private void addMetadata(Product prod) {
+    private void addMetadata(Product prod) throws IOException {
         final MetadataElement mdElem = prod.getMetadataRoot();
         if (mdElem == null) {
             return;
@@ -241,6 +247,16 @@ public class ModisProductReader extends AbstractProductReader {
         final Attribute[] attributes = netCDFAttributes.getAll();
         for (final Attribute attribute : attributes) {
             globalElem.addAttribute(NetCDFUtils.toMetadataAttribute(attribute));
+        }
+
+        // we need to scan the variables because the NetCDF lib puts three important
+        // global attributes into the list of variables tb 2012-06-19
+        final Variable[] variables = netCDFVariables.getAll();
+        for (int i = 0; i < variables.length; i++) {
+            final Variable variable = variables[i];
+            if (isGlobalAttributeName(variable.getName())) {
+                globalElem.addAttribute(NetCDFUtils.toMetadataAttribute(variable));
+            }
         }
 
         mdElem.addElement(globalElem);
