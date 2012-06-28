@@ -126,7 +126,7 @@
 
     <extension point="beam-ui:helpSets">
         <helpSet>
-            <parent>beam-help</parent>
+            <parent>seadas-help</parent>
             <path>doc/help/gpf.hs</path>
         </helpSet>
     </extension>
