@@ -196,7 +196,8 @@ public class TiePointGeoCoding extends AbstractGeoCoding {
     public PixelPos getPixelPos(GeoPos geoPos, PixelPos pixelPos) {
         if (approximations != null) {
             float lat = normalizeLat(geoPos.lat);
-            float lon = normalizeLon(geoPos.lon);
+//            float lon = normalizeLon(geoPos.lon);
+            float lon = geoPos.lon;
             // ensure that pixel is out of image (= no source position)
             if (pixelPos == null) {
                 pixelPos = new PixelPos();
@@ -472,14 +473,14 @@ public class TiePointGeoCoding extends AbstractGeoCoding {
     private static FXYSum getBestPolynomial(double[][] data, int[] indices) {
         // These are the potential polynomials which we will check
         final FXYSum[] potentialPolynomials = new FXYSum[]{
-                new FXYSum.Linear(),
-                new FXYSum.BiLinear(),
-                new FXYSum.Quadric(),
-                new FXYSum.BiQuadric(),
-                new FXYSum.Cubic(),
-                new FXYSum.BiCubic(),
-                new FXYSum(FXYSum.FXY_4TH, 4),
-                new FXYSum(FXYSum.FXY_BI_4TH, 4 + 4)
+                    new FXYSum.Linear(),
+                    new FXYSum.BiLinear(),
+                    new FXYSum.Quadric(),
+                    new FXYSum.BiQuadric(),
+                    new FXYSum.Cubic(),
+                    new FXYSum.BiCubic(),
+                    new FXYSum(FXYSum.FXY_4TH, 4),
+                    new FXYSum(FXYSum.FXY_BI_4TH, 4 + 4)
         };
 
         // Find the polynomial which best fitts the warp points
@@ -644,13 +645,13 @@ public class TiePointGeoCoding extends AbstractGeoCoding {
         final double maxErrorY = fY.getMaxError();
 
         Debug.trace(
-                "TiePointGeoCoding: RMSE X      = " + rmseX + ", " + (rmseX < ABS_ERROR_LIMIT ? "OK" : "too large"));
+                    "TiePointGeoCoding: RMSE X      = " + rmseX + ", " + (rmseX < ABS_ERROR_LIMIT ? "OK" : "too large"));
         Debug.trace(
-                "TiePointGeoCoding: RMSE Y      = " + rmseY + ", " + (rmseY < ABS_ERROR_LIMIT ? "OK" : "too large"));
+                    "TiePointGeoCoding: RMSE Y      = " + rmseY + ", " + (rmseY < ABS_ERROR_LIMIT ? "OK" : "too large"));
         Debug.trace(
-                "TiePointGeoCoding: Max.error X = " + maxErrorX + ", " + (maxErrorX < ABS_ERROR_LIMIT ? "OK" : "too large"));
+                    "TiePointGeoCoding: Max.error X = " + maxErrorX + ", " + (maxErrorX < ABS_ERROR_LIMIT ? "OK" : "too large"));
         Debug.trace(
-                "TiePointGeoCoding: Max.error Y = " + maxErrorY + ", " + (maxErrorY < ABS_ERROR_LIMIT ? "OK" : "too large"));
+                    "TiePointGeoCoding: Max.error Y = " + maxErrorY + ", " + (maxErrorY < ABS_ERROR_LIMIT ? "OK" : "too large"));
 
         return new Approximation(fX, fY, centerLat, centerLon, maxSquareDistance * 1.1f);
     }

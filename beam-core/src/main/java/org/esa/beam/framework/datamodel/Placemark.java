@@ -96,7 +96,7 @@ public class Placemark extends ProductNode {
         this.descriptor = descriptor;
         this.feature = feature;
         Debug.trace(
-                "Placemark created: descriptor=" + descriptor.getClass() + ", featureType=" + feature.getFeatureType().getTypeName() + ", feature=" + feature);
+                    "Placemark created: descriptor=" + descriptor.getClass() + ", featureType=" + feature.getFeatureType().getTypeName() + ", feature=" + feature);
     }
 
     /**
@@ -343,10 +343,18 @@ public class Placemark extends ProductNode {
 
         // todo - remove instanceof - bad code smell  (nf while revising Placemark API)
         if ((descriptor instanceof PinDescriptor || imagePos == null)
-                && geoPos != null
-                && geoCoding != null
-                && geoCoding.canGetPixelPos()) {
+            && geoPos != null
+            && geoCoding != null
+            && geoCoding.canGetPixelPos()) {
+            // todo sabine 180 degree problem
             imagePos = geoCoding.getPixelPos(geoPos, imagePos);
+            final GeoPos tempGeoPos = new GeoPos(geoPos);
+            int n = 0;
+            while (n < 5 && (Float.isNaN(imagePos.x) || imagePos.x < 0)) {
+                tempGeoPos.lon += 360;
+                imagePos = geoCoding.getPixelPos(tempGeoPos, imagePos);
+                n++;
+            }
         }
 
         if (imagePos == null) {

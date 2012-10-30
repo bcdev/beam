@@ -16,6 +16,7 @@
 package org.esa.beam.framework.datamodel;
 
 import org.esa.beam.jai.ImageManager;
+import org.esa.beam.util.ProductUtils;
 import org.esa.beam.util.math.MathUtils;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.resources.geometry.XRectangle2D;
@@ -185,8 +186,26 @@ public class ImageGeometry {
             double minX = targetEnvelope.getMinX();
             double width = targetEnvelope.getWidth();
             if (product.getGeoCoding().isCrossingMeridianAt180()) {
-                minX = -180.0;
-                width = 360;
+//                minX = -180.0;
+//                width = 360;
+                final GeoPos[] geoBoundary = ProductUtils.createGeoBoundary(product, new Rectangle(0, 0, sourceW, sourceH), 10, false);
+                final int i = ProductUtils.normalizeGeoPolygon(geoBoundary);
+                if (i == -1 || i == 2) {
+                    for (GeoPos geoPos : geoBoundary) {
+                        geoPos.lon += 360;
+                    }
+                }
+                minX = Double.MAX_VALUE;
+                double maxX = Double.MIN_VALUE;
+                for (GeoPos geoPos : geoBoundary) {
+                    if (geoPos.lon < minX) {
+                        minX = geoPos.lon;
+                    }
+                    if (geoPos.lon > maxX) {
+                        maxX = geoPos.lon;
+                    }
+                }
+                width = maxX - minX;
             }
             return new Rectangle2D.Double(minX, targetEnvelope.getMinY(), width, targetEnvelope.getHeight());
         } catch (Exception e) {

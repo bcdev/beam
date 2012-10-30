@@ -41,5 +41,34 @@ class WGS84CrsProvider extends AbstractCrsProvider {
     public CoordinateReferenceSystem getCRS(final GeoPos referencePos, ParameterValueGroup parameter,
                                             GeodeticDatum datum) throws FactoryException {
         return DefaultGeographicCRS.WGS84;
+
+
+//        final int greenwichLongitude = Math.round(referencePos.lon / 10) * 10;
+//        final double minLon = greenwichLongitude - 180;
+//        final double maxLon = greenwichLongitude + 180;
+//
+//        final DefaultPrimeMeridian primeMeridian = new DefaultPrimeMeridian("PRIMEM", greenwichLongitude);
+//        final DefaultGeodeticDatum datum1 = new DefaultGeodeticDatum("WGS84", DefaultGeodeticDatum.WGS84.getEllipsoid(), primeMeridian);
+//
+//
+//        final Map<String, Object> properties = new HashMap<String, Object>();
+//        properties.put("name", "EAST");
+//        final Unit<? extends Quantity> unit = Unit.valueOf("°");
+//        final AxisDirection eastDir = AxisDirection.EAST;
+//        final AxisDirection northDir = AxisDirection.NORTH;
+//        final RangeMeaning meaning = RangeMeaning.WRAPAROUND;
+//        final DefaultCoordinateSystemAxis axis0 = new DefaultCoordinateSystemAxis(properties, "EAST", eastDir, unit, minLon, maxLon, meaning);
+//        final DefaultCoordinateSystemAxis axis1 = new DefaultCoordinateSystemAxis("NORTH", northDir, unit);
+//        final DefaultEllipsoidalCS cs = new DefaultEllipsoidalCS("", axis0, axis1);
+
+//        final DefaultGeographicCRS geographicCRS = new DefaultGeographicCRS("", DefaultGeodeticDatum.WGS84, cs);
+//        final DefaultGeographicCRS geographicCRS = new DefaultGeographicCRS("", datum1, cs);
+//        final DefaultGeographicCRS defaultGeographicCRS = DefaultGeographicCRS.WGS84;
+//        System.out.println("geographicCRS:");
+//        System.out.println(geographicCRS.toWKT());
+//        System.out.println("defaultGeographicCRS:");
+//        System.out.println(defaultGeographicCRS.toWKT());
+//        return geographicCRS;
+//        return defaultGeographicCRS;
     }
 }

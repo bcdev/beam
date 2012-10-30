@@ -432,12 +432,12 @@ public class Graticule {
     }
 
     private static float limitLon(float lon) {
-        while (lon < -180f) {
-            lon += 360f;
-        }
-        while (lon > 180f) {
-            lon -= 360f;
-        }
+//        while (lon < -180f) {
+//            lon += 360f;
+//        }
+//        while (lon > 180f) {
+//            lon -= 360f;
+//        }
         return lon;
     }
 

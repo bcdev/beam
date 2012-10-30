@@ -500,7 +500,15 @@ public class PlacemarkManagerToolView extends AbstractToolView {
 
             final GeoPos geoPos = placemark.getGeoPos();
             if (geoCoding != null && geoCoding.canGetPixelPos()) {
+                // todo sabine 180 degree problem
                 placemarkDescriptor.updatePixelPos(geoCoding, geoPos, pixelPos);
+
+                int n = 0;
+                while (n < 5 && (Float.isNaN(pixelPos.x) || pixelPos.x < 0)) {
+                    geoPos.lon += 360;
+                    placemarkDescriptor.updatePixelPos(geoCoding, geoPos, pixelPos);
+                    n++;
+                }
             }
 
             if (!product.containsPixel(pixelPos) && placemarkDescriptor instanceof PinDescriptor) {
