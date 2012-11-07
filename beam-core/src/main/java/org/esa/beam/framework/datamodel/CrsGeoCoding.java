@@ -265,6 +265,7 @@ public class CrsGeoCoding extends AbstractGeoCoding {
                                                                        bounds.getMinY() + 0.5,
                                                                        bounds.getMaxY() - 0.5,
                                                                        getImageCRS());
+        // todo sabine - Does not really detect 180 degree crossing
         referencedEnvelope = referencedEnvelope.transform(getGeoCRS(), true);
         final DirectPosition uc = referencedEnvelope.getUpperCorner();
         final DirectPosition lc = referencedEnvelope.getLowerCorner();

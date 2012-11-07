@@ -15,17 +15,20 @@
  */
 package org.esa.beam.framework.datamodel;
 
-import org.esa.beam.jai.ImageManager;
-import org.esa.beam.util.ProductUtils;
-import org.esa.beam.util.math.MathUtils;
-import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.resources.geometry.XRectangle2D;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
-
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import org.esa.beam.jai.ImageManager;
+import org.esa.beam.util.ProductUtils;
+import org.esa.beam.util.math.MathUtils;
+import org.geotools.geometry.GeneralDirectPosition;
+import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.geotools.referencing.CRS;
+import org.geotools.resources.geometry.XRectangle2D;
+import org.opengis.geometry.DirectPosition;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.operation.MathTransform;
 
 /**
  * @author Marco Zuehlke
@@ -174,17 +177,26 @@ public class ImageGeometry {
 
     private static Rectangle2D createMapBoundary(final Product product, CoordinateReferenceSystem targetCrs) {
         try {
-            final CoordinateReferenceSystem sourceCrs = product.getGeoCoding().getImageCRS();
+            final GeoCoding geoCoding = product.getGeoCoding();
+            final CoordinateReferenceSystem geoCRS = geoCoding.getGeoCRS();
+            final CoordinateReferenceSystem imageCRS = geoCoding.getImageCRS();
             final int sourceW = product.getSceneRasterWidth();
             final int sourceH = product.getSceneRasterHeight();
 
             Rectangle2D rect = XRectangle2D.createFromExtremums(0.5, 0.5, sourceW - 0.5, sourceH - 0.5);
             int pointsPerSide = Math.min(sourceH, sourceW) / 10;
             pointsPerSide = Math.max(9, pointsPerSide);
-            final ReferencedEnvelope sourceEnvelope = new ReferencedEnvelope(rect, sourceCrs);
+            final ReferencedEnvelope sourceEnvelope = new ReferencedEnvelope(rect, imageCRS);
             final ReferencedEnvelope targetEnvelope = sourceEnvelope.transform(targetCrs, true, pointsPerSide);
+
             double minX = targetEnvelope.getMinX();
+            double minY = targetEnvelope.getMinY();
             double width = targetEnvelope.getWidth();
+            double height = targetEnvelope.getHeight();
+
+            MathTransform geo2target = CRS.findMathTransform(geoCRS, targetCrs);
+
+
             if (product.getGeoCoding().isCrossingMeridianAt180()) {
 //                minX = -180.0;
 //                width = 360;
@@ -195,8 +207,17 @@ public class ImageGeometry {
                         geoPos.lon += 360;
                     }
                 }
+                if (!geo2target.isIdentity()) {
+                    for (GeoPos geoPos : geoBoundary) {
+                        final GeneralDirectPosition geoDirPos = new GeneralDirectPosition(geoPos.getLon(), geoPos.getLat());
+                        final DirectPosition transformedPos = geo2target.transform(geoDirPos, null);
+                        geoPos.setLocation((float)transformedPos.getOrdinate(1), (float)transformedPos.getOrdinate(0));
+                    }
+                }
                 minX = Double.MAX_VALUE;
-                double maxX = Double.MIN_VALUE;
+                double maxX = Double.NEGATIVE_INFINITY;
+                minY = Double.MAX_VALUE;
+                double maxY = Double.NEGATIVE_INFINITY;
                 for (GeoPos geoPos : geoBoundary) {
                     if (geoPos.lon < minX) {
                         minX = geoPos.lon;
@@ -204,10 +225,17 @@ public class ImageGeometry {
                     if (geoPos.lon > maxX) {
                         maxX = geoPos.lon;
                     }
+                    if (geoPos.lat < minY) {
+                        minY = geoPos.lat;
+                    }
+                    if (geoPos.lat > maxY) {
+                        maxY = geoPos.lat;
+                    }
                 }
                 width = maxX - minX;
+                height = maxY - minY;
             }
-            return new Rectangle2D.Double(minX, targetEnvelope.getMinY(), width, targetEnvelope.getHeight());
+            return new Rectangle2D.Double(minX, minY, width, height);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
