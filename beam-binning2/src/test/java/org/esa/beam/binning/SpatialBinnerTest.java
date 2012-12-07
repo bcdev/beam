@@ -8,11 +8,7 @@ import org.esa.beam.binning.support.SEAGrid;
 import org.junit.Test;
 
 import java.awt.geom.AffineTransform;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static java.lang.Math.log;
 import static java.lang.Math.sqrt;

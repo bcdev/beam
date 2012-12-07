@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.SortedMap;
 
-import static java.lang.Math.sqrt;
+import static java.lang.Math.*;
 import static org.junit.Assert.*;
 
 /**

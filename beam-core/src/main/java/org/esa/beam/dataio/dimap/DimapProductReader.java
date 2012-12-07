@@ -323,7 +323,7 @@ public class DimapProductReader extends AbstractProductReader {
                     if (pm.isCanceled()) {
                         break;
                     }
-                    final long sourcePosY = (long) sourceY * sourceRasterWidth;
+                    final long sourcePosY = (long)sourceY * sourceRasterWidth;
                     if (sourceStepX == 1) {
                         long inputPos = sourcePosY + sourceMinX;
                         destBuffer.readFrom(destPos, destWidth, inputStream, inputPos);
@@ -441,18 +441,18 @@ public class DimapProductReader extends AbstractProductReader {
 
     private File[] getVectorDataFiles(File vectorDataDir, final boolean onlyGCPs) {
         return vectorDataDir.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                if (name.endsWith(VectorDataNodeIO.FILENAME_EXTENSION)) {
-                    if (onlyGCPs) {
-                        return name.equals("ground_control_points.csv");
-                    } else {
-                        return true;
+                    @Override
+                    public boolean accept(File dir, String name) {
+                        if(name.endsWith(VectorDataNodeIO.FILENAME_EXTENSION)) {
+                            if(onlyGCPs) {
+                                return name.equals("ground_control_points.csv");
+                            } else {
+                                return true;
+                            }
+                        }
+                        return false;
                     }
-                }
-                return false;
-            }
-        });
+                });
     }
 
     private static class OptimalPlacemarkDescriptorProvider implements VectorDataNodeReader.PlacemarkDescriptorProvider {

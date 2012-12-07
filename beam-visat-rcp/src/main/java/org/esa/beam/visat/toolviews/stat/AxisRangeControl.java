@@ -7,16 +7,15 @@ import com.bc.ceres.binding.ValidationException;
 import com.bc.ceres.binding.Validator;
 import com.bc.ceres.swing.binding.BindingContext;
 import com.jidesoft.swing.TitledSeparator;
-import org.esa.beam.framework.ui.GridBagUtils;
-import org.esa.beam.util.math.MathUtils;
-import org.jfree.chart.axis.ValueAxis;
-
+import java.awt.GridBagConstraints;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
-import java.awt.GridBagConstraints;
+import org.esa.beam.framework.ui.GridBagUtils;
+import org.esa.beam.util.math.MathUtils;
+import org.jfree.chart.axis.ValueAxis;
 
 /**
  * @author Norman Fomferra
@@ -81,7 +80,7 @@ class AxisRangeControl {
             @Override
             public void validateValue(Property property, Object value) throws ValidationException {
                 final Double max = bindingContext.getPropertySet().getValue("max");
-                if ((Double) value >= max) {
+                if ((Double)value >= max ) {
                     throw new ValidationException("min value has to be less than " + max);
                 }
             }
@@ -91,7 +90,7 @@ class AxisRangeControl {
             @Override
             public void validateValue(Property property, Object value) throws ValidationException {
                 final Double min = bindingContext.getPropertySet().getValue("min");
-                if ((Double) value <= min) {
+                if ((Double)value <= min ) {
                     throw new ValidationException("max value has to be greater than " + min);
                 }
             }

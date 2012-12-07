@@ -34,14 +34,7 @@ package org.esa.beam.binning.operator;
 
 
 import com.bc.ceres.binding.BindingException;
-import org.esa.beam.binning.Aggregator;
-import org.esa.beam.binning.AggregatorConfig;
-import org.esa.beam.binning.AggregatorDescriptor;
-import org.esa.beam.binning.AggregatorDescriptorRegistry;
-import org.esa.beam.binning.BinManager;
-import org.esa.beam.binning.BinningContext;
-import org.esa.beam.binning.PlanetaryGrid;
-import org.esa.beam.binning.VariableContext;
+import org.esa.beam.binning.*;
 import org.esa.beam.binning.support.BinningContextImpl;
 import org.esa.beam.binning.support.SEAGrid;
 import org.esa.beam.binning.support.VariableContextImpl;

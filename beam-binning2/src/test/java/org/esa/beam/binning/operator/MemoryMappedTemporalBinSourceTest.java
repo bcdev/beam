@@ -78,13 +78,13 @@ public class MemoryMappedTemporalBinSourceTest {
 
         @Override
         public int readInt() throws IOException {
-            if (visitCount == 0) {
+            if(visitCount == 0) {
                 visitCount++;
                 return NUM_OBS;
             } else if (visitCount == 1) {
                 visitCount++;
                 return NUM_PASSES;
-            } else if (visitCount == 2) {
+            } else if(visitCount == 2) {
                 visitCount++;
                 return FEATURE_COUNT;
             }

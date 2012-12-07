@@ -5,7 +5,7 @@ import org.esa.beam.binning.support.SEAGrid;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.awt.Rectangle;
+import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;

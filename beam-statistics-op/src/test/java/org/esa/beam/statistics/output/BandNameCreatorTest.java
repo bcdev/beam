@@ -24,8 +24,7 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * @author Thomas Storm
@@ -103,9 +102,9 @@ public class BandNameCreatorTest {
         bandNameCreator.createUniqueAttributeName("minimum", "far_too_long_band_name");
 
         assertEquals("mdn_0=median_saharan_dust_index_a\n" +
-                             "mdn_1=median_saharan_dust_index_b\n" +
-                             "mx_0=maximum_far_too_long_band_name\n" +
-                             "mn_0=minimum_far_too_long_band_name\n",
+                     "mdn_1=median_saharan_dust_index_b\n" +
+                     "mx_0=maximum_far_too_long_band_name\n" +
+                     "mn_0=minimum_far_too_long_band_name\n",
                      stringBuilder.toString());
     }
 }

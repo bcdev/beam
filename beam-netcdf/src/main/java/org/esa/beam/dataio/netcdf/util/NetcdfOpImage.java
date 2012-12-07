@@ -161,7 +161,7 @@ public class NetcdfOpImage extends SingleBandedOpImage {
         } else {
             Object data;
             if (xIndex < yIndex) {
-                data = convertedArray.copyTo1DJavaArray();
+                data  = convertedArray.copyTo1DJavaArray();
             } else {
                 data = convertedArray.getStorage();
             }

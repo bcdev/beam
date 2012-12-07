@@ -17,7 +17,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-visat-rcp</symbolicName>
-    <version>5.0</version>
+    <version>4.10.4</version>
     <name>VISAT Rich Client Platform</name>
 
     <description>
@@ -1816,6 +1816,7 @@
             <shortDescr>Reset to initial layout.</shortDescr>
         </action>
 
+        <!--
                 <action>
                     <id>createXYDisplacementBandsAction</id>
                     <class>org.esa.beam.visat.actions.CreateXYDisplacementBandsAction</class>
@@ -1828,6 +1829,7 @@
                     <separatorAfter>false</separatorAfter>
                 </action>
 
+        -->
     </extension>
 
 </module>

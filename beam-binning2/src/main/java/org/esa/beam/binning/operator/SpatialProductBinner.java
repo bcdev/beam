@@ -58,7 +58,9 @@ public class SpatialProductBinner {
      * @param superSampling   The super-sampling rate.
      * @param addedBands      A container for the bands that are added during processing.
      * @param progressMonitor A progress monitor.
+     *
      * @return The total number of observations processed.
+     *
      * @throws IOException If an I/O error occurs.
      */
     public static long processProduct(Product product,
@@ -98,7 +100,7 @@ public class SpatialProductBinner {
         int sliceHeight;
         if (preferredTileSize != null) {
             sliceHeight = preferredTileSize.height;
-        } else {
+        }else {
             sliceHeight = ImageManager.getPreferredTileSize(product).height;
         }
         boolean hasFullWidthTiles = false;
@@ -156,7 +158,7 @@ public class SpatialProductBinner {
                 for (int i = 0; i < varImages.length; i++) {
                     varTiles[i] = varImages[i].getData(sliceRect);
                 }
-                Raster maskTile = maskImage != null ? maskImage.getData(sliceRect) : null;
+                Raster maskTile = maskImage != null ? maskImage.getData(sliceRect): null;
                 final ObservationSlice observationSlice = createObservationSlice(geoCoding, maskTile, varTiles,
                                                                                  superSamplingSteps);
                 numObsTotal += spatialBinner.processObservationSlice(observationSlice);

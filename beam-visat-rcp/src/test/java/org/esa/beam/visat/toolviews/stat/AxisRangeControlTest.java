@@ -3,14 +3,8 @@ package org.esa.beam.visat.toolviews.stat;
 import com.jidesoft.swing.TitledSeparator;
 import org.junit.Test;
 
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
-import javax.swing.WindowConstants;
-import java.awt.Component;
-import java.awt.GridLayout;
+import javax.swing.*;
+import java.awt.*;
 
 import static org.junit.Assert.*;
 
@@ -34,16 +28,16 @@ public class AxisRangeControlTest {
         final AxisRangeControl axisRangeControl = new AxisRangeControl("");
         axisRangeControl.getPanel();
         assertEquals(true, axisRangeControl.getBindingContext().getBinding("autoMinMax").getPropertyValue());
-        assertEquals((Double) 0.0, axisRangeControl.getMin());
-        assertEquals((Double) 100.0, axisRangeControl.getMax());
+        assertEquals((Double)0.0, axisRangeControl.getMin());
+        assertEquals((Double)100.0, axisRangeControl.getMax());
     }
 
     @Test
     public void testMinMaxSetterAndGetter() {
         final AxisRangeControl axisRangeControl = new AxisRangeControl("");
         axisRangeControl.adjustComponents(3.4, 13.8, 2);
-        assertEquals((Double) 3.4, axisRangeControl.getMin());
-        assertEquals((Double) 13.8, axisRangeControl.getMax());
+        assertEquals((Double)3.4, axisRangeControl.getMin());
+        assertEquals((Double)13.8, axisRangeControl.getMax());
     }
 
     @Test

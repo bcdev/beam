@@ -166,7 +166,7 @@ public class DimapProductWriter extends AbstractProductWriter {
         checkSourceRegionInsideBandRegion(sourceWidth, sourceBandWidth, sourceHeight, sourceBandHeight, sourceOffsetX,
                                           sourceOffsetY);
         final ImageOutputStream outputStream = getOrCreateImageOutputStream(sourceBand);
-        long outputPos = (long) sourceOffsetY * sourceBandWidth + (long) sourceOffsetX;
+        long outputPos = (long)sourceOffsetY * sourceBandWidth + (long)sourceOffsetX;
         pm.beginTask("Writing band '" + sourceBand.getName() + "'...", sourceHeight);
         try {
             for (int sourcePos = 0; sourcePos < sourceHeight * sourceWidth; sourcePos += sourceWidth) {

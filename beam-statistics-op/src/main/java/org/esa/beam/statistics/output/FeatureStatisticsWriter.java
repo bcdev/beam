@@ -69,6 +69,7 @@ public class FeatureStatisticsWriter implements StatisticsOutputter {
      * @param originalShapefile An URL pointing to the original shapefile that shall is to be enriched with statistics.
      * @param targetShapefile   A file path where the target shapefile shall be written to.
      * @param bandNameCreator   An instance of {@link BandNameCreator}.
+     *
      * @return An instance of <code>FeatureStatisticsWriter</code>.
      */
     public static FeatureStatisticsWriter createFeatureStatisticsWriter(URL originalShapefile, String targetShapefile, BandNameCreator bandNameCreator) {
@@ -90,6 +91,7 @@ public class FeatureStatisticsWriter implements StatisticsOutputter {
      * @param originalFeatures The features to be enriched with statistics.
      * @param targetShapefile  A file path where the target shapefile shall be written to.
      * @param bandNameCreator  An instance of {@link org.esa.beam.statistics.output.BandNameCreator}.
+     *
      * @return An instance of <code>FeatureStatisticsWriter</code>.
      */
     public static FeatureStatisticsWriter createFeatureStatisticsWriter(FeatureCollection<SimpleFeatureType, SimpleFeature> originalFeatures, String targetShapefile,
@@ -193,7 +195,6 @@ public class FeatureStatisticsWriter implements StatisticsOutputter {
 
     /**
      * Returns the features enriched with statistics.
-     *
      * @return the features enriched with statistics.
      */
     public List<SimpleFeature> getFeatures() {
@@ -202,7 +203,6 @@ public class FeatureStatisticsWriter implements StatisticsOutputter {
 
     /**
      * Returns the updated feature type.
-     *
      * @return the updated feature type.
      */
     public SimpleFeatureType getUpdatedFeatureType() {

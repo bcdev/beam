@@ -151,7 +151,7 @@ public class GeoTiffProductReader extends AbstractProductReader {
 
     private synchronized Raster readRect(int sourceOffsetX, int sourceOffsetY, int sourceStepX, int sourceStepY,
                                          int destOffsetX, int destOffsetY, int destWidth, int destHeight) throws
-            IOException {
+                                                                                                          IOException {
         ImageReadParam readParam = imageReader.getDefaultReadParam();
         int subsamplingXOffset = sourceOffsetX % sourceStepX;
         int subsamplingYOffset = sourceOffsetY % sourceStepY;
@@ -249,6 +249,7 @@ public class GeoTiffProductReader extends AbstractProductReader {
      *
      * @param product   the Product
      * @param inputFile the source tiff file
+     *
      * @throws IOException in case of an IO error
      */
     @SuppressWarnings({"UnusedDeclaration"})
@@ -276,7 +277,7 @@ public class GeoTiffProductReader extends AbstractProductReader {
     }
 
     private void addBandsToProduct(TiffFileInfo tiffInfo, Product product) throws
-            IOException {
+                                                                           IOException {
         final ImageReadParam readParam = imageReader.getDefaultReadParam();
         TIFFRenderedImage baseImage = (TIFFRenderedImage) imageReader.readAsRenderedImage(FIRST_IMAGE, readParam);
         SampleModel sampleModel = baseImage.getSampleModel();

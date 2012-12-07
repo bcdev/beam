@@ -78,6 +78,7 @@ public class TimeStampExtractor {
      *
      * @param dateInterpretationPattern     the date interpretation pattern; see class documentation for specification.
      * @param filenameInterpretationPattern the filename interpretation pattern; see class documentation for specification.
+     *
      * @throws IllegalStateException if the filename interpretation pattern contains neither <i>${startDate}</i> nor
      *                               <i>endDate</i>.
      */
@@ -90,8 +91,10 @@ public class TimeStampExtractor {
     /**
      * Provides the start and stop time of the respective filename.
      *
-     * @param fileName The filename to extract time information from.
+     * @param fileName    The filename to extract time information from.
+     *
      * @return An array of length 2 containing start and stop time, never <code>null</code>.
+     *
      * @throws ValidationException if the given filename does not match the given date pattern.
      */
     public ProductData.UTC[] extractTimeStamps(String fileName) throws ValidationException {
@@ -185,7 +188,7 @@ public class TimeStampExtractor {
         try {
             startTime = ProductData.UTC.parse(
                     startYearGroup + startMonthGroup + startDayGroup + startHourGroup + startMinuteGroup +
-                            startSecondGroup, pattern);
+                    startSecondGroup, pattern);
         } catch (ParseException e) {
             throw new IllegalStateException(e);
         }
@@ -276,21 +279,21 @@ public class TimeStampExtractor {
             }
             if (!pattern.matches(LEGAL_DATE_TIME_CHAR_MATCHER)) {
                 throw new ValidationException("Value of dateInterpretationPattern contains illegal charachters.\n" +
-                                                      "Valid characters are: 'y' 'M' 'd' 'h' 'm' 's' ':' '_' '-' '.'");
+                                              "Valid characters are: 'y' 'M' 'd' 'h' 'm' 's' ':' '_' '-' '.'");
             }
             if (!pattern.contains("yyyy")) {
                 throw new ValidationException("Value of dateInterpretationPattern must contain 'yyyy' as year placeholder.");
             }
             if (countOf("yyyy").in(pattern) > 1
-                    || countOf("MM").in(pattern) > 1
-                    || countOf("dd").in(pattern) > 1
-                    || countOf("hh").in(pattern) > 1
-                    || countOf("mm").in(pattern) > 1
-                    || countOf("ss").in(pattern) > 1
+                || countOf("MM").in(pattern) > 1
+                || countOf("dd").in(pattern) > 1
+                || countOf("hh").in(pattern) > 1
+                || countOf("mm").in(pattern) > 1
+                || countOf("ss").in(pattern) > 1
                     ) {
                 throw new ValidationException(
                         "Value of dateInterpretationPattern can contain each of character sequences " +
-                                "('yyyy', 'MM', 'dd', 'hh', 'mm', 'ss') only once.");
+                        "('yyyy', 'MM', 'dd', 'hh', 'mm', 'ss') only once.");
             }
         }
     }
@@ -312,23 +315,23 @@ public class TimeStampExtractor {
             if (hasStartDate && hasEndDate) {
                 if (!pattern.matches(
                         LEGAL_FILENAME_CHAR_MATCHER + START_DATE_MATCHER + LEGAL_FILENAME_CHAR_MATCHER +
-                                END_DATE_MATCHER +
-                                LEGAL_FILENAME_CHAR_MATCHER)) {
+                        END_DATE_MATCHER +
+                        LEGAL_FILENAME_CHAR_MATCHER)) {
                     throw new ValidationException(
                             "Value of filenameInterpretationPattern contains illegal characters.\n" +
-                                    "legal characters are a-zA-Z0-9_-*.?${}");
+                            "legal characters are a-zA-Z0-9_-*.?${}");
                 }
             } else if (hasStartDate && !hasEndDate) {
                 if (!pattern.matches(LEGAL_FILENAME_CHAR_MATCHER + START_DATE_MATCHER + LEGAL_FILENAME_CHAR_MATCHER)) {
                     throw new ValidationException(
                             "Value of filenameInterpretationPattern contains illegal characters.\n" +
-                                    "legal characters are a-zA-Z0-9_-*.?${}");
+                            "legal characters are a-zA-Z0-9_-*.?${}");
                 }
             } else if (hasEndDate) {
                 if (!pattern.matches(LEGAL_FILENAME_CHAR_MATCHER + END_DATE_MATCHER + LEGAL_FILENAME_CHAR_MATCHER)) {
                     throw new ValidationException(
                             "Value of filenameInterpretationPattern contains illegal characters.\n" +
-                                    "legal characters are a-zA-Z0-9_-*.?${}");
+                            "legal characters are a-zA-Z0-9_-*.?${}");
                 }
             }
         }
@@ -338,7 +341,7 @@ public class TimeStampExtractor {
             if (dateCount > 1) {
                 throw new ValidationException(
                         "Value of filenameInterpretationPattern must contain the date placeholder '" +
-                                placeholder + "' at most once.");
+                        placeholder + "' at most once.");
             }
             return dateCount;
         }

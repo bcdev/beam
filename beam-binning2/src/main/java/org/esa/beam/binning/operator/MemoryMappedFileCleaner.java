@@ -28,7 +28,7 @@ import java.nio.MappedByteBuffer;
 class MemoryMappedFileCleaner {
 
     static void cleanup(RandomAccessFile raf, MappedByteBuffer buffer) throws IOException {
-        if (raf != null) {
+        if(raf != null) {
             raf.close();
         }
         // due to Java bug: workaround needed in order to be able to delete temporary file
@@ -38,10 +38,10 @@ class MemoryMappedFileCleaner {
     }
 
     private static void unmap(final MappedByteBuffer buffer) {
-        if (buffer == null) {
+        if(buffer == null) {
             return;
         }
-        if (buffer.isDirect()) {
+        if(buffer.isDirect()) {
             ((sun.nio.ch.DirectBuffer) buffer).cleaner().clean();
         }
     }

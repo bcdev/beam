@@ -138,7 +138,7 @@ public class ObservationIteratorTest {
         WritableRaster sourceTile = Raster.createBandedRaster(DataBuffer.TYPE_INT, width, height, 1, new Point(0, 0));
         int[] sourceData = new int[width * height];
         for (int i = 0; i < sourceData.length; i++) {
-            sourceData[i] = i + 1;
+            sourceData[i] = i+1;
         }
         sourceTile.setPixels(0, 0, width, height, sourceData);
         return new Raster[]{sourceTile};

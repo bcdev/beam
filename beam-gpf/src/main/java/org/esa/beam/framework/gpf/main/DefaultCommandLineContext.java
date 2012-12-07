@@ -22,21 +22,11 @@ import org.esa.beam.framework.dataio.ProductReader;
 import org.esa.beam.framework.datamodel.Product;
 import org.esa.beam.framework.gpf.GPF;
 import org.esa.beam.framework.gpf.OperatorException;
-import org.esa.beam.framework.gpf.graph.Graph;
-import org.esa.beam.framework.gpf.graph.GraphException;
-import org.esa.beam.framework.gpf.graph.GraphIO;
-import org.esa.beam.framework.gpf.graph.GraphProcessingObserver;
-import org.esa.beam.framework.gpf.graph.GraphProcessor;
+import org.esa.beam.framework.gpf.graph.*;
 import org.esa.beam.gpf.operators.standard.WriteOp;
 import org.esa.beam.util.logging.BeamLogManager;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
+import java.io.*;
 import java.util.Map;
 import java.util.logging.Logger;
 

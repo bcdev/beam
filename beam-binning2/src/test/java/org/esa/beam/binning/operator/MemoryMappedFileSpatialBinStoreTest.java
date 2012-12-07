@@ -45,7 +45,7 @@ public class MemoryMappedFileSpatialBinStoreTest {
         binStore.consumeSpatialBins(null, spatialBins);
         binStore.consumingCompleted();
 
-        final SortedMap<Long, List<SpatialBin>> spatialBinMap = binStore.getSpatialBinMap();
+        final SortedMap<Long,List<SpatialBin>> spatialBinMap = binStore.getSpatialBinMap();
 
         validateSpatialBinMap(spatialBinMap);
     }

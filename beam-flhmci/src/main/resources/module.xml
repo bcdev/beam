@@ -5,7 +5,7 @@
     <name>MERIS FLH/MCI Processor</name>
 
     <description>
-        The MERIS FLH/MCI Processor calculates the Fluorescence Line Height and
+        The MERIS FLH/MCI Processor calculates the Fluorescence Line Height and 
         the Maximum Chlorophyll Index by exploiting the height of a measurement over a specific baseline.
     </description>
 
@@ -25,8 +25,6 @@
 
     <changelog>
         <![CDATA[
-        <!--Changes in 1.6.204:<br/>-->
-        <!--Adapted to BEAM 5.0<br>-->
         Changes in 1.6.203:<br/>
         Adapted to new Maven-architecture<br>
         Changes in 1.6.202:<br/>

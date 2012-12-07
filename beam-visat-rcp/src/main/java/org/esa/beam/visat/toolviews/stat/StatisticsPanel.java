@@ -25,6 +25,40 @@ import com.bc.ceres.core.SubProgressMonitor;
 import com.bc.ceres.swing.binding.BindingContext;
 import com.bc.ceres.swing.progress.ProgressMonitorSwingWorker;
 import com.jidesoft.swing.TitledSeparator;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.util.List;
+import javax.media.jai.Histogram;
+import javax.swing.AbstractButton;
+import javax.swing.ImageIcon;
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
+import javax.swing.JLayeredPane;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.SwingWorker;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
 import org.esa.beam.framework.datamodel.Mask;
 import org.esa.beam.framework.datamodel.ProductNodeGroup;
 import org.esa.beam.framework.datamodel.RasterDataNode;
@@ -47,41 +81,6 @@ import org.jfree.chart.renderer.xy.XYBarRenderer;
 import org.jfree.data.xy.XIntervalSeries;
 import org.jfree.data.xy.XIntervalSeriesCollection;
 import org.jfree.ui.RectangleInsets;
-
-import javax.media.jai.Histogram;
-import javax.swing.AbstractButton;
-import javax.swing.ImageIcon;
-import javax.swing.JCheckBox;
-import javax.swing.JLabel;
-import javax.swing.JLayeredPane;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
-import javax.swing.JSeparator;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.SwingConstants;
-import javax.swing.SwingWorker;
-import javax.swing.border.EmptyBorder;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableModel;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
-import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import java.util.List;
 
 /**
  * A general pane within the statistics window.
@@ -107,7 +106,6 @@ class StatisticsPanel extends PagePanel implements MultipleRoiComputePanel.Compu
     private ExportStatisticsAsCsvAction exportAsCsvAction;
     private PutStatisticsIntoVectorDataAction putStatisticsIntoVectorDataAction;
     private AccuracyModel accuracyModel;
-    private int maxMaskNameLength;
 
     public StatisticsPanel(final ToolView parentDialog, String helpID) {
         super(parentDialog, helpID, TITLE_PREFIX);
@@ -173,46 +171,14 @@ class StatisticsPanel extends PagePanel implements MultipleRoiComputePanel.Compu
         contentScrollPane.setBackground(Color.WHITE);
 
         backgroundPanel = new JPanel(new GridBagLayout());
-        backgroundPanel.add(contentScrollPane);
-        backgroundPanel.add(rightPanel);
-        adjustBackgroundPanelLayout();
+        GridBagConstraints gbc = new GridBagConstraints();
+        GridBagUtils.addToPanel(backgroundPanel, contentScrollPane, gbc, "fill=BOTH, weightx=1.0, weighty=1.0, anchor=NORTH");
+        GridBagUtils.addToPanel(backgroundPanel, rightPanel, gbc, "gridx=1, fill=VERTICAL, weightx=0.0");
 
         JLayeredPane layeredPane = new JLayeredPane();
-        layeredPane.add(backgroundPanel, new Integer(0));
-        layeredPane.add(hideAndShowButton, new Integer(1));
+        layeredPane.add(backgroundPanel);
+        layeredPane.add(hideAndShowButton);
         add(layeredPane);
-    }
-
-    @Override
-    protected void handleNodeSelectionChanged() {
-        super.handleNodeSelectionChanged();
-        adjustBackgroundPanelLayout();
-    }
-
-    private void determineMaxMaskNameLength() {
-        maxMaskNameLength = 0;
-        if (getProduct() != null) {
-            final ProductNodeGroup<Mask> maskGroup = getProduct().getMaskGroup();
-            for (int i = 0; i < maskGroup.getNodeCount(); i++) {
-                final String maskName = maskGroup.get(i).getName();
-                if (maskName.length() > maxMaskNameLength) {
-                    maxMaskNameLength = maskName.length();
-                }
-            }
-        }
-
-    }
-
-    private void adjustBackgroundPanelLayout() {
-        determineMaxMaskNameLength();
-        int padx = maxMaskNameLength * 3 + 20;
-        GridBagConstraints gbc = new GridBagConstraints();
-        final Component[] components = backgroundPanel.getComponents();
-        backgroundPanel.removeAll();
-        GridBagUtils.addToPanel(backgroundPanel, components[0], gbc, "fill=BOTH, weightx=1.0, weighty=1.0, anchor=NORTH");
-        GridBagUtils.addToPanel(backgroundPanel, components[1], gbc, "gridx=1, fill=VERTICAL, weightx=0.0,ipadx=" + padx);
-        backgroundPanel.revalidate();
-        backgroundPanel.repaint();
     }
 
     private JPanel createAccuracyPanel() {
@@ -677,7 +643,6 @@ class StatisticsPanel extends PagePanel implements MultipleRoiComputePanel.Compu
             }
         }
     }
-
     // The fields of this class are used by the binding framework
     @SuppressWarnings("UnusedDeclaration")
     static class AccuracyModel {

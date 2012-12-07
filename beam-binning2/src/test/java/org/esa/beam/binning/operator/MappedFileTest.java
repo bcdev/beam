@@ -5,7 +5,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 
 import static org.junit.Assert.assertEquals;
 
@@ -13,7 +15,7 @@ import static org.junit.Assert.assertEquals;
  * @author Norman
  */
 public class MappedFileTest {
-
+    
     int MiB = 1024 * 1024;
 
     File file;
@@ -29,7 +31,7 @@ public class MappedFileTest {
     public void tearDown() throws Exception {
         MappedByteBufferTest.deleteFile("tearDown", file);
     }
-
+    
     @Test
     public void testRemap() throws Exception {
 
@@ -67,7 +69,7 @@ public class MappedFileTest {
 
         mappedFile = MappedFile.open(file, 3 * chunkSize);
         try {
-            final MappedByteBuffer buffer4 = mappedFile.remap(0, 3 * chunkSize);
+            final MappedByteBuffer buffer4 = mappedFile.remap( 0, 3 * chunkSize);
             assertEquals(0.111, buffer4.getDouble(0), 1e-10);
             assertEquals(1.222, buffer4.getDouble(chunkSize - 8), 1e-10);
             assertEquals(2.333, buffer4.getDouble(2 * chunkSize - 8), 1e-10);

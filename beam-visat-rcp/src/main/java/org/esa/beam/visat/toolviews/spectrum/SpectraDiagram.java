@@ -26,8 +26,7 @@ import org.esa.beam.framework.ui.diagram.Diagram;
 import org.esa.beam.framework.ui.diagram.DiagramAxis;
 import org.esa.beam.framework.ui.diagram.DiagramGraph;
 
-import java.awt.BasicStroke;
-import java.awt.Color;
+import java.awt.*;
 
 
 class SpectraDiagram extends Diagram {

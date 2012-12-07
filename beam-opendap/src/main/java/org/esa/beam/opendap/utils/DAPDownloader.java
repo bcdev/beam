@@ -132,7 +132,7 @@ public class DAPDownloader {
                 targetNetCDF.write(NetcdfFile.escapeName(filteredVariable), origin, values);
             } catch (InvalidRangeException e) {
                 throw new IOException(MessageFormat.format("Unable to download variable ''{0}'' into file ''{1}''.",
-                                                           filteredVariable, fileName), e);
+                                             filteredVariable, fileName), e);
             }
         }
         targetNetCDF.close();

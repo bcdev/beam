@@ -17,8 +17,8 @@ import java.util.regex.Pattern;
  * However, no tilde expansion is done.
  *
  * @author Norman Fomferra
- * @see <a href="http://ant.apache.org/manual/dirtasks.html#patterns">Patterns</a> in the Ant documentation
  * @since BEAM 4.10
+ * @see <a href="http://ant.apache.org/manual/dirtasks.html#patterns">Patterns</a> in the Ant documentation
  */
 public class WildcardMatcher {
 
@@ -57,7 +57,7 @@ public class WildcardMatcher {
             String basePath = matcher.getBasePath(filePattern);
             dir = new File(basePath).getCanonicalFile();
             validPos = 0;
-        } else {
+        }   else {
             dir = new File(".").getCanonicalFile();
             validPos = dir.getPath().length() + 1; //  +1 to skip the trailing slash
         }

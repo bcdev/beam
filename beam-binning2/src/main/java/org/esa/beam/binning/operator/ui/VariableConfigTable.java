@@ -93,8 +93,8 @@ class VariableConfigTable {
             public boolean isCellEditable(int row, int column) {
                 final Object bandName = tableModel.getValueAt(row, 0);
                 return column != 1 ||
-                        table.getSelectedRow() == row && bandName != null &&
-                                bandName.toString().matches("<expression_?\\d*>");
+                       table.getSelectedRow() == row && bandName != null &&
+                       bandName.toString().matches("<expression_?\\d*>");
             }
         };
         tableModel.setColumnIdentifiers(new String[]{
@@ -213,7 +213,7 @@ class VariableConfigTable {
         for (Product sourceProduct : sourceProducts) {
             Collections.addAll(bandNames, sourceProduct.getBandNames());
         }
-        for (int i = 0; i < getExpressionCount(); i++) {
+        for(int i = 0; i < getExpressionCount(); i++) {
             bandNames.add("<expression_" + i + ">");
         }
         updateBandNameCombobox();

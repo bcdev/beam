@@ -34,12 +34,6 @@ import ucar.nc2.Variable;
  */
 public class CfFlagCodingPartTest extends TestCase {
 
-    public void testReplaceNonWordCharacters() {
-       assertEquals("a_b", CfFlagCodingPart.replaceNonWordCharacters("a/b"));
-       assertEquals("a_b", CfFlagCodingPart.replaceNonWordCharacters("a / b"));
-       assertEquals("a_b", CfFlagCodingPart.replaceNonWordCharacters("a.b"));
-    }
-
     public void testWriteFlagCoding() throws Exception {
         Band flagBand = new Band("flag_band", ProductData.TYPE_UINT8, 10, 10);
         FlagCoding flagCoding = new FlagCoding("some_flags");

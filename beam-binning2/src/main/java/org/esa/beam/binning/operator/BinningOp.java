@@ -127,38 +127,38 @@ public class BinningOp extends Operator implements Output {
     public static final String DATETIME_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS";
 
     @SourceProducts(description = "The source products to be binned. Must be all of the same structure. " +
-            "If not given, the parameter 'sourceProductPaths' must be provided.")
+                                  "If not given, the parameter 'sourceProductPaths' must be provided.")
     Product[] sourceProducts;
 
     @TargetProduct
     Product targetProduct;
 
     @Parameter(description = "A comma-separated list of file paths specifying the source products.\n" +
-            "Each path may contain the wildcards '**' (matches recursively any directory),\n" +
-            "'*' (matches any character sequence in path names) and\n" +
-            "'?' (matches any single character).")
+                             "Each path may contain the wildcards '**' (matches recursively any directory),\n" +
+                             "'*' (matches any character sequence in path names) and\n" +
+                             "'?' (matches any single character).")
     String[] sourceProductPaths;
 
     @Parameter(converter = JtsGeometryConverter.class,
                description = "The considered geographical region as a geometry in well-known text format (WKT).\n" +
-                       "If not given, the geographical region will be computed according to the extents of the " +
-                       "input products.")
+                             "If not given, the geographical region will be computed according to the extents of the " +
+                             "input products.")
     Geometry region;
 
     @Parameter(description =
                        "The start date. If not given, taken from the 'oldest' source product. Products that have " +
-                               "a start date before the start date given by this parameter are not considered.",
+                       "a start date before the start date given by this parameter are not considered.",
                format = DATE_PATTERN)
     String startDate;
 
     @Parameter(description =
                        "The end date. If not given, taken from the 'youngest' source product. Products that have " +
-                               "an end date after the end date given by this parameter are not considered.",
+                       "an end date after the end date given by this parameter are not considered.",
                format = DATE_PATTERN)
     String endDate;
 
     @Parameter(description = "If true, a SeaDAS-style, binned data NetCDF file is written in addition to the\n" +
-            "target product. The output file name will be <target>-bins.nc", defaultValue = "true")
+                             "target product. The output file name will be <target>-bins.nc", defaultValue = "true")
     boolean outputBinnedData;
 
     @Parameter(notNull = true,
@@ -381,12 +381,12 @@ public class BinningOp extends Operator implements Output {
             final boolean hasStartTime = productStartTime != null;
             final boolean hasEndTime = productEndTime != null;
             if (hasStartTime && productStartTime.getAsDate().after(startTime.getAsDate())
-                    && hasEndTime && productEndTime.getAsDate().before(endTime.getAsDate())) {
+                && hasEndTime && productEndTime.getAsDate().before(endTime.getAsDate())) {
                 filteredSourceProducts.add(sourceProduct);
             } else if (!hasStartTime && !hasEndTime) {
                 filteredSourceProducts.add(sourceProduct);
             } else if (hasStartTime && productStartTime.getAsDate().after(startTime.getAsDate())
-                    && !hasEndTime) {
+                       && !hasEndTime) {
                 filteredSourceProducts.add(sourceProduct);
             } else if (!hasStartTime && productEndTime.getAsDate().before(endTime.getAsDate())) {
                 filteredSourceProducts.add(sourceProduct);
@@ -689,10 +689,11 @@ public class BinningOp extends Operator implements Output {
         public void consumeSpatialBins(BinningContext binningContext, List<SpatialBin> spatialBins) {
 
             for (SpatialBin spatialBin : spatialBins) {
-                List<SpatialBin> spatialBinList = spatialBinMap.get(spatialBin.getIndex());
+                final long spatialBinIndex = spatialBin.getIndex();
+                List<SpatialBin> spatialBinList = spatialBinMap.get(spatialBinIndex);
                 if (spatialBinList == null) {
                     spatialBinList = new ArrayList<SpatialBin>();
-                    spatialBinMap.put(spatialBin.getIndex(), spatialBinList);
+                    spatialBinMap.put(spatialBinIndex, spatialBinList);
                 }
                 spatialBinList.add(spatialBin);
             }

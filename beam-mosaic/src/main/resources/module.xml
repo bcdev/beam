@@ -15,8 +15,6 @@
 
     <changelog>
         <![CDATA[
-        <!--<p>Changes in 2.3.2<br/>-->
-        <!--Adapted to BEAM 5.0<br/>-->
         <p>Changes in 2.3.1<br/>
         Adapted to new Maven-architecture<br/>
         <p>Changes in 2.3<br/>
@@ -55,30 +53,30 @@
 
     <categories>Application,Processor,Geometry,Level-3,MERIS,AVHRR,ATSR,Envisat,ERS,ASAR,VISAT</categories>
 
-    <!--
-        <extension point="beam-ui:actions">
-            <action>
-                <id>MosaicProcessorPlugIn</id>
-                <class>org.esa.beam.visat.actions.ProcessorAction</class>
-                <processor>org.esa.beam.processor.mosaic.MosaicProcessor</processor>
-                <text>Mosaic Processor....</text>
-                <shortDescr>Invoke the Mosaic Processor.</shortDescr>
-                <mnemonic>c</mnemonic>
-                <parent>tools</parent>
-                <helpId>mosaicScientificTool</helpId>
-                <placeAfter>flhMciScientificTool</placeAfter>
-            </action>
-        </extension>
-    -->
+<!--
+    <extension point="beam-ui:actions">
+        <action>
+            <id>MosaicProcessorPlugIn</id>
+            <class>org.esa.beam.visat.actions.ProcessorAction</class>
+            <processor>org.esa.beam.processor.mosaic.MosaicProcessor</processor>
+            <text>Mosaic Processor....</text>
+            <shortDescr>Invoke the Mosaic Processor.</shortDescr>
+            <mnemonic>c</mnemonic>
+            <parent>tools</parent>
+            <helpId>mosaicScientificTool</helpId>
+            <placeAfter>flhMciScientificTool</placeAfter>
+        </action>
+    </extension>
+-->
 
 
-    <!--
-        <extension point="beam-ui:helpSets">
-            <helpSet>
-                <parent>beam-help</parent>
-                <path>doc/help/mosaic.hs</path>
-            </helpSet>
-        </extension>
-    -->
+<!--
+    <extension point="beam-ui:helpSets">
+        <helpSet>
+            <parent>beam-help</parent>
+            <path>doc/help/mosaic.hs</path>
+        </helpSet>
+    </extension>
+-->
 
 </module>
