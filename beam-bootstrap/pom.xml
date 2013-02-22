@@ -173,11 +173,6 @@
             <artifactId>jython</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>velocity</groupId>
-            <artifactId>velocity</artifactId>
-        </dependency>
-
     </dependencies>
     <profiles>
         <profile>
