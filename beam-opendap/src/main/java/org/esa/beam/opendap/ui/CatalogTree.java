@@ -15,6 +15,7 @@ import thredds.catalog.ServiceType;
 
 import javax.swing.ImageIcon;
 import javax.swing.JTree;
+import javax.swing.SwingWorker;
 import javax.swing.event.TreeExpansionEvent;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
@@ -27,8 +28,10 @@ import javax.swing.tree.MutableTreeNode;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
 import java.awt.Component;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.text.MessageFormat;
@@ -71,28 +74,66 @@ class CatalogTree {
     static void addCellRenderer(final JTree jTree) {
         final ImageIcon dapIcon = UIUtils.loadImageIcon("/org/esa/beam/opendap/images/icons/DRsProduct16.png", CatalogTree.class);
         final ImageIcon fileIcon = UIUtils.loadImageIcon("/org/esa/beam/opendap/images/icons/FRsProduct16.png", CatalogTree.class);
-        final ImageIcon standardIcon = UIUtils.loadImageIcon("/org/esa/beam/opendap/images/icons/NoAccess16.png", CatalogTree.class);
+        final ImageIcon errorIcon = UIUtils.loadImageIcon("/org/esa/beam/opendap/images/icons/NoAccess16.png", CatalogTree.class);
         jTree.setToolTipText(null);
         jTree.setCellRenderer(new DefaultTreeCellRenderer() {
 
             @Override
-            public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {
+            public Component getTreeCellRendererComponent(JTree tree, Object value, boolean selected, boolean expanded, boolean leaf, int row, boolean hasFocus) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
                 if (isDapNode(value)) {
                     setLeafIcon(dapIcon);
-                    setToolTip((DefaultMutableTreeNode) value, tree);
+                    setToolTip(node, tree);
                 } else if (isFileNode(value)) {
                     setLeafIcon(fileIcon);
-                    setToolTip((DefaultMutableTreeNode) value, tree);
-                } else {
-                    setLeafIcon(standardIcon);
+                    setToolTip(node, tree);
+                } else if (leaf && isOpendapLeaf(node) && !hasPotentialChildren(node)) {
+                    setLeafIcon(errorIcon);
                     tree.setToolTipText(null);
+                } else {
+                    setLeafIcon(getClosedIcon());
                 }
-                super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
+                super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
                 return this;
             }
 
+            private boolean hasPotentialChildren(DefaultMutableTreeNode node) {
+                Object userObject = node.getUserObject();
+                if (!(userObject instanceof CatalogNode)) {
+                    return false;
+                }
+                final CatalogNode catalogNode = (CatalogNode) userObject;
+                final URL catalogUrl;
+                InputStream inputStream = null;
+                try {
+                    catalogUrl = new URL(catalogNode.getCatalogUri());
+                    URLConnection urlConnection = catalogUrl.openConnection();
+                    inputStream = urlConnection.getInputStream();
+                    List<InvDataset> datasets = getCatalogDatasets(inputStream, catalogUrl.toURI());
+                    return !datasets.isEmpty();
+                } catch (IOException e) {
+                    e.printStackTrace(); // todo
+                } catch (URISyntaxException e) {
+                    e.printStackTrace(); // todo
+                } finally {
+                    if (inputStream != null) {
+                        try {
+                            inputStream.close();
+                        } catch (IOException ignore) {
+                            // ok
+                        }
+                    }
+                }
+                return false;
+            }
+
+            private boolean isOpendapLeaf(DefaultMutableTreeNode node) {
+                final Object userObject = node.getUserObject();
+                return userObject instanceof OpendapLeaf;
+            }
+
             private void setToolTip(DefaultMutableTreeNode value, JTree tree) {
-                final int fileSize = ((OpendapLeaf)value.getUserObject()).getFileSize();
+                int fileSize = ((OpendapLeaf) value.getUserObject()).getFileSize();
                 tree.setToolTipText(OpendapUtils.format(fileSize / 1024.0) + " MB");
             }
         });
@@ -101,13 +142,20 @@ class CatalogTree {
     void addWillExpandListener() {
         jTree.addTreeWillExpandListener(new TreeWillExpandListener() {
             @Override
-            public void treeWillExpand(TreeExpansionEvent event) throws ExpandVetoException {
-                final Object lastPathComponent = event.getPath().getLastPathComponent();
-                final DefaultMutableTreeNode parent = (DefaultMutableTreeNode) lastPathComponent;
-                final DefaultMutableTreeNode child = (DefaultMutableTreeNode) parent.getChildAt(0);
-                if (isCatalogReferenceNode(child)) {
-                    resolveCatalogReferenceNode(child, true);
-                }
+            public void treeWillExpand(final TreeExpansionEvent event) throws ExpandVetoException {
+                new SwingWorker<Void, Void>() {
+
+                    @Override
+                    protected Void doInBackground() throws Exception {
+                        Object lastPathComponent = event.getPath().getLastPathComponent();
+                        DefaultMutableTreeNode parent = (DefaultMutableTreeNode) lastPathComponent;
+                        DefaultMutableTreeNode child = (DefaultMutableTreeNode) parent.getChildAt(0);
+                        if (isCatalogReferenceNode(child)) {
+                            resolveCatalogReferenceNode(child, true);
+                        }
+                        return null;
+                    }
+                }.execute();
             }
 
             @Override
@@ -121,28 +169,41 @@ class CatalogTree {
         final DefaultTreeModel model = (DefaultTreeModel) jTree.getModel();
         final DefaultMutableTreeNode parent = (DefaultMutableTreeNode) catalogReferenceNode.getParent();
         model.removeNodeFromParent(catalogReferenceNode);
+        InputStream inputStream = null;
         try {
             final URL catalogUrl = new URL(catalogNode.getCatalogUri());
             final URLConnection urlConnection = catalogUrl.openConnection();
-            final InputStream inputStream = urlConnection.getInputStream();
+            inputStream = urlConnection.getInputStream();
             insertCatalogElements(inputStream, catalogUrl.toURI(), parent, expandPath);
         } catch (Exception e) {
             String msg = MessageFormat.format("Unable to completely resolve catalog. Reason: {0}", e.getMessage());
             BeamLogManager.getSystemLogger().warning(msg);
             appContext.handleError(msg, e);
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException ignore) {
+                    // ok
+                }
+            }
         }
     }
 
     void insertCatalogElements(InputStream catalogIS, URI catalogBaseUri, DefaultMutableTreeNode parent,
                                boolean expandPath) {
-        final InvCatalogFactory factory = InvCatalogFactory.getDefaultFactory(true);
-        final InvCatalogImpl catalog = factory.readXML(catalogIS, catalogBaseUri);
-        final List<InvDataset> catalogDatasets = catalog.getDatasets();
+        final List<InvDataset> catalogDatasets = getCatalogDatasets(catalogIS, catalogBaseUri);
         appendToNode(jTree, catalogDatasets, parent, true);
         fireCatalogElementsInsertionFinished();
         if (expandPath) {
             expandPath(parent);
         }
+    }
+
+    private static List<InvDataset> getCatalogDatasets(InputStream catalogIS, URI catalogBaseUri) {
+        final InvCatalogFactory factory = InvCatalogFactory.getDefaultFactory(true);
+        final InvCatalogImpl catalog = factory.readXML(catalogIS, catalogBaseUri);
+        return catalog.getDatasets();
     }
 
     static void addTreeSelectionListener(final JTree jTree, final LeafSelectionListener leafSelectionListener) {
@@ -369,11 +430,11 @@ class CatalogTree {
     }
 
     OpendapLeaf getSelectedLeaf() {
-        if(jTree.isSelectionEmpty()) {
+        if (jTree.isSelectionEmpty()) {
             return null;
         }
         DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) jTree.getAnchorSelectionPath().getLastPathComponent();
-        return (OpendapLeaf)selectedNode.getUserObject();
+        return (OpendapLeaf) selectedNode.getUserObject();
     }
 
     static interface LeafSelectionListener {
