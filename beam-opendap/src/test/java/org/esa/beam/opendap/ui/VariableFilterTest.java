@@ -45,7 +45,7 @@ public class VariableFilterTest {
     @Before
     public void setUp() {
         Lm.verifyLicense("Brockmann Consult", "BEAM", "lCzfhklpZ9ryjomwWxfdupxIcuIoCxg2");
-        variableFilter = new VariableFilter(new JCheckBox(), new CatalogTree(null, new DefaultAppContext("")));
+        variableFilter = new VariableFilter(new JCheckBox(), new CatalogTree(null, new DefaultAppContext(""), null));
         variableFilter.getUI();
         leaf = new OpendapLeaf("leafName", new InvDataset(null, "") {
                 });

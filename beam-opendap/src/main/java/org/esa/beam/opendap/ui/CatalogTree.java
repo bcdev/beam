@@ -1,39 +1,28 @@
 package org.esa.beam.opendap.ui;
 
 import org.esa.beam.framework.ui.AppContext;
-import org.esa.beam.framework.ui.UIUtils;
-import org.esa.beam.opendap.datamodel.CatalogNode;
 import org.esa.beam.opendap.datamodel.OpendapLeaf;
 import org.esa.beam.opendap.utils.OpendapUtils;
 import org.esa.beam.util.logging.BeamLogManager;
 import thredds.catalog.InvAccess;
-import thredds.catalog.InvCatalogFactory;
-import thredds.catalog.InvCatalogImpl;
 import thredds.catalog.InvCatalogRef;
 import thredds.catalog.InvDataset;
 import thredds.catalog.ServiceType;
 
-import javax.swing.ImageIcon;
 import javax.swing.JTree;
 import javax.swing.SwingWorker;
 import javax.swing.event.TreeExpansionEvent;
-import javax.swing.event.TreeSelectionEvent;
-import javax.swing.event.TreeSelectionListener;
 import javax.swing.event.TreeWillExpandListener;
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.ExpandVetoException;
 import javax.swing.tree.MutableTreeNode;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
 import java.awt.Component;
-import java.io.IOException;
+import java.awt.Cursor;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLConnection;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -46,15 +35,17 @@ class CatalogTree {
     private final HashMap<OpendapLeaf, MutableTreeNode> leafToParentNode = new HashMap<OpendapLeaf, MutableTreeNode>();
     private final Set<CatalogTreeListener> catalogTreeListeners = new HashSet<CatalogTreeListener>();
     private final AppContext appContext;
+    private final UIContext uiContext;
 
-    public CatalogTree(final LeafSelectionListener leafSelectionListener, AppContext appContext) {
+    public CatalogTree(final LeafSelectionListener leafSelectionListener, AppContext appContext, UIContext uiContext) {
         this.appContext = appContext;
+        this.uiContext = uiContext;
         jTree = new JTree();
         jTree.setRootVisible(false);
-        ((DefaultTreeModel) jTree.getModel()).setRoot(createRootNode());
-        addCellRenderer(jTree);
+        ((DefaultTreeModel) jTree.getModel()).setRoot(CatalogTreeUtils.createRootNode());
+        CatalogTreeUtils.addCellRenderer(jTree);
         addWillExpandListener();
-        addTreeSelectionListener(jTree, leafSelectionListener);
+        CatalogTreeUtils.addTreeSelectionListener(jTree, leafSelectionListener);
     }
 
     public Component getComponent() {
@@ -63,7 +54,7 @@ class CatalogTree {
 
     public void setNewRootDatasets(List<InvDataset> rootDatasets) {
         final DefaultTreeModel model = (DefaultTreeModel) jTree.getModel();
-        final DefaultMutableTreeNode rootNode = createRootNode();
+        final DefaultMutableTreeNode rootNode = CatalogTreeUtils.createRootNode();
         model.setRoot(rootNode);
         appendToNode(jTree, rootDatasets, rootNode, true);
         fireCatalogElementsInsertionFinished();
@@ -71,90 +62,30 @@ class CatalogTree {
         leafToParentNode.clear();
     }
 
-    static void addCellRenderer(final JTree jTree) {
-        final ImageIcon dapIcon = UIUtils.loadImageIcon("/org/esa/beam/opendap/images/icons/DRsProduct16.png", CatalogTree.class);
-        final ImageIcon fileIcon = UIUtils.loadImageIcon("/org/esa/beam/opendap/images/icons/FRsProduct16.png", CatalogTree.class);
-        final ImageIcon errorIcon = UIUtils.loadImageIcon("/org/esa/beam/opendap/images/icons/NoAccess16.png", CatalogTree.class);
-        jTree.setToolTipText(null);
-        jTree.setCellRenderer(new DefaultTreeCellRenderer() {
-
-            @Override
-            public Component getTreeCellRendererComponent(JTree tree, Object value, boolean selected, boolean expanded, boolean leaf, int row, boolean hasFocus) {
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
-                if (isDapNode(value)) {
-                    setLeafIcon(dapIcon);
-                    setToolTip(node, tree);
-                } else if (isFileNode(value)) {
-                    setLeafIcon(fileIcon);
-                    setToolTip(node, tree);
-                } else if (leaf && isOpendapLeaf(node) && !hasPotentialChildren(node)) {
-                    setLeafIcon(errorIcon);
-                    tree.setToolTipText(null);
-                } else {
-                    setLeafIcon(getClosedIcon());
-                }
-                super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
-                return this;
-            }
-
-            private boolean hasPotentialChildren(DefaultMutableTreeNode node) {
-                Object userObject = node.getUserObject();
-                if (!(userObject instanceof CatalogNode)) {
-                    return false;
-                }
-                final CatalogNode catalogNode = (CatalogNode) userObject;
-                final URL catalogUrl;
-                InputStream inputStream = null;
-                try {
-                    catalogUrl = new URL(catalogNode.getCatalogUri());
-                    URLConnection urlConnection = catalogUrl.openConnection();
-                    inputStream = urlConnection.getInputStream();
-                    List<InvDataset> datasets = getCatalogDatasets(inputStream, catalogUrl.toURI());
-                    return !datasets.isEmpty();
-                } catch (IOException e) {
-                    e.printStackTrace(); // todo
-                } catch (URISyntaxException e) {
-                    e.printStackTrace(); // todo
-                } finally {
-                    if (inputStream != null) {
-                        try {
-                            inputStream.close();
-                        } catch (IOException ignore) {
-                            // ok
-                        }
-                    }
-                }
-                return false;
-            }
-
-            private boolean isOpendapLeaf(DefaultMutableTreeNode node) {
-                final Object userObject = node.getUserObject();
-                return userObject instanceof OpendapLeaf;
-            }
-
-            private void setToolTip(DefaultMutableTreeNode value, JTree tree) {
-                int fileSize = ((OpendapLeaf) value.getUserObject()).getFileSize();
-                tree.setToolTipText(OpendapUtils.format(fileSize / 1024.0) + " MB");
-            }
-        });
-    }
-
     void addWillExpandListener() {
         jTree.addTreeWillExpandListener(new TreeWillExpandListener() {
+
             @Override
             public void treeWillExpand(final TreeExpansionEvent event) throws ExpandVetoException {
                 new SwingWorker<Void, Void>() {
 
                     @Override
                     protected Void doInBackground() throws Exception {
+                        uiContext.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
                         Object lastPathComponent = event.getPath().getLastPathComponent();
                         DefaultMutableTreeNode parent = (DefaultMutableTreeNode) lastPathComponent;
                         DefaultMutableTreeNode child = (DefaultMutableTreeNode) parent.getChildAt(0);
-                        if (isCatalogReferenceNode(child)) {
+                        if (CatalogTreeUtils.isCatalogReferenceNode(child)) {
                             resolveCatalogReferenceNode(child, true);
                         }
                         return null;
                     }
+
+                    @Override
+                    protected void done() {
+                        uiContext.setCursor(Cursor.getDefaultCursor());
+                    }
+
                 }.execute();
             }
 
@@ -165,110 +96,30 @@ class CatalogTree {
     }
 
     public void resolveCatalogReferenceNode(DefaultMutableTreeNode catalogReferenceNode, boolean expandPath) {
-        final CatalogNode catalogNode = (CatalogNode) catalogReferenceNode.getUserObject();
         final DefaultTreeModel model = (DefaultTreeModel) jTree.getModel();
         final DefaultMutableTreeNode parent = (DefaultMutableTreeNode) catalogReferenceNode.getParent();
         model.removeNodeFromParent(catalogReferenceNode);
-        InputStream inputStream = null;
         try {
-            final URL catalogUrl = new URL(catalogNode.getCatalogUri());
-            final URLConnection urlConnection = catalogUrl.openConnection();
-            inputStream = urlConnection.getInputStream();
-            insertCatalogElements(inputStream, catalogUrl.toURI(), parent, expandPath);
+            List<InvDataset> catalogDatasets = CatalogTreeUtils.getCatalogDatasets(catalogReferenceNode);
+            insertCatalogElements(catalogDatasets, parent, expandPath);
         } catch (Exception e) {
             String msg = MessageFormat.format("Unable to completely resolve catalog. Reason: {0}", e.getMessage());
             BeamLogManager.getSystemLogger().warning(msg);
             appContext.handleError(msg, e);
-        } finally {
-            if (inputStream != null) {
-                try {
-                    inputStream.close();
-                } catch (IOException ignore) {
-                    // ok
-                }
-            }
         }
     }
 
     void insertCatalogElements(InputStream catalogIS, URI catalogBaseUri, DefaultMutableTreeNode parent,
                                boolean expandPath) {
-        final List<InvDataset> catalogDatasets = getCatalogDatasets(catalogIS, catalogBaseUri);
-        appendToNode(jTree, catalogDatasets, parent, true);
-        fireCatalogElementsInsertionFinished();
-        if (expandPath) {
-            expandPath(parent);
-        }
+        final List<InvDataset> catalogDatasets = CatalogTreeUtils.getCatalogDatasets(catalogIS, catalogBaseUri);
+        insertCatalogElements(catalogDatasets, parent, expandPath);
     }
 
-    private static List<InvDataset> getCatalogDatasets(InputStream catalogIS, URI catalogBaseUri) {
-        final InvCatalogFactory factory = InvCatalogFactory.getDefaultFactory(true);
-        final InvCatalogImpl catalog = factory.readXML(catalogIS, catalogBaseUri);
-        return catalog.getDatasets();
-    }
-
-    static void addTreeSelectionListener(final JTree jTree, final LeafSelectionListener leafSelectionListener) {
-
-        jTree.addTreeSelectionListener(new TreeSelectionListener() {
-            @Override
-            public void valueChanged(TreeSelectionEvent e) {
-
-
-                final TreePath[] paths = e.getPaths();
-                for (TreePath path : paths) {
-                    final DefaultMutableTreeNode lastPathComponent = (DefaultMutableTreeNode) path.getLastPathComponent();
-                    final Object userObject = lastPathComponent.getUserObject();
-                    if (!(userObject instanceof OpendapLeaf)) {
-                        continue;
-                    }
-                    final OpendapLeaf dapObject = (OpendapLeaf) userObject;
-                    leafSelectionListener.leafSelectionChanged(e.isAddedPath(path), dapObject);
-                }
-
-                TreePath path = e.getPath();
-                final DefaultMutableTreeNode lastPathComponent = (DefaultMutableTreeNode) path.getLastPathComponent();
-                final Object userObject = lastPathComponent.getUserObject();
-                if (!(userObject instanceof OpendapLeaf)) {
-                    return;
-                }
-                OpendapLeaf opendapLeaf = (OpendapLeaf) userObject;
-                if (opendapLeaf.isDapAccess()) {
-                    leafSelectionListener.dapLeafSelected(opendapLeaf);
-                } else if (opendapLeaf.isFileAccess()) {
-                    leafSelectionListener.fileLeafSelected(opendapLeaf);
-                }
-            }
-        });
-    }
-
-
-    static boolean isDapNode(Object value) {
-        if (value instanceof DefaultMutableTreeNode) {
-            final Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
-            return (userObject instanceof OpendapLeaf) && ((OpendapLeaf) userObject).isDapAccess();
-        }
-        return false;
-    }
-
-    static boolean isFileNode(Object value) {
-        if (value instanceof DefaultMutableTreeNode) {
-            final Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
-            return (userObject instanceof OpendapLeaf) && ((OpendapLeaf) userObject).isFileAccess();
-        }
-        return false;
-    }
-
-    static boolean isCatalogReferenceNode(Object value) {
-        if (value instanceof DefaultMutableTreeNode) {
-            final Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
-            return (userObject instanceof CatalogNode);
-        }
-        return false;
-    }
 
     void appendToNode(final JTree jTree, List<InvDataset> datasets, MutableTreeNode parentNode, boolean goDeeper) {
         for (InvDataset dataset : datasets) {
             final MutableTreeNode deeperParent;
-            if (!goDeeper || !isHyraxId(dataset.getID())) {
+            if (!goDeeper || !CatalogTreeUtils.isHyraxId(dataset.getID())) {
                 appendToNode(jTree, dataset, parentNode);
                 if (parentNode.getChildCount() == 0) {
                     continue;
@@ -281,28 +132,6 @@ class CatalogTree {
                 appendToNode(jTree, dataset.getDatasets(), deeperParent, false);
             }
         }
-    }
-
-    private static boolean isHyraxId(String id) {
-        return id != null && id.startsWith("/") && id.endsWith("/");
-    }
-
-    private void appendToNode(JTree jTree, InvDataset dataset, MutableTreeNode parentNode) {
-        final DefaultTreeModel treeModel = (DefaultTreeModel) jTree.getModel();
-        if (dataset instanceof InvCatalogRef) {
-            appendCatalogNode(parentNode, treeModel, (InvCatalogRef) dataset);
-        } else {
-            appendLeafNode(parentNode, treeModel, dataset);
-        }
-    }
-
-    static void appendCatalogNode(MutableTreeNode parentNode, DefaultTreeModel treeModel, InvCatalogRef catalogRef) {
-        final DefaultMutableTreeNode catalogNode = new DefaultMutableTreeNode(catalogRef.getName());
-        final String catalogPath = catalogRef.getURI().toASCIIString();
-        final CatalogNode opendapNode = new CatalogNode(catalogPath, catalogRef);
-        opendapNode.setCatalogUri(catalogPath);
-        catalogNode.add(new DefaultMutableTreeNode(opendapNode));
-        treeModel.insertNodeInto(catalogNode, parentNode, parentNode.getChildCount());
     }
 
     void appendLeafNode(MutableTreeNode parentNode, DefaultTreeModel treeModel, InvDataset dataset) {
@@ -330,6 +159,58 @@ class CatalogTree {
         fireLeafAdded(leaf, hasNestedDatasets);
     }
 
+    MutableTreeNode getNode(OpendapLeaf leaf) {
+        final MutableTreeNode node = getNode(jTree.getModel(), jTree.getModel().getRoot(), leaf);
+        if (node == null) {
+            throw new IllegalStateException("node of leaf '" + leaf.toString() + "' is null.");
+        }
+        return node;
+    }
+
+    OpendapLeaf[] getLeaves() {
+        final Set<OpendapLeaf> leafs = new HashSet<OpendapLeaf>();
+        getLeaves(jTree.getModel().getRoot(), jTree.getModel(), leafs);
+        leafs.addAll(leafToParentNode.keySet());
+        return leafs.toArray(new OpendapLeaf[leafs.size()]);
+    }
+
+    void setLeafVisible(OpendapLeaf leaf, boolean visible) {
+        if (visible) {
+            setLeafVisible(leaf);
+        } else {
+            setLeafInvisible(leaf);
+        }
+    }
+
+    void addCatalogTreeListener(CatalogTreeListener listener) {
+        catalogTreeListeners.add(listener);
+    }
+
+    OpendapLeaf getSelectedLeaf() {
+        if (jTree.isSelectionEmpty()) {
+            return null;
+        }
+        DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) jTree.getAnchorSelectionPath().getLastPathComponent();
+        return (OpendapLeaf) selectedNode.getUserObject();
+    }
+
+    private void insertCatalogElements(List<InvDataset> catalogDatasets, DefaultMutableTreeNode parent, boolean expandPath) {
+        appendToNode(jTree, catalogDatasets, parent, true);
+        fireCatalogElementsInsertionFinished();
+        if (expandPath) {
+            expandPath(parent);
+        }
+    }
+
+    private void appendToNode(JTree jTree, InvDataset dataset, MutableTreeNode parentNode) {
+        final DefaultTreeModel treeModel = (DefaultTreeModel) jTree.getModel();
+        if (dataset instanceof InvCatalogRef) {
+            CatalogTreeUtils.appendCatalogNode(parentNode, treeModel, (InvCatalogRef) dataset);
+        } else {
+            appendLeafNode(parentNode, treeModel, dataset);
+        }
+    }
+
     private void appendDataNodeToParent(MutableTreeNode parentNode, DefaultTreeModel treeModel, OpendapLeaf leaf) {
         final DefaultMutableTreeNode leafNode = new DefaultMutableTreeNode(leaf);
         treeModel.insertNodeInto(leafNode, parentNode, parentNode.getChildCount());
@@ -339,18 +220,6 @@ class CatalogTree {
         jTree.expandPath(new TreePath(node.getPath()));
     }
 
-    static DefaultMutableTreeNode createRootNode() {
-        return new DefaultMutableTreeNode("root", true);
-    }
-
-
-    MutableTreeNode getNode(OpendapLeaf leaf) {
-        final MutableTreeNode node = getNode(jTree.getModel(), jTree.getModel().getRoot(), leaf);
-        if (node == null) {
-            throw new IllegalStateException("node of leaf '" + leaf.toString() + "' is null.");
-        }
-        return node;
-    }
 
     private MutableTreeNode getNode(TreeModel model, Object node, OpendapLeaf leaf) {
         for (int i = 0; i < model.getChildCount(node); i++) {
@@ -367,52 +236,6 @@ class CatalogTree {
         return null;
     }
 
-    OpendapLeaf[] getLeaves() {
-        final Set<OpendapLeaf> leafs = new HashSet<OpendapLeaf>();
-        getLeaves(jTree.getModel().getRoot(), jTree.getModel(), leafs);
-        leafs.addAll(leafToParentNode.keySet());
-        return leafs.toArray(new OpendapLeaf[leafs.size()]);
-    }
-
-    private void getLeaves(Object node, TreeModel model, Set<OpendapLeaf> result) {
-        for (int i = 0; i < model.getChildCount(node); i++) {
-            if (model.isLeaf(model.getChild(node, i))) {
-                final DefaultMutableTreeNode childNode = (DefaultMutableTreeNode) (model.getChild(node, i));
-                if (isDapNode(childNode) || isFileNode(childNode)) {
-                    result.add((OpendapLeaf) childNode.getUserObject());
-                }
-            } else {
-                getLeaves(model.getChild(node, i), model, result);
-            }
-        }
-    }
-
-    void setLeafVisible(OpendapLeaf leaf, boolean visible) {
-        if (visible) {
-            setLeafVisible(leaf);
-        } else {
-            setLeafInvisible(leaf);
-        }
-    }
-
-    private void setLeafVisible(OpendapLeaf leaf) {
-        final boolean leafIsRemovedFromTree = leafToParentNode.containsKey(leaf);
-        if (leafIsRemovedFromTree) {
-            appendDataNodeToParent(leafToParentNode.get(leaf), (DefaultTreeModel) jTree.getModel(), leaf);
-            leafToParentNode.remove(leaf);
-        }
-    }
-
-    private void setLeafInvisible(OpendapLeaf leaf) {
-        final boolean leafIsRemovedFromTree = leafToParentNode.containsKey(leaf);
-        if (!leafIsRemovedFromTree) {
-            final MutableTreeNode node = getNode(leaf);
-            final DefaultTreeModel model = (DefaultTreeModel) jTree.getModel();
-            leafToParentNode.put(leaf, (MutableTreeNode) node.getParent());
-            model.removeNodeFromParent(node);
-        }
-    }
-
     private void fireLeafAdded(OpendapLeaf leaf, boolean hasNestedDatasets) {
         for (CatalogTreeListener catalogTreeListener : catalogTreeListeners) {
             catalogTreeListener.leafAdded(leaf, hasNestedDatasets);
@@ -425,16 +248,35 @@ class CatalogTree {
         }
     }
 
-    void addCatalogTreeListener(CatalogTreeListener listener) {
-        catalogTreeListeners.add(listener);
+    private void setLeafVisible(OpendapLeaf leaf) {
+        boolean leafIsRemovedFromTree = leafToParentNode.containsKey(leaf);
+        if (leafIsRemovedFromTree) {
+            appendDataNodeToParent(leafToParentNode.get(leaf), (DefaultTreeModel) jTree.getModel(), leaf);
+            leafToParentNode.remove(leaf);
+        }
     }
 
-    OpendapLeaf getSelectedLeaf() {
-        if (jTree.isSelectionEmpty()) {
-            return null;
+    private void setLeafInvisible(OpendapLeaf leaf) {
+        boolean leafIsRemovedFromTree = leafToParentNode.containsKey(leaf);
+        if (!leafIsRemovedFromTree) {
+            final MutableTreeNode node = getNode(leaf);
+            final DefaultTreeModel model = (DefaultTreeModel) jTree.getModel();
+            leafToParentNode.put(leaf, (MutableTreeNode) node.getParent());
+            model.removeNodeFromParent(node);
         }
-        DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) jTree.getAnchorSelectionPath().getLastPathComponent();
-        return (OpendapLeaf) selectedNode.getUserObject();
+    }
+
+    private void getLeaves(Object node, TreeModel model, Set<OpendapLeaf> result) {
+        for (int i = 0; i < model.getChildCount(node); i++) {
+            if (model.isLeaf(model.getChild(node, i))) {
+                final DefaultMutableTreeNode childNode = (DefaultMutableTreeNode) (model.getChild(node, i));
+                if (CatalogTreeUtils.isDapNode(childNode) || CatalogTreeUtils.isFileNode(childNode)) {
+                    result.add((OpendapLeaf) childNode.getUserObject());
+                }
+            } else {
+                getLeaves(model.getChild(node, i), model, result);
+            }
+        }
     }
 
     static interface LeafSelectionListener {
@@ -452,4 +294,11 @@ class CatalogTree {
 
         void catalogElementsInsertionFinished();
     }
+
+    static interface UIContext {
+
+        void setCursor(Cursor cursor);
+
+    }
+
 }
