@@ -31,14 +31,14 @@ public class DAPDownloader {
 
     final Map<String, Boolean> dapUris;
     final List<String> fileURIs;
-    private final FileCountProvider fileCountProvider;
+    private final DownloadContext downloadContext;
     private final DownloadProgressBarPM pm;
 
-    public DAPDownloader(Map<String, Boolean> dapUris, List<String> fileURIs, FileCountProvider fileCountProvider,
+    public DAPDownloader(Map<String, Boolean> dapUris, List<String> fileURIs, DownloadContext downloadContext,
                          DownloadProgressBarPM pm) {
         this.dapUris = dapUris;
         this.fileURIs = fileURIs;
-        this.fileCountProvider = fileCountProvider;
+        this.downloadContext = downloadContext;
         this.pm = pm;
     }
 
@@ -74,6 +74,13 @@ public class DAPDownloader {
 
     void writeNetcdfFile(File targetDir, String fileName, String constraintExpression, final DODSNetcdfFile sourceNetcdfFile, final boolean isLargeFile) throws IOException {
         final File file = new File(targetDir, fileName);
+
+        if (file.exists() && !downloadContext.mayOverwrite(fileName)) {
+            downloadContext.notifyFileDownloaded(file);
+            updateProgressBar(fileName, (int) (file.length() / 1024));
+            return;
+        }
+
         if (StringUtils.isNullOrEmpty(constraintExpression)) {
             try {
                 Thread thread = new Thread(new Runnable() {
@@ -110,7 +117,7 @@ public class DAPDownloader {
             }
 
             if (!pm.isCanceled()) {
-                fileCountProvider.notifyFileDownloaded(file);
+                downloadContext.notifyFileDownloaded(file);
             }
             return;
         }
@@ -169,7 +176,7 @@ public class DAPDownloader {
             }
         }
         targetNetCDF.close();
-        fileCountProvider.notifyFileDownloaded(file);
+        downloadContext.notifyFileDownloaded(file);
     }
 
     private void updateProgressBar(String fileName, int work) {
@@ -177,9 +184,9 @@ public class DAPDownloader {
         StringBuilder preMessageBuilder = new StringBuilder(fileName);
         int currentWork = pm.getCurrentWork();
         preMessageBuilder.append(" (")
-                .append(fileCountProvider.getAllDownloadedFilesCount() + 1)
+                .append(downloadContext.getAllDownloadedFilesCount() + 1)
                 .append("/")
-                .append(fileCountProvider.getAllFilesCount())
+                .append(downloadContext.getAllFilesCount())
                 .append(")");
         if (currentWork != 0) {
             final long currentTime = new GregorianCalendar().getTimeInMillis();
@@ -313,15 +320,17 @@ public class DAPDownloader {
         final URL fileUrl = new URI(fileURI).toURL();
         updateProgressBar(fileUrl.getFile(), 0);
         final File file = FileDownloader.downloadFile(fileUrl, targetDir, null);
-        fileCountProvider.notifyFileDownloaded(file);
+        downloadContext.notifyFileDownloaded(file);
     }
 
-    public interface FileCountProvider {
+    public interface DownloadContext {
 
         int getAllFilesCount();
 
         int getAllDownloadedFilesCount();
 
         void notifyFileDownloaded(File downloadedFile);
+
+        boolean mayOverwrite(String filename);
     }
 }
