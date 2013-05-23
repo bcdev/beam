@@ -142,6 +142,7 @@ public class RegularGaussianGrid implements PlanetaryGrid {
         return (int) (bin - firstBinIndex);
     }
 
+
 //    public static class Descriptor implements PlanetaryGridDescriptor {
 //
 //        @Parameter(label = "Number of Grid Rows", defaultValue = 1024 + "",
