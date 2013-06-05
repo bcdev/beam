@@ -11,7 +11,7 @@
 
     <vendor>Brockmann Consult GmbH</vendor>
     <contactAddress>Max Planck Str.2, 21502 Geesthacht (Germany)</contactAddress>
-    <copyright>(C) 2012 by Brockmann Consult GmbH</copyright>
+    <copyright>(C) 2013 by Brockmann Consult GmbH</copyright>
     <url>http://envisat.esa.int/beam</url>
     <licenseUrl>http://www.gnu.org/licenses/gpl.html</licenseUrl>
     <funding>ESA, EU (Project Aquamar)</funding>
@@ -31,6 +31,7 @@
         <![CDATA[
         Changes from version 0.8.1 to 0.8.2:<br\>
         <ol>
+        <li>[BEAM-1495] NaN should be considered in L3-Binning</li>
         <li>[BEAM-1502] Binning should (optionally) support a postprocessor</li>
         <li>[BEAM-1499] In L3-Binning No-data should always be represented by NaN</li>
         <li>[BEAM-1483] Percentil Aggregator shares state</li>
