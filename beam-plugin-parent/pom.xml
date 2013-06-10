@@ -19,7 +19,7 @@
 
     <properties>
         <beam.version>[4.11,5-SNAPSHOT)</beam.version>
-        <ceres.version>[0.13.2,0.14-SNAPSHOT)</ceres.version>
+        <ceres.version>[0.13.3-SNAPSHOT,0.14-SNAPSHOT)</ceres.version>
         <geotools.version>2.7.4</geotools.version>
         <jide.version>3.3.7</jide.version>
         <!-- This property is set in beam-parent. Reason? See there!-->
