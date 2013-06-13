@@ -45,6 +45,8 @@ import org.esa.beam.framework.gpf.annotations.OperatorMetadata;
 import org.esa.beam.framework.gpf.annotations.Parameter;
 import org.esa.beam.framework.gpf.annotations.SourceProduct;
 import org.esa.beam.framework.gpf.annotations.TargetProduct;
+import org.esa.beam.framework.gpf.internal.OperatorContext;
+import org.esa.beam.jai.FillConstantOpImage;
 import org.esa.beam.jai.ImageManager;
 import org.esa.beam.jai.ResolutionLevel;
 import org.esa.beam.util.Debug;
@@ -428,7 +430,11 @@ public class ReprojectionOp extends Operator {
 
             @Override
             public RenderedImage createImage(int sourceLevel) {
-                return new InsertNoDataValueOpImage(srcImage.getImage(sourceLevel), maskImage.getImage(sourceLevel), noData);
+                FillConstantOpImage noDataValueOpImage = new FillConstantOpImage(srcImage.getImage(sourceLevel),
+                                                                                 maskImage.getImage(sourceLevel),
+                                                                                 noData);
+                OperatorContext.setTileCache(noDataValueOpImage);
+                return noDataValueOpImage;
             }
         });
     }
@@ -510,7 +516,7 @@ public class ReprojectionOp extends Operator {
             meanTime = new ProductData.UTC(0.5 * (startTime.getMJD() + endTime.getMJD()));
         } else if (startTime != null) {
             meanTime = startTime;
-        } else  if (endTime != null) {
+        } else if (endTime != null) {
             meanTime = endTime;
         } else {
             meanTime = null;
