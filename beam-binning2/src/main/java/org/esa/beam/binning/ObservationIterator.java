@@ -8,6 +8,8 @@ import org.esa.beam.framework.datamodel.Product;
 import org.esa.beam.framework.datamodel.ProductData;
 import org.esa.beam.util.ProductUtils;
 
+import javax.media.jai.PlanarImage;
+import java.awt.Rectangle;
 import java.awt.geom.Point2D;
 import java.awt.image.Raster;
 import java.util.Iterator;
@@ -28,20 +30,20 @@ abstract class ObservationIterator implements Iterator<Observation> {
     private final GeoCoding gc;
     private final Product product;
 
-    public static ObservationIterator create(Raster[] sourceTiles, Product product, Raster maskTile,
-                                             float[] superSamplingSteps) {
+    public static ObservationIterator create(PlanarImage[] sourceImages, PlanarImage maskImage, Product product,
+                                             float[] superSamplingSteps, Rectangle sliceRectangle) {
 
         SamplePointer pointer;
         if (superSamplingSteps.length == 1) {
-            pointer = SamplePointer.create(sourceTiles, sourceTiles[0].getBounds());
-        }else{
+            pointer = SamplePointer.create(sourceImages, new Rectangle[]{sliceRectangle});
+        } else {
             Point2D.Float[] superSamplingPoints = SamplePointer.createSamplingPoints(superSamplingSteps);
-            pointer = SamplePointer.create(sourceTiles, sourceTiles[0].getBounds(), superSamplingPoints);
+            pointer = SamplePointer.create(sourceImages, new Rectangle[]{sliceRectangle}, superSamplingPoints);
         }
-        if (maskTile == null) {
+        if (maskImage == null) {
             return new NoMaskObservationIterator(product, pointer);
         } else {
-            return new FullObservationIterator(product, pointer, maskTile);
+            return new FullObservationIterator(product, pointer, maskImage);
         }
     }
 
@@ -115,12 +117,13 @@ abstract class ObservationIterator implements Iterator<Observation> {
 
     static class FullObservationIterator extends ObservationIterator {
 
-        private final Raster maskTile;
+        private Raster maskTile;
+        private final PlanarImage maskImage;
 
 
-        FullObservationIterator(Product product, SamplePointer pointer, Raster maskTile) {
+        FullObservationIterator(Product product, SamplePointer pointer, PlanarImage maskImage) {
             super(product, pointer);
-            this.maskTile = maskTile;
+            this.maskImage = maskImage;
         }
 
         @Override
@@ -136,6 +139,12 @@ abstract class ObservationIterator implements Iterator<Observation> {
         }
 
         private boolean isSampleValid(int x, int y) {
+            if (maskTile == null || !maskTile.getBounds().contains(x, y)) {
+                int tileX = maskImage.XToTileX(x);
+                int tileY = maskImage.YToTileY(y);
+                maskTile = maskImage.getTile(tileX, tileY);
+            }
+
             return maskTile.getSample(x, y, 0) != 0;
         }
 
