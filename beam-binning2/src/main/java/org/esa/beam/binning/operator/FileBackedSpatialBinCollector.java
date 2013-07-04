@@ -50,7 +50,7 @@ class FileBackedSpatialBinCollector implements SpatialBinCollector {
         this.maximumNumberOfBins = maximumNumberOfBins;
         numBinsPerFile = getNumBinsPerFile(maximumNumberOfBins);
         tempDir = VirtualDir.createUniqueTempDir();
-        Runtime.getRuntime().addShutdownHook(new DeleteDirHook());
+        Runtime.getRuntime().addShutdownHook(new DeleteDirThread(tempDir));
         map = new TreeMap<Long, List<SpatialBin>>();
         consumingCompleted = new AtomicBoolean(false);
         currentFileIndex = 0;
@@ -283,11 +283,4 @@ class FileBackedSpatialBinCollector implements SpatialBinCollector {
         }
     }
 
-    private class DeleteDirHook extends Thread {
-
-        @Override
-        public void run() {
-            FileUtils.deleteTree(tempDir);
-        }
-    }
 }
