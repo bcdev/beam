@@ -71,7 +71,7 @@ import static org.esa.beam.dataio.envisat.EnvisatConstants.*;
                   description = "Performs radiometric corrections on MERIS L1b data products.",
                   authors = "Marc Bouvet (ESTEC); Marco Peters, Ralf Quast, Thomas Storm, Marco Zuehlke (Brockmann Consult)",
                   copyright = "(c) 2011 by Brockmann Consult",
-                  version = "1.1.2")
+                  version = "1.2-SCHILLER")
 public class MerisRadiometryCorrectionOp extends SampleOperator {
 
     private static final String UNIT_DL = "dl";
@@ -81,7 +81,7 @@ public class MerisRadiometryCorrectionOp extends SampleOperator {
     private static final int INVALID_BIT_INDEX = 7;
     private static final int LAND_BIT_INDEX = 4;
 
-    @Parameter(defaultValue = "true",
+    @Parameter(defaultValue = "false",
                label = "Perform calibration",
                description = "Whether to perform the calibration.")
     private boolean doCalibration;
@@ -101,7 +101,13 @@ public class MerisRadiometryCorrectionOp extends SampleOperator {
                description = "Whether to perform Smile-effect correction.")
     private boolean doSmile;
 
-    @Parameter(defaultValue = "true",
+    @Parameter(defaultValue = "true")
+    private boolean correctRad11;
+
+    @Parameter(defaultValue = "true")
+    private boolean useCorrectedRad10;
+
+    @Parameter(defaultValue = "false",
                label = "Perform equalisation",
                description = "Perform removal of detector-to-detector systematic radiometric differences in MERIS L1b data products.")
     private boolean doEqualization;
@@ -273,7 +279,8 @@ public class MerisRadiometryCorrectionOp extends SampleOperator {
                 for (int i = 0; i < sourceValues.length; i++) {
                     sourceValues[i] = sourceSamples[i].getDouble();
                 }
-                value = smileCorrAlgorithm.correct(bandIndex, detectorIndex, sourceValues, land);
+                value = smileCorrAlgorithm.correct(bandIndex, detectorIndex, sourceValues, land, correctRad11,
+                                                   useCorrectedRad10);
             }
         }
         if (doRadToRefl) {

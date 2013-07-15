@@ -22,6 +22,7 @@ package org.esa.beam.meris.radiometry.smilecorr;
 public class SmileCorrectionAlgorithm {
 
     private final SmileCorrectionAuxdata auxdata;
+    private final CorrFac115 corrFac115;
 
     /**
      * Creates an instance of this class with the given auxiliary data.
@@ -30,6 +31,7 @@ public class SmileCorrectionAlgorithm {
      */
     public SmileCorrectionAlgorithm(SmileCorrectionAuxdata auxdata) {
         this.auxdata = auxdata;
+        corrFac115 = new CorrFac115();
     }
 
     /**
@@ -42,7 +44,8 @@ public class SmileCorrectionAlgorithm {
      *
      * @return the corrected value
      */
-    public double correct(int bandIndex, int detectorIndex, double[] radianceSamples, boolean isLand) {
+    public double correct(int bandIndex, int detectorIndex, double[] radianceSamples, boolean isLand,
+                          boolean correctRad11, boolean useCorrectedRad10) {
         double originalValue = radianceSamples[bandIndex];
         if (detectorIndex < 0 || detectorIndex >= auxdata.getDetectorWavelengths().length) {
             return originalValue;
@@ -78,7 +81,47 @@ public class SmileCorrectionAlgorithm {
             double dr = (r2 - r1) * dl * theoretE0s[bandIndex];
             rc += dr;
         }
+        if (correctRad11 && bandIndex == 10) {
+            if (useCorrectedRad10) {
+                // with corrected radiance_10 as input
+                double corrRad10 = correct(9, detectorIndex, radianceSamples, isLand, false, false);
+                rc = correctRadiance11(detectorIndex, corrRad10, radianceSamples[10]);
+            } else {
+                // with uncorrected radiance_10 as input
+                rc = correctRadiance11(detectorIndex, radianceSamples[9], radianceSamples[10]);
+            }
+        }
+
         return rc;
+    }
+
+
+    /* Schiller code
+
+     	double L9, L10, L9c, L10c, L10cc, L10unaff, abs10;
+        corrfac115 corrFac115 = new corrfac115();
+		L9= radiances[9];
+		L9c = corrRadiances[9];
+		L10=radiances[10];
+		corrRadiances[11]=corrRadiances[10];
+		corrRadiances[10]=L10;
+		L10unaff=L9*theoretE0s[10]/theoretE0s[9];
+		abs10=L10unaff-radiances[10];
+		L10c=L10unaff-abs10* corrFac115.y(detectorWLs[10]);
+		corrRadiances[12]=L10c;
+
+		L10unaff=L9c*theoretE0s[10]/theoretE0s[9];
+		abs10=L10unaff-radiances[10];
+		L10cc=L10unaff-abs10* corrFac115.y(detectorWLs[10]);
+		//System.err.println(detectorWLs[10]);
+		corrRadiances[13]=L10cc;
+     */
+    private double correctRadiance11(int detectorIndex, double radiance10, double radiance11) {
+        double[] theoretE0s = auxdata.getTheoreticalSunSpectralFluxes();
+        double[] detectorWLs = auxdata.getDetectorWavelengths()[detectorIndex];
+        double tempRad11 = radiance10 * theoretE0s[10] / theoretE0s[9];
+        double abs11 = tempRad11 - radiance11;
+        return tempRad11 - abs11 * corrFac115.y(detectorWLs[10]);
     }
 
 }
