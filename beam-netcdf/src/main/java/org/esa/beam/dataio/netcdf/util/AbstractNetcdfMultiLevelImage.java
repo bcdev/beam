@@ -19,7 +19,6 @@ package org.esa.beam.dataio.netcdf.util;
 import com.bc.ceres.glevel.MultiLevelImage;
 import com.bc.ceres.glevel.MultiLevelModel;
 import com.bc.ceres.glevel.support.DefaultMultiLevelModel;
-import org.esa.beam.framework.datamodel.Product;
 import org.esa.beam.framework.datamodel.RasterDataNode;
 import org.esa.beam.jai.ImageManager;
 
@@ -100,14 +99,6 @@ public abstract class AbstractNetcdfMultiLevelImage extends MultiLevelImage {
     public void dispose() {
         reset();
         super.dispose();
-    }
-
-    protected static java.awt.Dimension getPreferredTileSize(RasterDataNode rdn) {
-        Product product = rdn.getProduct();
-        if (product != null && product.getPreferredTileSize() != null) {
-            return product.getPreferredTileSize();
-        }
-        return null;
     }
 
     private void checkLevel(int level) {
