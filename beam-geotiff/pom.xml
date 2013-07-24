@@ -26,8 +26,7 @@
     </parent>
 
     <artifactId>beam-geotiff</artifactId>
-    <packaging>jar</packaging>
-    <version>1.3.${beam.version}</version>
+    <version>1.3-SNAPSHOT</version>
     <name>BEAM GeoTIFF Product Reader/Writer</name>
 
     <dependencies>
