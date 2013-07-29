@@ -108,7 +108,7 @@ public class LandsatGeotiffReaderPlugin implements ProductReaderPlugIn {
                 }
             }
         }
-        return line != null && line.matches("GROUP = L1_METADATA_FILE");
+        return line != null && line.trim().matches("GROUP = L1_METADATA_FILE");
     }
 
     @Override
