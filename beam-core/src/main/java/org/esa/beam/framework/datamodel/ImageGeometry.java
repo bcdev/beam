@@ -178,7 +178,7 @@ public class ImageGeometry {
             final int sourceH = product.getSceneRasterHeight();
 
             Rectangle2D rect = XRectangle2D.createFromExtremums(0.5, 0.5, sourceW - 0.5, sourceH - 0.5);
-            int pointsPerSide = Math.min(sourceH, sourceW) / 10;
+            int pointsPerSide = Math.max(sourceH, sourceW) / 10;
             pointsPerSide = Math.max(9, pointsPerSide);
             final ReferencedEnvelope sourceEnvelope = new ReferencedEnvelope(rect, sourceCrs);
             final ReferencedEnvelope targetEnvelope = sourceEnvelope.transform(targetCrs, true, pointsPerSide);
