@@ -21,7 +21,11 @@ import ucar.nc2.Variable;
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -301,13 +305,13 @@ class SeaDASLevel3BinWriter implements BinWriter {
     private void writeBinIndexVariable(NetcdfFileWriteable netcdfFile,
                                        Variable variable,
                                        BinIndexElementSetter setter) throws IOException, InvalidRangeException {
-        logger.info("Writing bin index variable " + variable.getName());
+        logger.info("Writing bin index variable " + variable.getFullName());
         final int numRows = seadasGrid.getNumRows();
         final Array array = Array.factory(variable.getDataType(), new int[]{numRows});
         for (int row = 0; row < numRows; row++) {
             setter.setArray(array, row, seadasGrid);
         }
-        netcdfFile.write(variable.getName(), array);
+        netcdfFile.write(variable.getFullName(), array);
     }
 
     private void writeBinListVariable0(NetcdfFileWriteable netcdfFile,
