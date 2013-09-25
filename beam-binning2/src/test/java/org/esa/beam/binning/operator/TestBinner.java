@@ -3,6 +3,7 @@ package org.esa.beam.binning.operator;
 import com.bc.ceres.core.ProgressMonitor;
 import com.vividsolutions.jts.io.WKTReader;
 import org.esa.beam.binning.BinningContext;
+import org.esa.beam.binning.PlanetaryGrid;
 import org.esa.beam.binning.SpatialBin;
 import org.esa.beam.binning.SpatialBinConsumer;
 import org.esa.beam.binning.SpatialBinner;
@@ -129,9 +130,12 @@ public class TestBinner {
     private static void doOutputting(String regionWKT, FormatterConfig formatterConfig, BinningContext binningContext, List<TemporalBin> temporalBins) throws Exception {
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
-
-        org.esa.beam.binning.operator.Formatter.format(binningContext,
-                                                       new MyTemporalBinSource(temporalBins), formatterConfig,
+        PlanetaryGrid planetaryGrid = binningContext.getPlanetaryGrid();
+        String[] resultFeatureNames = binningContext.getBinManager().getResultFeatureNames();
+        org.esa.beam.binning.operator.Formatter.format(planetaryGrid,
+                                                       new MyTemporalBinSource(temporalBins),
+                                                       resultFeatureNames,
+                                                       formatterConfig,
                                                        new WKTReader().read(regionWKT),
                                                        new ProductData.UTC(),
                                                        new ProductData.UTC(),

@@ -1,6 +1,5 @@
 package org.esa.beam.binning;
 
-import org.esa.beam.binning.support.BinningContextImpl;
 import org.esa.beam.binning.support.SEAGrid;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,7 +52,7 @@ public class ReprojectorTest {
                      "------------\n",
                      raster.toString());
 
-        reprojector = new Reprojector(createBinningContext(planetaryGrid), raster);
+        reprojector = new Reprojector(planetaryGrid, raster);
         reprojector.begin();
     }
 
@@ -66,7 +65,7 @@ public class ReprojectorTest {
                      "------\n",
                      raster.toString());
 
-        Reprojector reprojector = new Reprojector(createBinningContext(planetaryGrid), raster);
+        Reprojector reprojector = new Reprojector(planetaryGrid, raster);
         reprojector.begin();
 
         ArrayList<TemporalBin> bins = new ArrayList<TemporalBin>();
@@ -417,10 +416,6 @@ public class ReprojectorTest {
         return temporalBin;
     }
 
-    private BinningContext createBinningContext(PlanetaryGrid planetaryGrid) {
-        return new BinningContextImpl(planetaryGrid, binManager, CompositingType.BINNING, 1);
-    }
-
     private static class NobsRaster implements TemporalBinRenderer {
 
         private final int w;
@@ -442,11 +437,11 @@ public class ReprojectorTest {
         }
 
         @Override
-        public void begin(BinningContext context) throws IOException {
+        public void begin() throws IOException {
         }
 
         @Override
-        public void end(BinningContext context) throws IOException {
+        public void end() throws IOException {
         }
 
         @Override

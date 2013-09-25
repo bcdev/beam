@@ -53,7 +53,7 @@ public final class ProductTemporalBinRenderer implements TemporalBinRenderer {
     private final ProductWriter productWriter;
     private final Rectangle outputRegion;
 
-    public ProductTemporalBinRenderer(BinningContext binningContext,
+    public ProductTemporalBinRenderer(String[] featureNames,
                                       File outputFile,
                                       String outputFormat,
                                       Rectangle outputRegion,
@@ -89,7 +89,7 @@ public final class ProductTemporalBinRenderer implements TemporalBinRenderer {
         localNumPassesBand.setNoDataValue(-1);
         localNumPassesBand.setNoDataValueUsed(true);
 
-        for (String name : binningContext.getBinManager().getResultFeatureNames()) {
+        for (String name : featureNames) {
             Band band = product.addBand(name, ProductData.TYPE_FLOAT32);
             band.setNoDataValue(Float.NaN);
             band.setNoDataValueUsed(true);
@@ -111,11 +111,10 @@ public final class ProductTemporalBinRenderer implements TemporalBinRenderer {
             numPassesLine = null;
         }
 
-        String[] outputFeatureNames = binningContext.getBinManager().getResultFeatureNames();
-        outputBands = new Band[outputFeatureNames.length];
-        outputLines = new ProductData[outputFeatureNames.length];
-        for (int i = 0; i < outputFeatureNames.length; i++) {
-            String name = outputFeatureNames[i];
+        outputBands = new Band[featureNames.length];
+        outputLines = new ProductData[featureNames.length];
+        for (int i = 0; i < featureNames.length; i++) {
+            String name = featureNames[i];
             outputBands[i] = product.getBand(name);
             outputLines[i] = outputBands[i].createCompatibleRasterData(outputRegion.width, 1);
         }
@@ -133,7 +132,7 @@ public final class ProductTemporalBinRenderer implements TemporalBinRenderer {
     }
 
     @Override
-    public void begin(BinningContext context) throws IOException {
+    public void begin() throws IOException {
         final File parentFile = outputFile.getParentFile();
         if (parentFile != null) {
             parentFile.mkdirs();
@@ -144,7 +143,7 @@ public final class ProductTemporalBinRenderer implements TemporalBinRenderer {
     }
 
     @Override
-    public void end(BinningContext context) throws IOException {
+    public void end() throws IOException {
         completeLine();
         productWriter.close();
         product.closeIO();

@@ -46,7 +46,7 @@ public final class ImageTemporalBinRenderer implements TemporalBinRenderer {
     private final File outputFile;
     private final String outputFormat;
 
-    public ImageTemporalBinRenderer(BinningContext binningContext,
+    public ImageTemporalBinRenderer(String[] featureNames,
                                     File outputFile, String outputFormat,
                                     Rectangle outputRegion,
                                     FormatterConfig.BandConfiguration[] bandConfigurations,
@@ -72,7 +72,6 @@ public final class ImageTemporalBinRenderer implements TemporalBinRenderer {
             Arrays.fill(bandData[i], Float.NaN);
         }
 
-        String[] outputFeatureNames = binningContext.getBinManager().getResultFeatureNames();
         bandIndices = new int[bandCount];
         bandNames = new String[bandCount];
         bandMinValues = new float[bandCount];
@@ -81,7 +80,7 @@ public final class ImageTemporalBinRenderer implements TemporalBinRenderer {
             FormatterConfig.BandConfiguration bandConfiguration = bandConfigurations[i];
             String nameStr = bandConfiguration.name;
             bandIndices[i] = Integer.parseInt(bandConfiguration.index);
-            bandNames[i] = nameStr != null ? nameStr : outputFeatureNames[bandIndices[i]];
+            bandNames[i] = nameStr != null ? nameStr : featureNames[bandIndices[i]];
             bandMinValues[i] = Float.parseFloat(bandConfiguration.minValue);
             bandMaxValues[i] = Float.parseFloat(bandConfiguration.maxValue);
         }
@@ -93,7 +92,7 @@ public final class ImageTemporalBinRenderer implements TemporalBinRenderer {
     }
 
     @Override
-    public void begin(BinningContext context) {
+    public void begin() {
         final File parentFile = outputFile.getParentFile();
         if (parentFile != null) {
             parentFile.mkdirs();
@@ -101,7 +100,7 @@ public final class ImageTemporalBinRenderer implements TemporalBinRenderer {
     }
 
     @Override
-    public void end(BinningContext context) throws IOException {
+    public void end() throws IOException {
         if (writeRgb) {
             writeRgbImage(outputRegion.width, outputRegion.height,
                           bandData,
