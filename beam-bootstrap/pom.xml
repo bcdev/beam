@@ -181,6 +181,13 @@
             <artifactId>jython</artifactId>
         </dependency>
 
+        <!-- @todo 2 tb/** we need to discuss how we include the reader, this is just preliminary for OC-CCI -->
+        <dependency>
+            <groupId>gov.nasa.gsfc.seadas</groupId>
+            <artifactId>seadas-reader</artifactId>
+            <version>1.4.3-SNAPSHOT</version>
+        </dependency>
+
     </dependencies>
     <profiles>
         <profile>
