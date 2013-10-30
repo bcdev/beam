@@ -36,7 +36,6 @@ public class LandsatGeotiffReaderPluginTest {
         plugin = new LandsatGeotiffReaderPlugin();
     }
 
-
     @Test
     public void testIsLandsatMSSFilename() throws Exception {
         assertTrue(LandsatGeotiffReaderPlugin.isLandsatMSSFilename("LM11870291976166ESA00_MTL.txt"));
@@ -45,8 +44,6 @@ public class LandsatGeotiffReaderPluginTest {
         assertTrue(LandsatGeotiffReaderPlugin.isLandsatMSSFilename("LM52010241984295AAA03_MTL.txt"));
 
         assertFalse(LandsatGeotiffReaderPlugin.isLandsatMSSFilename("LT40140341983030XXX13_MTL.txt"));
-
-
     }
 
     @Test
