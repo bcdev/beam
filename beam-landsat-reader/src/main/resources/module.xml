@@ -1,7 +1,7 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-landsat-reader</symbolicName>
-    <version>1.4.1-SNAPSHOT</version>
+    <version>1.4.1</version>
     <name>Landsat Product Reader</name>
     <description>
         A product reader for Landsat files. It supports the instruments TM of Landsat 4 and 5, ETM+ of Landsat 7
