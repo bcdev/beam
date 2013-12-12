@@ -18,21 +18,14 @@ package org.esa.beam.binning.operator;
 
 import com.bc.ceres.binding.BindingException;
 import org.esa.beam.binning.BinManager;
-import org.esa.beam.binning.CompositingType;
-import org.esa.beam.binning.PlanetaryGrid;
-import org.esa.beam.binning.VariableContext;
 import org.esa.beam.binning.aggregators.AggregatorAverage;
 import org.esa.beam.binning.aggregators.AggregatorAverageML;
 import org.esa.beam.binning.aggregators.AggregatorMinMax;
 import org.esa.beam.binning.aggregators.AggregatorOnMaxSet;
-import org.esa.beam.binning.support.PlateCarreeGrid;
-import org.esa.beam.binning.support.SEAGrid;
-import org.esa.beam.util.io.FileUtils;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
 
 import static org.junit.Assert.*;
 
@@ -47,7 +40,7 @@ public class BinningConfigWithProcessorTest {
 
     @Test
     public void testResultingBinManager() {
-        BinManager binManager = config.createBinningContext().getBinManager();
+        BinManager binManager = config.createBinningContext(null).getBinManager();
         assertEquals(6, binManager.getAggregatorCount());
 
         assertEquals(AggregatorAverage.class, binManager.getAggregator(0).getClass());
@@ -72,7 +65,7 @@ public class BinningConfigWithProcessorTest {
         assertEquals(AggregatorMinMax.class, binManager.getAggregator(5).getClass());
         assertArrayEquals(new String[]{"chl_min", "chl_max"}, binManager.getAggregator(5).getOutputFeatureNames());
 
-        assertArrayEquals(new String[]{"tsm_mean", "tsm_sigma", "chl_min"}, binManager.getResultFeatureNames());
+        assertArrayEquals(new String[]{"tsm_mean", "tsm_sigma", "chl_min", "cmax"}, binManager.getResultFeatureNames());
         assertTrue(binManager.hasPostProcessor());
     }
 

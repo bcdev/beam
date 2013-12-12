@@ -2,11 +2,7 @@ package org.esa.beam.binning.reader;
 
 import org.esa.beam.framework.datamodel.Band;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 
 class NcArrayCache {
 

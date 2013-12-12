@@ -16,6 +16,7 @@ import java.io.InputStream;
 import static org.junit.Assert.*;
 
 public class SpatialBinTest {
+
     @Test
     public void testIllegalConstructorCalls() {
         try {

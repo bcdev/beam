@@ -34,6 +34,7 @@ import java.util.Arrays;
  * An aggregator that sets an output if an input is maximal.
  */
 public final class AggregatorOnMaxSet extends AbstractAggregator {
+
     private final int[] varIndexes;
     private int numFeatures;
 
@@ -81,7 +82,8 @@ public final class AggregatorOnMaxSet extends AbstractAggregator {
     }
 
     @Override
-    public void aggregateTemporal(BinContext ctx, Vector spatialVector, int numSpatialObs, WritableVector temporalVector) {
+    public void aggregateTemporal(BinContext ctx, Vector spatialVector, int numSpatialObs,
+                                  WritableVector temporalVector) {
         final float value = spatialVector.get(0);
         final float currentMax = temporalVector.get(0);
         if (value > currentMax) {
@@ -106,11 +108,11 @@ public final class AggregatorOnMaxSet extends AbstractAggregator {
     @Override
     public String toString() {
         return "AggregatorOnMaxSet{" +
-                "varIndexes=" + Arrays.toString(varIndexes) +
-                ", spatialFeatureNames=" + Arrays.toString(getSpatialFeatureNames()) +
-                ", temporalFeatureNames=" + Arrays.toString(getTemporalFeatureNames()) +
-                ", outputFeatureNames=" + Arrays.toString(getOutputFeatureNames()) +
-                '}';
+               "varIndexes=" + Arrays.toString(varIndexes) +
+               ", spatialFeatureNames=" + Arrays.toString(getSpatialFeatureNames()) +
+               ", temporalFeatureNames=" + Arrays.toString(getTemporalFeatureNames()) +
+               ", outputFeatureNames=" + Arrays.toString(getOutputFeatureNames()) +
+               '}';
     }
 
     private static String[] createFeatureNames(String[] varNames) {
@@ -128,6 +130,7 @@ public final class AggregatorOnMaxSet extends AbstractAggregator {
     }
 
     public static class Config extends AggregatorConfig {
+
         @Parameter
         String[] varNames;
 
@@ -150,6 +153,7 @@ public final class AggregatorOnMaxSet extends AbstractAggregator {
         public String getName() {
             return NAME;
         }
+
         @Override
         public AggregatorConfig createConfig() {
             return new Config();

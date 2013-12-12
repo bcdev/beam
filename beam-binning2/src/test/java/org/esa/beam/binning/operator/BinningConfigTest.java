@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2013 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -100,7 +100,7 @@ public class BinningConfigTest {
 
     @Test
     public void testResultingBinManager() {
-        BinManager binManager = config.createBinningContext().getBinManager();
+        BinManager binManager = config.createBinningContext(null).getBinManager();
         assertEquals(6, binManager.getAggregatorCount());
 
         assertEquals(AggregatorAverage.class, binManager.getAggregator(0).getClass());

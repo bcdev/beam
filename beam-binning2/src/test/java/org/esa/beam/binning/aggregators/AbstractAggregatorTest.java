@@ -18,8 +18,8 @@ package org.esa.beam.binning.aggregators;
 
 import org.junit.Test;
 
-import static org.esa.beam.binning.AbstractAggregator.*;
-import static org.junit.Assert.*;
+import static org.esa.beam.binning.AbstractAggregator.createFeatureNames;
+import static org.junit.Assert.assertArrayEquals;
 
 public class AbstractAggregatorTest {
 

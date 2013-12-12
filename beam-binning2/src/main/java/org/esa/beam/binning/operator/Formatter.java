@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2013 Brockmann Consult GmbH (info@brockmann-consult.de) 
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -18,11 +18,15 @@
 package org.esa.beam.binning.operator;
 
 import com.vividsolutions.jts.geom.Geometry;
-import org.esa.beam.binning.*;
+import org.esa.beam.binning.PlanetaryGrid;
+import org.esa.beam.binning.ProductCustomizer;
+import org.esa.beam.binning.Reprojector;
+import org.esa.beam.binning.TemporalBinRenderer;
+import org.esa.beam.binning.TemporalBinSource;
 import org.esa.beam.framework.datamodel.MetadataElement;
 import org.esa.beam.framework.datamodel.ProductData;
 
-import java.awt.*;
+import java.awt.Rectangle;
 import java.io.File;
 
 /**
@@ -39,7 +43,7 @@ public class Formatter {
                               Geometry roiGeometry,
                               ProductData.UTC startTime,
                               ProductData.UTC stopTime,
-                              MetadataElement ... metadataElements) throws Exception {
+                              MetadataElement... metadataElements) throws Exception {
 
         if (featureNames.length == 0) {
             throw new IllegalArgumentException("Illegal binning context: featureNames.length == 0");

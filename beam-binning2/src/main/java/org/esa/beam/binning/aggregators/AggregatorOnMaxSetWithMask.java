@@ -34,6 +34,7 @@ import java.util.Arrays;
  * An aggregator that sets an output if an input is maximal.
  */
 public final class AggregatorOnMaxSetWithMask extends AbstractAggregator {
+
     private final int maskIndex;
     private final int onMaxIndex;
     private final int[] setIndexes;
@@ -99,7 +100,8 @@ public final class AggregatorOnMaxSetWithMask extends AbstractAggregator {
     }
 
     @Override
-    public void aggregateTemporal(BinContext ctx, Vector spatialVector, int numSpatialObs, WritableVector temporalVector) {
+    public void aggregateTemporal(BinContext ctx, Vector spatialVector, int numSpatialObs,
+                                  WritableVector temporalVector) {
         final float counterValue = spatialVector.get(2);
         if (counterValue > 0) {
             temporalVector.set(2, temporalVector.get(2) + counterValue);
@@ -136,11 +138,11 @@ public final class AggregatorOnMaxSetWithMask extends AbstractAggregator {
     @Override
     public String toString() {
         return "AggregatorOnMaxSetWithMask{" +
-                "setIndexes=" + Arrays.toString(setIndexes) +
-                ", spatialFeatureNames=" + Arrays.toString(getSpatialFeatureNames()) +
-                ", temporalFeatureNames=" + Arrays.toString(getTemporalFeatureNames()) +
-                ", outputFeatureNames=" + Arrays.toString(getOutputFeatureNames()) +
-                '}';
+               "setIndexes=" + Arrays.toString(setIndexes) +
+               ", spatialFeatureNames=" + Arrays.toString(getSpatialFeatureNames()) +
+               ", temporalFeatureNames=" + Arrays.toString(getTemporalFeatureNames()) +
+               ", outputFeatureNames=" + Arrays.toString(getOutputFeatureNames()) +
+               '}';
     }
 
     private static String[] createFeatures(String onMaxName, String[] setNames) {
@@ -157,6 +159,7 @@ public final class AggregatorOnMaxSetWithMask extends AbstractAggregator {
     }
 
     public static class Config extends AggregatorConfig {
+
         @Parameter
         String onMaxName;
         @Parameter

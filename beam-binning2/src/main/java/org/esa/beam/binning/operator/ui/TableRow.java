@@ -17,23 +17,24 @@
 package org.esa.beam.binning.operator.ui;
 
 import org.esa.beam.binning.AggregatorDescriptor;
+import org.esa.beam.util.StringUtils;
 
 /**
-* Simple configuration class containing a number of public final fields.
-*
-* @author Thomas Storm
-*/
+ * Simple configuration class containing a number of public final fields.
+ *
+ * @author Thomas Storm
+ */
 class TableRow {
 
     final String name;
     final String expression;
     final AggregatorDescriptor aggregator;
     final Double weight;
-    public Integer percentile;
+    final Integer percentile;
 
     TableRow(String name, String expression, AggregatorDescriptor aggregator, Double weight, Integer percentile) {
-        this.name = name;
-        this.expression = expression;
+        this.name = name.replace("<", "").replace(">", "");
+        this.expression = StringUtils.isNullOrEmpty(expression) ? null : expression;
         this.aggregator = aggregator;
         this.weight = weight;
         this.percentile = percentile;

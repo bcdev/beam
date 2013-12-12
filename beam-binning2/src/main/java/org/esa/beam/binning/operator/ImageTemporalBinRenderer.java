@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2013 Brockmann Consult GmbH (info@brockmann-consult.de) 
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -16,11 +16,13 @@
 
 package org.esa.beam.binning.operator;
 
-import org.esa.beam.binning.*;
+import org.esa.beam.binning.TemporalBin;
+import org.esa.beam.binning.TemporalBinRenderer;
+import org.esa.beam.binning.Vector;
 import org.esa.beam.util.io.FileUtils;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.io.File;

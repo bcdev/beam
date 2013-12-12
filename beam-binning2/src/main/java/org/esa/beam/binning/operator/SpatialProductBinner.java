@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2013 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -19,6 +19,7 @@ package org.esa.beam.binning.operator;
 import com.bc.ceres.core.ProgressMonitor;
 import com.bc.ceres.glevel.MultiLevelImage;
 import com.vividsolutions.jts.geom.Geometry;
+import org.esa.beam.binning.BinningContext;
 import org.esa.beam.binning.CompositingType;
 import org.esa.beam.binning.ObservationSlice;
 import org.esa.beam.binning.PlanetaryGrid;
@@ -74,14 +75,17 @@ public class SpatialProductBinner {
                                       Integer superSampling,
                                       Map<Product, List<Band>> addedBands,
                                       ProgressMonitor progressMonitor) throws IOException {
+
+        //TODO mz/nf 2013-11-05 superSampling must not be a parameter, spatialBinner.getBinnigContext() has it !!
         if (product.getGeoCoding() == null) {
             throw new IllegalArgumentException("product.getGeoCoding() == null");
         }
-        final VariableContext variableContext = spatialBinner.getBinningContext().getVariableContext();
+        BinningContext binningContext = spatialBinner.getBinningContext();
+        final VariableContext variableContext = binningContext.getVariableContext();
         addVariablesToProduct(variableContext, product, addedBands);
 
-        PlanetaryGrid planetaryGrid = spatialBinner.getBinningContext().getPlanetaryGrid();
-        CompositingType compositingType = spatialBinner.getBinningContext().getCompositingType();
+        PlanetaryGrid planetaryGrid = binningContext.getPlanetaryGrid();
+        CompositingType compositingType = binningContext.getCompositingType();
         Geometry sourceProductGeometry = null;
         final MultiLevelImage maskImage;
         if (CompositingType.MOSAICKING.equals(compositingType)) {
@@ -102,10 +106,10 @@ public class SpatialProductBinner {
             Dimension tileSize = product.getPreferredTileSize();
             sliceRectangles = plateCarreeGrid.getDataSliceRectangles(sourceProductGeometry, tileSize);
         } else {
-            final Dimension defaultSliceDimension = getDefaultSliceDimension(product);
+            final Dimension defaultSliceDimension = computeDefaultSliceDimension(product);
             sliceRectangles = computeDataSliceRectangles(maskImage, varImages, defaultSliceDimension);
         }
-        final float[] superSamplingSteps = getSuperSamplingSteps(superSampling);
+        final float[] superSamplingSteps = getSuperSamplingSteps(binningContext.getSuperSampling());
         long numObsTotal = 0;
         progressMonitor.beginTask("Spatially binning of " + product.getName(), sliceRectangles.length);
         final Logger logger = BeamLogManager.getSystemLogger();
@@ -192,14 +196,14 @@ public class SpatialProductBinner {
     private static long processSlice(SpatialBinner spatialBinner, ProgressMonitor progressMonitor,
                                      float[] superSamplingSteps, MultiLevelImage maskImage, MultiLevelImage[] varImages,
                                      Product product, Rectangle sliceRect) {
-        final ObservationSlice observationSlice = new ObservationSlice(varImages, maskImage, product, superSamplingSteps, sliceRect);
+        final ObservationSlice observationSlice = new ObservationSlice(varImages, maskImage, product, superSamplingSteps, sliceRect, spatialBinner.getBinningContext());
         long numObservations = spatialBinner.processObservationSlice(observationSlice);
         progressMonitor.worked(1);
         return numObservations;
     }
 
 
-    private static Dimension getDefaultSliceDimension(Product product) {
+    private static Dimension computeDefaultSliceDimension(Product product) {
         final int sliceWidth = product.getSceneRasterWidth();
         Dimension preferredTileSize = product.getPreferredTileSize();
         int sliceHeight;
@@ -208,6 +212,8 @@ public class SpatialProductBinner {
         } else {
             sliceHeight = ImageManager.getPreferredTileSize(product).height;
         }
+
+        // TODO make this a parameter nf/mz 2013-11-05
         String sliceHeightString = System.getProperty(PROPERTY_KEY_SLICE_HEIGHT, String.valueOf(sliceHeight));
         Dimension dimension = new Dimension(sliceWidth, Integer.parseInt(sliceHeightString));
         String logMsg = String.format("Using slice dimension [width=%d, height=%d] in binning", dimension.width, dimension.height);
