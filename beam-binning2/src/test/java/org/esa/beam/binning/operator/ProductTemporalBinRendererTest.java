@@ -36,7 +36,7 @@ public class ProductTemporalBinRendererTest {
         ProductTemporalBinRenderer binRenderer = createBinRenderer(tempFile, binningContext);
         Rectangle region = binRenderer.getRasterRegion();
 
-        binRenderer.begin(binningContext);
+        binRenderer.begin();
         TemporalBin temporalBin = new TemporalBin(0, 11);
         for (int y = 0; y < region.height; y++) {
             temporalBin.setNumObs(y);
@@ -48,7 +48,7 @@ public class ProductTemporalBinRendererTest {
                 }
             }
         }
-        binRenderer.end(binningContext);
+        binRenderer.end();
 
         Product product = ProductIO.readProduct(tempFile);
         Band numObs = product.getBand("num_obs");
@@ -75,7 +75,8 @@ public class ProductTemporalBinRendererTest {
                                                               new JtsGeometryConverter().parse(worldWKT));
         ProductData.UTC startTime = ProductData.UTC.parse("12-May-2006 11:50:10");
         ProductData.UTC endTime = ProductData.UTC.parse("12-May-2006 11:55:15");
-        return new ProductTemporalBinRenderer(binningContext, tempFile, "NetCDF-BEAM", region, 1.0, startTime, endTime, null);
+        String[] resultFeatureNames = binningContext.getBinManager().getResultFeatureNames();
+        return new ProductTemporalBinRenderer(resultFeatureNames, tempFile, "NetCDF-BEAM", region, 1.0, startTime, endTime, null);
     }
 
 }

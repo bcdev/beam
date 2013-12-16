@@ -18,6 +18,7 @@ package org.esa.beam.dataio.netcdf;
 
 import org.esa.beam.dataio.netcdf.metadata.ProfileInitPartReader;
 import org.esa.beam.dataio.netcdf.metadata.ProfilePartReader;
+import org.esa.beam.framework.dataio.AbstractProductReader;
 import org.esa.beam.framework.datamodel.Product;
 
 import java.io.IOException;
@@ -45,6 +46,7 @@ class NetCdfReadProfile {
     public Product readProduct(final ProfileReadContext ctx) throws IOException {
 
         final Product product = profileInitPart.readProductBody(ctx);
+        AbstractProductReader.configurePreferredTileSize(product);
         for (ProfilePartReader profilePart : profileParts) {
             profilePart.preDecode(ctx, product);
         }

@@ -605,8 +605,9 @@ public class BinningOp extends Operator implements Output {
         if (outputTargetProduct) {
             getLogger().info(String.format("Writing mapped product '%s'...", formatterConfig.getOutputFile()));
             final MetadataElement globalAttributes = createGlobalAttributesElement();
-            Formatter.format(binningContext,
+            Formatter.format(binningContext.getPlanetaryGrid(),
                              getTemporalBinSource(temporalBins),
+                             binningContext.getBinManager().getResultFeatureNames(),
                              formatterConfig,
                              region,
                              startTime,

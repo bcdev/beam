@@ -145,22 +145,37 @@ public class GeoTiffProductReader extends AbstractProductReader {
                                              destOffsetX, destOffsetY, destWidth, destHeight);
                 pm.worked(1);
 
-                double[] dArray = new double[destSize];
                 Integer bandIdx = bandMap.get(destBand);
                 if (bandIdx == null) {
                     bandIdx = 0;
                 }
                 final DataBuffer dataBuffer = data.getDataBuffer();
                 final SampleModel sampleModel = data.getSampleModel();
-                sampleModel.getSamples(0, 0, data.getWidth(), data.getHeight(), bandIdx, dArray, dataBuffer);
-                pm.worked(1);
+                final int dataBufferType = dataBuffer.getDataType();
 
-                for (int i = 0; i < dArray.length; i++) {
-                    destBuffer.setElemDoubleAt(i, dArray[i]);
+                boolean isInteger = dataBufferType == DataBuffer.TYPE_SHORT
+                                    || dataBufferType == DataBuffer.TYPE_USHORT
+                                    || dataBufferType == DataBuffer.TYPE_INT;
+                boolean isIntegerTarget = destBuffer.getElems() instanceof int[];
+                if (isInteger && isIntegerTarget) {
+                    sampleModel.getSamples(0, 0, data.getWidth(), data.getHeight(), bandIdx, (int[]) destBuffer.getElems(), dataBuffer);
+                } else if (dataBufferType == DataBuffer.TYPE_FLOAT && destBuffer.getElems() instanceof float[]) {
+                    sampleModel.getSamples(0, 0, data.getWidth(), data.getHeight(), bandIdx, (float[]) destBuffer.getElems(), dataBuffer);
+                } else {
+                    final double[] dArray = new double[destSize];
+                    sampleModel.getSamples(0, 0, data.getWidth(), data.getHeight(), bandIdx, dArray, dataBuffer);
+
+                    if (destBuffer.getElems() instanceof double[]) {
+                        //noinspection SuspiciousSystemArraycopy
+                        System.arraycopy(dArray, 0, destBuffer.getElems(), 0, dArray.length);
+                    } else {
+                        int i = 0;
+                        for (double value : dArray) {
+                            destBuffer.setElemDoubleAt(i++, value);
+                        }
+                    }
                 }
-
                 pm.worked(1);
-
             } finally {
                 pm.done();
             }
@@ -354,7 +369,7 @@ public class GeoTiffProductReader extends AbstractProductReader {
             final String bandName = String.format("band_%d", i + 1);
             final Band band = product.addBand(bandName, productDataType);
             if (tiffInfo.containsField(
-                        BaselineTIFFTagSet.TAG_COLOR_MAP) && baseImage.getColorModel() instanceof IndexColorModel) {
+                    BaselineTIFFTagSet.TAG_COLOR_MAP) && baseImage.getColorModel() instanceof IndexColorModel) {
                 band.setImageInfo(createIndexedImageInfo(product, baseImage, band));
             }
             bandMap.put(band, i);
@@ -405,11 +420,12 @@ public class GeoTiffProductReader extends AbstractProductReader {
 
             double[] tiePoints = info.getField(GeoTIFFTagSet.TAG_MODEL_TIE_POINT).getAsDoubles();
 
+            boolean isGlobal = isGlobal(product, info);
+
             // check if we have a global geographic lat/lon with lon from 0..360 instead of -180..180
-            // todo: very draft implementation, works for NCEP air temperature files. to be further investigated!!
             final double deltaX = Math.ceil(360. / product.getSceneRasterWidth());
-            if (tiePoints.length == 6 && Math.abs(tiePoints[3]) < deltaX) {
-                // e.g. tiePoints[3] = -0.5, productWidth=722 --> we have a lon range of 360 which should start
+            if (isGlobal && tiePoints.length == 6 && Math.abs(tiePoints[3]) < deltaX) {
+                // e.g. tiePoints[3] = -0.5, productWidth=722 --> we have a lon range of 361 which should start
                 // at or near -180 but not at zero
                 isGlobalShifted180 = true;
                 // subtract 180 from the longitudes
@@ -431,12 +447,28 @@ public class GeoTiffProductReader extends AbstractProductReader {
         }
     }
 
+    private boolean isGlobal(Product product, TiffFileInfo info) {
+        boolean isGlobal = false;
+        double[] pixelScales = info.getField(GeoTIFFTagSet.TAG_MODEL_PIXEL_SCALE).getAsDoubles();
+
+        if (isPixelScaleValid(pixelScales)) {
+            final double widthInDegree = pixelScales[0] * product.getSceneRasterWidth();
+            isGlobal = Math.ceil(widthInDegree) >= 360;
+        }
+        return isGlobal;
+    }
+
+    private boolean isPixelScaleValid(double[] pixelScales) {
+        return pixelScales != null &&
+               !Double.isNaN(pixelScales[0]) && !Double.isInfinite(pixelScales[0]) &&
+               !Double.isNaN(pixelScales[1]) && !Double.isInfinite(pixelScales[1]);
+    }
+
     private static void applyGeoCodingFromGeoTiff(TIFFImageMetadata metadata, Product product) throws Exception {
-        final Rectangle imageBounds = new Rectangle(product.getSceneRasterWidth(),
-                                                    product.getSceneRasterHeight());
+        final Rectangle imageBounds = new Rectangle(product.getSceneRasterWidth(), product.getSceneRasterHeight());
         final GeoTiffIIOMetadataDecoder metadataDecoder = new GeoTiffIIOMetadataDecoder(metadata);
         final GeoTiffMetadata2CRSAdapter geoTiff2CRSAdapter = new GeoTiffMetadata2CRSAdapter(null);
-        // todo reactivate the following line if geotools has fixed the problem.
+        // todo reactivate the following line if geotools has fixed the problem. (see BEAM-1510)
         // final MathTransform toModel = GeoTiffMetadata2CRSAdapter.getRasterToModel(metadataDecoder, false);
         final MathTransform toModel = getRasterToModel(metadataDecoder, false);
         CoordinateReferenceSystem crs;
@@ -462,8 +494,8 @@ public class GeoTiffProductReader extends AbstractProductReader {
      * todo remove this method if geotools has fixed the problem
      */
     private static MathTransform getRasterToModel(
-                final GeoTiffIIOMetadataDecoder metadata,
-                final boolean forceToCellCenter) throws GeoTiffException {
+            final GeoTiffIIOMetadataDecoder metadata,
+            final boolean forceToCellCenter) throws GeoTiffException {
         //
         // Load initials
         //
@@ -520,7 +552,7 @@ public class GeoTiffProductReader extends AbstractProductReader {
         } else if (hasModelTransformation) {
             if (rasterType == GeoTiffConstants.RasterPixelIsArea) {
                 final AffineTransform tempTransform = new AffineTransform(
-                            metadata.getModelTransformation());
+                        metadata.getModelTransformation());
                 if (forceToCellCenter) {
                     tempTransform.concatenate(AffineTransform.getTranslateInstance(0.5, 0.5));
                 }
@@ -529,7 +561,7 @@ public class GeoTiffProductReader extends AbstractProductReader {
             } else {
                 assert rasterType == GeoTiffConstants.RasterPixelIsPoint;
                 xform = ProjectiveTransform.create(metadata
-                                                               .getModelTransformation());
+                                                           .getModelTransformation());
 
             }
         } else {
@@ -596,9 +628,9 @@ public class GeoTiffProductReader extends AbstractProductReader {
 
         String[] names = Utils.findSuitableLatLonNames(product);
         final TiePointGrid latGrid = new TiePointGrid(
-                    names[0], width, height, (float) xMin, (float) yMin, (float) xDiff, (float) yDiff, lats);
+                names[0], width, height, (float) xMin, (float) yMin, (float) xDiff, (float) yDiff, lats);
         final TiePointGrid lonGrid = new TiePointGrid(
-                    names[1], width, height, (float) xMin, (float) yMin, (float) xDiff, (float) yDiff, lons);
+                names[1], width, height, (float) xMin, (float) yMin, (float) xDiff, (float) yDiff, lons);
 
         product.addTiePointGrid(latGrid);
         product.addTiePointGrid(lonGrid);

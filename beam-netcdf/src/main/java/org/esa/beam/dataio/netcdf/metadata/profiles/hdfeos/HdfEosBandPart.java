@@ -95,20 +95,20 @@ public class HdfEosBandPart extends ProfilePartIO {
             int sourceWidth = (int) (rdn.getSceneRasterWidth() / scaleFactor);
             int sourceHeight = (int) (rdn.getSceneRasterHeight() / scaleFactor);
             ResolutionLevel resolutionLevel = ResolutionLevel.create(getModel(), level);
-            Dimension tileSize = getPreferredTileSize(rdn);
+            Dimension imageTileSize = new Dimension(getTileWidth(), getTileHeight());
 
             RenderedImage netcdfImg;
             if (variable.getDataType() == DataType.LONG) {
                 if (rdn.getName().endsWith("_lsb")) {
                     netcdfImg = NetcdfOpImage.createLsbImage(variable, imageOrigin, isYFlipped, lock, dataBufferType,
-                                                             sourceWidth, sourceHeight, tileSize, resolutionLevel);
+                                                             sourceWidth, sourceHeight, imageTileSize, resolutionLevel);
                 } else {
                     netcdfImg = NetcdfOpImage.createMsbImage(variable, imageOrigin, isYFlipped, lock, dataBufferType,
-                                                             sourceWidth, sourceHeight, tileSize, resolutionLevel);
+                                                             sourceWidth, sourceHeight, imageTileSize, resolutionLevel);
                 }
             } else {
                 netcdfImg = new NetcdfOpImage(variable, imageOrigin, isYFlipped, lock,
-                                              dataBufferType, sourceWidth, sourceHeight, tileSize, resolutionLevel);
+                                              dataBufferType, sourceWidth, sourceHeight, imageTileSize, resolutionLevel);
             }
 
             return ScaleDescriptor.create(netcdfImg, scaleFactor, scaleFactor, 0.5f, 0.5f,

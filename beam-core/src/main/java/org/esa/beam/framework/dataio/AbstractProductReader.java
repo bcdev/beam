@@ -445,7 +445,7 @@ public abstract class AbstractProductReader implements ProductReader {
                                 gridDiscontinutity);
     }
 
-    protected static void configurePreferredTileSize(Product product) {
+    public static void configurePreferredTileSize(Product product) {
         Dimension newSize = getConfiguredTileSize(product,
                                                   System.getProperty(SYSPROP_READER_TILE_WIDTH),
                                                   System.getProperty(SYSPROP_READER_TILE_HEIGHT));

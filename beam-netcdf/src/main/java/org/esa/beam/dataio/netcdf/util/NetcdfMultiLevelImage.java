@@ -70,19 +70,19 @@ public class NetcdfMultiLevelImage extends AbstractNetcdfMultiLevelImage {
         int sceneRasterWidth = rdn.getSceneRasterWidth();
         int sceneRasterHeight = rdn.getSceneRasterHeight();
         ResolutionLevel resolutionLevel = ResolutionLevel.create(getModel(), level);
-        Dimension tileSize = getPreferredTileSize(rdn);
+        Dimension imageTileSize = new Dimension(getTileWidth(), getTileHeight());
 
         if (variable.getDataType() == DataType.LONG) {
             if (rdn.getName().endsWith("_lsb")) {
                 return NetcdfOpImage.createLsbImage(variable, imageOrigin, isYFlipped, lock, dataBufferType,
-                                                    sceneRasterWidth, sceneRasterHeight, tileSize, resolutionLevel);
+                                                    sceneRasterWidth, sceneRasterHeight, imageTileSize, resolutionLevel);
             } else {
                 return NetcdfOpImage.createMsbImage(variable, imageOrigin, isYFlipped, lock, dataBufferType,
-                                                    sceneRasterWidth, sceneRasterHeight, tileSize, resolutionLevel);
+                                                    sceneRasterWidth, sceneRasterHeight, imageTileSize, resolutionLevel);
             }
         } else {
             return new NetcdfOpImage(variable, imageOrigin, isYFlipped, lock,
-                                     dataBufferType, sceneRasterWidth, sceneRasterHeight, tileSize, resolutionLevel);
+                                     dataBufferType, sceneRasterWidth, sceneRasterHeight, imageTileSize, resolutionLevel);
         }
     }
 }
