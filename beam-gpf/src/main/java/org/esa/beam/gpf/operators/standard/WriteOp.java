@@ -200,7 +200,7 @@ public class WriteOp extends Operator implements Output {
         getLogger().info("Start writing product " + getTargetProduct().getName() + " to " + getFile());
         OperatorExecutor operatorExecutor = OperatorExecutor.create(this);
         try {
-            operatorExecutor.execute(ExecutionOrder.SCHEDULE_ROW_COLUMN_BAND, pm);
+            operatorExecutor.execute(ExecutionOrder.SCHEDULE_ROW_COLUMN_BAND, "Writing...", pm);
 
             getLogger().info("End writing product " + getTargetProduct().getName() + " to " + getFile());
 
