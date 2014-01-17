@@ -59,6 +59,7 @@ Improvements
 
 Bugs
 
+[BEAM-1497] - Command 'Time Series as Google Earth KMZ' misplaced in tools menu
 [BEAM-1411] - Various product readers fail if input product has no parent
 [BEAM-1225] - gpt command-line. No data product writer for the 'HDF5' format available
 [BEAM-1319] - The beam.config file must be edit with administrator rights
