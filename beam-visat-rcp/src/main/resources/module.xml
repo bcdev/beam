@@ -28,6 +28,7 @@
     <changelog>
         <![CDATA[
         <p>Changes in 4.11.1<br/>
+          [BEAM-1190] Export button in the mask manager does not export geometry masks<br/>
           [BEAM-1416] The export of transect pixels from a reprojected data product results in an empty file<br/>
         <p>Changes in 4.11<br/>
           [BEAM-1482] Saving a product is slow if it is computed by an operator<br/>
