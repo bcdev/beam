@@ -1,16 +1,14 @@
 package org.esa.beam.meris.radiometry.smilecorr;
 
-import org.esa.beam.framework.dataio.ProductIO;
-import org.esa.beam.framework.datamodel.Band;
-import org.esa.beam.framework.datamodel.MetadataAttribute;
-import org.esa.beam.framework.datamodel.MetadataElement;
-import org.esa.beam.framework.datamodel.Product;
 import org.esa.beam.util.StringUtils;
+import ucar.ma2.InvalidRangeException;
+import ucar.nc2.NetcdfFile;
+import ucar.nc2.Variable;
 
-import java.awt.image.Raster;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 
 /**
  * @author Marco Peters
@@ -110,57 +108,137 @@ public class CorrfacCalculation {
     }
 
     public static final double WVL_STEP = 0.1;
+    public static final float DELTA_LAMBDA = 0.1f;
 
     public static void main(String[] args) throws IOException {
-        Product product = ProductIO.readProduct(args[0]);
-        String productType = args[1];
-        calculate(product, productType);
-
+        float[] corrFacs = calculate(args[0], args[1]);
+        System.out.println(StringUtils.arrayToCsv(corrFacs));
     }
 
-    private static void calculate(Product product, String productType) throws IOException {
-        Band transmissionBand = product.getBand("transmission");
-        MetadataElement metadataRoot = product.getMetadataRoot();
-        float[] amfValues = getElementValues(metadataRoot, "amf");
-        float[] wvlValue = getElementValues(metadataRoot, "wvl");
+    private static float[] calculate(String filePath, String productType) throws IOException {
+        NetcdfFile netcdfFile = NetcdfFile.open(filePath);
+        List<Variable> variableList = netcdfFile.getVariables();
+        float[] amfValues = getElementValues(variableList, "amf");
+        float[] transmissionWvlValues = getElementValues(variableList, "wvl");
 
-
-        System.out.println("wvlValue = " + StringUtils.arrayToCsv(wvlValue));
-        System.out.println("amfValues = " + StringUtils.arrayToCsv(amfValues));
 
         int indexForAmf = findIndexForAmf(amfValues, DEFAULT_AMF_VALUE);
-        System.out.println("indexForAmf = " + indexForAmf);
-
-        Raster transmissionRaster = transmissionBand.getSourceImage().getData();
-        float[] transmissionData = new float[transmissionBand.getSceneRasterHeight()];
-        transmissionRaster.getSamples(indexForAmf, 0, 1, transmissionBand.getSceneRasterHeight(), 0, transmissionData);
-
-        SmileCorrectionAuxdata auxdata = SmileCorrectionAuxdata.loadAuxdata(productType);
-        double nomWvl = auxdata.getTheoreticalWavelengths()[BAND_11_INDEX];
-        System.out.println("nomWvl = " + nomWvl);
+        float[] transmissionData = getTransmissionData(variableList, "transmission", indexForAmf);
 
         float srfSum = 0;
         for (SrfData value : SRFDataList) {
             srfSum += value.srfValue;
         }
         srfSum *= WVL_STEP;
-        System.out.println("srfSum = " + srfSum);
 
-        float srfMax= Float.NEGATIVE_INFINITY;
+        // normalize
         for (SrfData srfEntry : SRFDataList) {
-            float normValue = srfEntry.srfValue / srfSum;
-            srfEntry.srfValue = normValue;
-            srfMax = Math.max(srfMax, normValue);
+            srfEntry.srfValue = srfEntry.srfValue / srfSum;
         }
 
-        for (int i = 0; i < SRFDataList.size(); i++) {
-            SrfData entry = SRFDataList.get(i);
-            if (entry.srfValue == srfMax) {
-                System.out.println("index = " + i);
-                System.out.println("wavelength = " + entry.wavelength);
-                System.out.println("srf = " + entry.srfValue);
+        SmileCorrectionAuxdata auxdata = SmileCorrectionAuxdata.loadAuxdata(productType);
+        float nomWvl = (float) auxdata.getTheoreticalWavelengths()[BAND_11_INDEX];
+
+        Float[] shiftedWavelengthArray = createShiftedWavelength(nomWvl);
+        float nominalShiftedTransSum = 0;
+        for (int i = 0; i < shiftedWavelengthArray.length; i++) {
+            Float wavelength = shiftedWavelengthArray[i];
+            int lowerIndex = findLowerIndex(wavelength, transmissionWvlValues, DELTA_LAMBDA);
+            if (lowerIndex == -1) {
+                throw new IllegalArgumentException("No close SRF wavelength found for '" + wavelength + "'");
+            }
+            int upperIndex = lowerIndex == transmissionWvlValues.length ? lowerIndex : lowerIndex + 1;
+
+            nominalShiftedTransSum += transmission(wavelength,
+                                                   transmissionWvlValues[lowerIndex],
+                                                   transmissionData[lowerIndex],
+                                                   transmissionWvlValues[upperIndex],
+                                                   transmissionData[upperIndex]) * SRFDataList.get(i).srfValue * DELTA_LAMBDA;
+        }
+
+        double[][] detectorWavelengths = auxdata.getDetectorWavelengths();
+
+        int maxDetectorIndex = detectorWavelengths.length;
+        float[] corrFac = new float[maxDetectorIndex];
+        for (int i = 0; i < maxDetectorIndex; i++) {
+            float detectorWL = (float) detectorWavelengths[i][BAND_11_INDEX];
+            Float[] detectorWavelengthArray = createShiftedWavelength(detectorWL);
+
+            float detectorTransmissionSum = 0;
+            for (int j = 0; j < detectorWavelengthArray.length; j++) {
+                Float wavelength = detectorWavelengthArray[j];
+                int lowerIndex = findLowerIndex(detectorWL, transmissionWvlValues, DELTA_LAMBDA);
+                if (lowerIndex == -1) {
+                    throw new IllegalArgumentException("No close SRF wavelength found for '" + detectorWL + "'");
+                }
+                int upperIndex = lowerIndex == transmissionWvlValues.length ? lowerIndex : lowerIndex + 1;
+                detectorTransmissionSum += transmission(wavelength,
+                                                        transmissionWvlValues[lowerIndex],
+                                                        transmissionData[lowerIndex],
+                                                        transmissionWvlValues[upperIndex],
+                                                        transmissionData[upperIndex]) * SRFDataList.get(j).srfValue * DELTA_LAMBDA;
+            }
+            corrFac[i] = nominalShiftedTransSum / detectorTransmissionSum;
+            System.out.println("detectorWL = " + detectorWL + " | corrFac[i] = " + corrFac[i]);
+        }
+
+        return corrFac;
+
+    }
+
+    private static Float[] createShiftedWavelength(float nomWvl) {
+        TreeSet<Float> shiftedWavelengthTreeSet = new TreeSet<Float>();
+        float leftValue = nomWvl - 0.05f;
+        float rightValue = nomWvl + 0.05f;
+        shiftedWavelengthTreeSet.add(leftValue);
+        shiftedWavelengthTreeSet.add(rightValue);
+        for (int i = 0; i <= SRFDataList.size() / 2 - 2; i++) {
+            leftValue -= 0.1;
+            rightValue += 0.1;
+            shiftedWavelengthTreeSet.add(leftValue);
+            shiftedWavelengthTreeSet.add(rightValue);
+        }
+
+        return shiftedWavelengthTreeSet.toArray(new Float[shiftedWavelengthTreeSet.size()]);
+    }
+
+    private static int findLowerIndex(float wavelength, float[] wvlValue, float eps) {
+        int lower = -1;
+        float distance = Float.MAX_VALUE;
+        for (int i = 0; i < wvlValue.length; i++) {
+            float wvl = wvlValue[i];
+            float currDistance = wvl - wavelength;
+            float currentAbsDistance = Math.abs(currDistance);
+            if (currentAbsDistance <= distance && currentAbsDistance <= eps && currDistance <= 0) {
+                distance = currentAbsDistance;
+                lower = i;
+            }
+            if (currentAbsDistance > distance) {
+                break;
+            }
+
+        }
+        return lower;
+    }
+
+    private static float transmission(float x, float a, float transA, float b, float transB) {
+        return ((b - x) / (b - a)) * transA + ((x - a) / (b - a) * transB);
+    }
+
+    private static float[] getTransmissionData(List<Variable> variableList, String varName, int indexForAmf) throws IOException {
+        for (Variable variable : variableList) {
+            if (variable.getShortName().equals(varName)) {
+                int height = variable.getShape(0);
+                int[] origins = {0, indexForAmf};
+                int[] shape = {height, 1};
+                try {
+                    return (float[]) variable.read(origins, shape).copyTo1DJavaArray();
+                } catch (InvalidRangeException e) {
+                    throw new IOException("Could not read NetCDF variable '" + varName + "'.\n", e);
+                }
             }
         }
+        return new float[0];
     }
 
     private static int findIndexForAmf(float[] amfValues, float valueToFind) {
@@ -173,15 +251,17 @@ public class CorrfacCalculation {
         throw new IllegalArgumentException(String.format("Value '%f' not found in array.", valueToFind));
     }
 
-    private static float[] getElementValues(MetadataElement metadataRoot, String elementName) {
-        MetadataElement variableAttributes = metadataRoot.getElement("Variable_Attributes");
-        MetadataElement amf = variableAttributes.getElement(elementName);
-        MetadataElement values = amf.getElement("Values");
-        MetadataAttribute data = values.getAttribute("data");
-        return (float[]) data.getDataElems();
+    private static float[] getElementValues(List<Variable> variableList, String elementName) throws IOException {
+        for (Variable variable : variableList) {
+            if (variable.getShortName().equals(elementName)) {
+                return (float[]) variable.read().copyTo1DJavaArray();
+            }
+        }
+        return new float[0];
     }
 
     private static class SrfData {
+
         float wavelength;
         float srfValue;
 
