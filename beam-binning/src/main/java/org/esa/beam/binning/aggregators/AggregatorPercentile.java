@@ -176,7 +176,7 @@ public class AggregatorPercentile extends AbstractAggregator {
 
         @Parameter
         String varName;
-        @Parameter
+        @Parameter(defaultValue = "90")
         Integer percentage;
 
         public Config() {
