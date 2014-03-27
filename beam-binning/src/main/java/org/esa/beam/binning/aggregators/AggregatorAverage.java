@@ -209,11 +209,11 @@ public final class AggregatorAverage extends AbstractAggregator {
 
         @Parameter(notEmpty = true, notNull = true)
         String varName;
-        @Parameter
+        @Parameter(defaultValue = "0.0")
         Double weightCoeff;
-        @Parameter
+        @Parameter(defaultValue = "false")
         Boolean outputCounts;
-        @Parameter
+        @Parameter(defaultValue = "false")
         Boolean outputSums;
 
 
