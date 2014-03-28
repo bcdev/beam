@@ -62,6 +62,7 @@ class BinningIOPanel extends JPanel {
         this.appContext = appContext;
         this.binningFormModel = binningFormModel;
         this.targetProductSelectorPanel = targetProductSelectorPanel;
+        this.targetProductSelectorPanel.getProductNameTextField().setText("level-3");
         final SourceProductSelector sourceProductSelectorPanel = new SourceProductSelector(appContext);
         sourceProductSelectorPanel.setProductFilter(null); // todo -- set product filter
         init();
