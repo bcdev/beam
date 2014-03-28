@@ -64,7 +64,7 @@ class BinningFormModelImpl implements BinningFormModel {
         propertySet.addProperty(BinningDialog.createProperty(BinningFormModel.PROPERTY_KEY_REGION, Boolean.class));
         propertySet.addProperty(BinningDialog.createProperty(BinningFormModel.PROPERTY_KEY_MANUAL_WKT, Boolean.class));
         propertySet.addProperty(BinningDialog.createProperty(BinningFormModel.PROPERTY_KEY_EXPRESSION, String.class));
-        propertySet.addProperty(BinningDialog.createProperty(BinningFormModel.PROPERTY_SOURCE_PRODUCT_PATHS, String[].class));
+        propertySet.addProperty(BinningDialog.createProperty(BinningFormModel.PROPERTY_KEY_SOURCE_PRODUCT_PATHS, String[].class));
         propertySet.setDefaultValues();
     }
 
@@ -131,14 +131,6 @@ class BinningFormModelImpl implements BinningFormModel {
     @Override
     public String getEndDate() {
         return getDate(PROPERTY_KEY_END_DATE);
-    }
-
-    @Override
-    public boolean shallOutputBinnedData() {
-        if (getPropertyValue(PROPERTY_KEY_OUTPUT_BINNED_DATA) == null) {
-            return false;
-        }
-        return (Boolean) getPropertyValue(PROPERTY_KEY_OUTPUT_BINNED_DATA);
     }
 
     @Override

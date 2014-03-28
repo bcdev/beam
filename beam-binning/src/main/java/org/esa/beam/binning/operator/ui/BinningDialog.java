@@ -172,7 +172,6 @@ public class BinningDialog extends SingleTargetProductDialog {
             parameters.put("region", formModel.getRegion());
             parameters.put("startDate", formModel.getStartDate());
             parameters.put("endDate", formModel.getEndDate());
-            parameters.put("outputBinnedData", formModel.shallOutputBinnedData());
             parameters.put("binningConfig", createBinningConfig());
             parameters.put("formatterConfig", createFormatterConfig());
 

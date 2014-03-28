@@ -86,7 +86,7 @@ class BinningIOPanel extends JPanel {
 
         final JPanel sourceProductPanel = new JPanel(layout);
         sourceProductPanel.setBorder(BorderFactory.createTitledBorder("Source Products"));
-        final Property sourceProductPaths = binningFormModel.getBindingContext().getPropertySet().getProperty(BinningFormModel.PROPERTY_SOURCE_PRODUCT_PATHS);
+        final Property sourceProductPaths = binningFormModel.getBindingContext().getPropertySet().getProperty(BinningFormModel.PROPERTY_KEY_SOURCE_PRODUCT_PATHS);
         ChangeListener changeListener = new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
