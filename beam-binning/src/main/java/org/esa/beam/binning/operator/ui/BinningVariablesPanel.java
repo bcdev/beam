@@ -32,10 +32,10 @@ import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -147,9 +147,9 @@ class BinningVariablesPanel extends JPanel {
 
         final JTextField numPixelsTextField = new IntegerTextField(BinningFormModel.DEFAULT_NUM_ROWS);
 
-        String defaultResolution = getString(computeResolution(BinningFormModel.DEFAULT_NUM_ROWS));
+        final String defaultResolution = getString(computeResolution(BinningFormModel.DEFAULT_NUM_ROWS));
         final JTextField resolutionTextField = new DoubleTextField(defaultResolution);
-        JButton resolutionButton = new JButton("original");
+        JButton resolutionButton = new JButton("default");
 
         final JTextField superSamplingTextField = new IntegerTextField(1);
 
@@ -171,27 +171,26 @@ class BinningVariablesPanel extends JPanel {
                 }
         );
 
-        ResolutionTextFieldListener listener = new ResolutionTextFieldListener(resolutionTextField, numPixelsTextField);
+        final ResolutionTextFieldListener listener = new ResolutionTextFieldListener(resolutionTextField, numPixelsTextField);
         resolutionTextField.addFocusListener(listener);
         resolutionTextField.addActionListener(listener);
         resolutionButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                Product[] sourceProducts = binningFormModel.getSourceProducts();
-                if (sourceProducts.length > 0) {
-                    /*
-
-                    todo: compute resolution of first product, set to resolutionTextField
-
-                     */
-                }
+                resolutionTextField.setText(defaultResolution);
+                listener.update();
             }
         });
 
-        final Component validPixelExpressionToolTip = new JLabel(UIUtils.loadImageIcon("icons/Help16.gif"));
-        final Component numPixelsToolTip = new JLabel(UIUtils.loadImageIcon("icons/Help16.gif"));
-        final Component resolutionToolTip = new JLabel(UIUtils.loadImageIcon("icons/Help16.gif"));
-        final Component supersamplingToolTip = new JLabel(UIUtils.loadImageIcon("icons/Help16.gif"));
+        final JComponent validPixelExpressionToolTip = new JLabel(UIUtils.loadImageIcon("icons/Help16.gif"));
+        final JComponent numPixelsToolTip = new JLabel(UIUtils.loadImageIcon("icons/Help16.gif"));
+        final JComponent resolutionToolTip = new JLabel(UIUtils.loadImageIcon("icons/Help16.gif"));
+        final JComponent supersamplingToolTip = new JLabel(UIUtils.loadImageIcon("icons/Help16.gif"));
+
+        validPixelExpressionToolTip.setToolTipText("Only those pixels matching this expression are considered");
+        numPixelsToolTip.setToolTipText("<html>The height of the <b>maximum</b> target grid in pixels</html>");
+        resolutionToolTip.setToolTipText("The spatial resolution, directly depending on #Pixels");
+        supersamplingToolTip.setToolTipText("Every input pixel is subdivided into n x n subpixels in order to reduce or avoid Moiré effect");
 
         TableLayout layout = new TableLayout(4);
         layout.setTableAnchor(TableLayout.Anchor.NORTHWEST);
