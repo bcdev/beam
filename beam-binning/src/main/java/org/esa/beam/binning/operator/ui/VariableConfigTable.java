@@ -19,6 +19,8 @@ package org.esa.beam.binning.operator.ui;
 import com.bc.ceres.binding.ValidationException;
 import com.bc.ceres.swing.selection.SelectionChangeEvent;
 import com.bc.ceres.swing.selection.SelectionChangeListener;
+import com.jidesoft.grid.JideCellEditorAdapter;
+import com.jidesoft.grid.StringCellEditor;
 import org.esa.beam.framework.ui.AppContext;
 import org.esa.beam.framework.ui.UIUtils;
 
@@ -29,6 +31,7 @@ import javax.swing.JComponent;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
+import javax.swing.event.ChangeEvent;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TableModelEvent;
@@ -63,12 +66,12 @@ class VariableConfigTable {
         tableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 3;
+                return column != 2;
             }
         };
         tableModel.setColumnIdentifiers(new String[]{
-                "Target prefix",
                 "Band / Expression",
+                "Target name",
                 "Aggregation",
                 ""
         });
@@ -97,6 +100,33 @@ class VariableConfigTable {
         table.getColumnModel().getColumn(3).setWidth(40);
 
         ButtonEditor buttonEditor = new ButtonEditor(table, specs, binningFormModel, appContext);
+
+        StringCellEditor editor = new StringCellEditor();
+        table.setCellEditor(editor);
+        editor.addCellEditorListener(new JideCellEditorAdapter() {
+            @Override
+            public void editingStopped(ChangeEvent e) {
+                int selectedRow = table.getSelectedRow();
+                if (selectedRow == -1) {
+                    return;
+                }
+                TargetVariableSpec spec = specs.get(selectedRow);
+                if (spec == null) {
+                    spec = new TargetVariableSpec();
+                    spec.source = new TargetVariableSpec.Source();
+                    specs.put(selectedRow, spec);
+                }
+                switch (table.getSelectedColumn()) {
+                    case 0:
+                        spec.source.bandName = table.getValueAt(selectedRow, 0).toString();
+                        spec.source.type = TargetVariableSpec.Source.RASTER_SOURCE_TYPE;
+                        break;
+                    case 1:
+                        spec.targetName = table.getValueAt(selectedRow, 1).toString();
+                        break;
+                }
+            }
+        });
 
         table.getColumnModel().getColumn(3).setCellRenderer(new ButtonRenderer());
         table.getColumnModel().getColumn(3).setCellEditor(buttonEditor);
@@ -132,7 +162,7 @@ class VariableConfigTable {
         String source =
                 spec.source.type == TargetVariableSpec.Source.EXPRESSION_SOURCE_TYPE ? spec.source.expression :
                 spec.source.bandName;
-        tableModel.insertRow(rowIndex + 1, new Object[]{spec.targetPrefix, source, spec.aggregationString});
+        tableModel.insertRow(rowIndex + 1, new Object[]{spec.targetName, source, spec.aggregationString});
         table.getSelectionModel().setSelectionInterval(rowIndex + 1, rowIndex + 1);
     }
 
@@ -216,7 +246,7 @@ class VariableConfigTable {
                         TargetVariableSpec spec = editTargetVariableDialog.getSpec();
                         specs.put(selectionIndex, spec);
                         if (spec.source.type == TargetVariableSpec.Source.EXPRESSION_SOURCE_TYPE) {
-                            table.setValueAt(spec.targetPrefix, selectionIndex, 0);
+                            table.setValueAt(spec.targetName, selectionIndex, 0);
                         } else {
                             table.setValueAt("", selectionIndex, 0);
                         }

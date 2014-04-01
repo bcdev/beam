@@ -25,7 +25,7 @@ import org.esa.beam.binning.AggregatorDescriptor;
  */
 class TargetVariableSpec implements Cloneable {
 
-    String targetPrefix;
+    String targetName;
     Source source;
     String aggregationString;
     AggregatorDescriptor aggregatorDescriptor;
@@ -36,7 +36,7 @@ class TargetVariableSpec implements Cloneable {
 
     TargetVariableSpec(TargetVariableSpec spec) {
         this();
-        this.targetPrefix = spec.targetPrefix;
+        this.targetName = spec.targetName;
         this.source = new Source(spec.source);
         this.aggregationString = spec.aggregationString;
         this.aggregatorDescriptor = spec.aggregatorDescriptor; // using the same instance is ok
