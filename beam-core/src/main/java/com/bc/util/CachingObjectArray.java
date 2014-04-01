@@ -19,6 +19,7 @@ public class CachingObjectArray {
 
     private ObjectFactory _objectFactory;
     private ObjectArray _objectArray;
+    private int minIndex, maxIndex;
 
     public CachingObjectArray(ObjectFactory objectFactory) {
         if (objectFactory == null) {
@@ -46,24 +47,27 @@ public class CachingObjectArray {
             objectArrayOld.clear();
         }
         _objectArray = objectArray;
+        minIndex = _objectArray.getMinIndex();
+        maxIndex = _objectArray.getMaxIndex();
     }
 
-    public Object getObject(int index) throws Exception {
-        Object object;
-        if (index < _objectArray.getMinIndex() || index > _objectArray.getMaxIndex()) {
-            object = createObject(index);
-        } else {
-            object = _objectArray.getObject(index);
-            if (object == null) {
-                object = createObject(index);
-                _objectArray.setObject(index, object);
-            }
+    public final Object getObject(final int index) throws Exception {
+        if (index < minIndex || index > maxIndex) {
+            return _objectFactory.createObject(index);
+        }
+        Object object = _objectArray.getObject(index);
+        if (object == null) {
+            object = _objectFactory.createObject(index);
+            _objectArray.setObject(index, object);
         }
         return object;
     }
 
-    private Object createObject(int index) throws Exception {
-        return _objectFactory.createObject(index);
+    public final void setObject(final int index, final Object o) {
+        final Object object = _objectArray.getObject(index);
+        if (object == null) {
+             _objectArray.setObject(index, o);
+        }
     }
 
     public void clear() {

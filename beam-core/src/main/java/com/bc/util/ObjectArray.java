@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2014 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -15,9 +15,10 @@
  */
 package com.bc.util;
 
+
 import java.util.Arrays;
 
-public class ObjectArray {
+public final class ObjectArray {
 
     private final int _minIndex;
     private final int _maxIndex;
@@ -41,11 +42,11 @@ public class ObjectArray {
     }
 
     public Object getObject(int i) {
-        return _objects[getArrayIndex(i)];
+        return _objects[i - _minIndex];
     }
 
     public void setObject(int i, Object o) {
-        _objects[getArrayIndex(i)] = o;
+        _objects[i - _minIndex] = o;
     }
 
     public void clear() {
@@ -57,16 +58,15 @@ public class ObjectArray {
     }
 
     public void set(ObjectArray array) {
-        final int start = Math.max(getMinIndex(), array.getMinIndex());
-        final int end = Math.min(getMaxIndex(), array.getMaxIndex());
+        final int start = Math.max(_minIndex, array.getMinIndex());
+        final int end = Math.min(_maxIndex, array.getMaxIndex());
 
         if (end < start) {
             return;
         }
 
         final int srcPos = start - array.getMinIndex();
-        final int destPos = start - getMinIndex();
-        final int length = end - start + 1;
-        System.arraycopy(array._objects, srcPos, _objects, destPos, length);
+        final int destPos = start - _minIndex;
+        System.arraycopy(array._objects, srcPos, _objects, destPos, end - start + 1);
     }
 }
