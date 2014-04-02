@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2013 Brockmann Consult GmbH (info@brockmann-consult.de) 
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -17,7 +17,10 @@
 package org.esa.beam.binning.operator;
 
 import com.bc.ceres.core.ProgressMonitor;
-import org.esa.beam.binning.*;
+import org.esa.beam.binning.ProductCustomizer;
+import org.esa.beam.binning.TemporalBin;
+import org.esa.beam.binning.TemporalBinRenderer;
+import org.esa.beam.binning.Vector;
 import org.esa.beam.framework.dataio.ProductIO;
 import org.esa.beam.framework.dataio.ProductWriter;
 import org.esa.beam.framework.datamodel.Band;
@@ -39,6 +42,7 @@ import java.io.IOException;
  * @author Norman Fomferra
  */
 public final class ProductTemporalBinRenderer implements TemporalBinRenderer {
+
     private final Product product;
     private final int rasterWidth;
     private final ProductData numObsLine;
@@ -74,6 +78,7 @@ public final class ProductTemporalBinRenderer implements TemporalBinRenderer {
         CrsGeoCoding geoCoding = createMapGeoCoding(outputRegion, pixelSize);
 
         product = new Product(outputFile.getName(), "BINNED-L3", outputRegion.width, outputRegion.height);
+        product.setPreferredTileSize(64, 64);
         product.setGeoCoding(geoCoding);
         product.setStartTime(startTime);
         product.setEndTime(endTime);

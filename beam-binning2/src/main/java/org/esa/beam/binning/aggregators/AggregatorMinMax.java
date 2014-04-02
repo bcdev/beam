@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2013 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -34,6 +34,7 @@ import java.util.Arrays;
  * An aggregator that computes the minimum and maximum values.
  */
 public class AggregatorMinMax extends AbstractAggregator {
+
     private final int varIndex;
 
     public AggregatorMinMax(VariableContext varCtx, String varName) {
@@ -73,7 +74,8 @@ public class AggregatorMinMax extends AbstractAggregator {
     }
 
     @Override
-    public void aggregateTemporal(BinContext ctx, Vector spatialVector, int numSpatialObs, WritableVector temporalVector) {
+    public void aggregateTemporal(BinContext ctx, Vector spatialVector, int numSpatialObs,
+                                  WritableVector temporalVector) {
         temporalVector.set(0, Math.min(temporalVector.get(0), spatialVector.get(0)));
         temporalVector.set(1, Math.max(temporalVector.get(1), spatialVector.get(1)));
     }
@@ -91,18 +93,17 @@ public class AggregatorMinMax extends AbstractAggregator {
     @Override
     public String toString() {
         return "AggregatorMinMax{" +
-                "varIndex=" + varIndex +
-                ", spatialFeatureNames=" + Arrays.toString(getSpatialFeatureNames()) +
-                ", temporalFeatureNames=" + Arrays.toString(getTemporalFeatureNames()) +
-                ", outputFeatureNames=" + Arrays.toString(getOutputFeatureNames()) +
-                '}';
+               "varIndex=" + varIndex +
+               ", spatialFeatureNames=" + Arrays.toString(getSpatialFeatureNames()) +
+               ", temporalFeatureNames=" + Arrays.toString(getTemporalFeatureNames()) +
+               ", outputFeatureNames=" + Arrays.toString(getOutputFeatureNames()) +
+               '}';
     }
 
     public static class Config extends AggregatorConfig {
+
         @Parameter
         String varName;
-        @Parameter
-        Float fillValue;
 
         public Config() {
             super(Descriptor.NAME);

@@ -7,7 +7,7 @@ import org.esa.beam.binning.aggregators.AggregatorOnMaxSet;
 import org.esa.beam.binning.cellprocessor.FeatureSelection;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class BinManagerTest {
 

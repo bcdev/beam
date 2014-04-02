@@ -132,7 +132,7 @@
         </action>
 
         <action>
-            <parent>export</parent>
+            <parent>exportOther</parent>
             <id>exportTimeBasedKmz</id>
             <class>org.esa.beam.timeseries.export.kmz.ExportTimeBasedKmz</class>
             <text>Time Series as Google Earth KMZ...</text>

@@ -1,25 +1,41 @@
+/*
+ * Copyright (C) 2013 Brockmann Consult GmbH (info@brockmann-consult.de)
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option)
+ * any later version.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, see http://www.gnu.org/licenses/
+ */
+
 package org.esa.beam.binning.operator;
 
 import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
+import org.esa.beam.binning.DataPeriod;
 import org.esa.beam.binning.aggregators.AggregatorAverage;
 import org.esa.beam.binning.aggregators.AggregatorPercentile;
 import org.esa.beam.framework.dataio.ProductIO;
-import org.esa.beam.framework.datamodel.*;
+import org.esa.beam.framework.datamodel.Product;
+import org.esa.beam.framework.datamodel.ProductData;
+import org.esa.beam.framework.datamodel.ProductFilter;
+import org.esa.beam.framework.datamodel.TiePointGeoCoding;
+import org.esa.beam.framework.datamodel.TiePointGrid;
 import org.esa.beam.framework.gpf.GPF;
 import org.esa.beam.framework.gpf.OperatorException;
 import org.esa.beam.framework.gpf.main.GPT;
 import org.esa.beam.util.converters.JtsGeometryConverter;
 import org.esa.beam.util.io.FileUtils;
-import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
-import java.awt.geom.GeneralPath;
-import java.awt.geom.Rectangle2D;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -528,55 +544,40 @@ public class BinningOpTest {
     }
 
     @Test
-    public void testFilterAccordingToTime() throws Exception {
-        GeoCoding gcMock = Mockito.mock(GeoCoding.class);
-        Mockito.when(gcMock.canGetGeoPos()).thenReturn(true);
-        final Product product1 = new Product("name1", "type", 10, 10);
-        product1.setGeoCoding(gcMock);
-        final Product product2 = new Product("name2", "type", 10, 10);
-        product2.setGeoCoding(gcMock);
-        final Product product3 = new Product("name3", "type", 10, 10);
-        product3.setGeoCoding(gcMock);
-        Product[] inputProducts = {product1, product2, product3};
-        Product[] expectedProducts = {product1, product2, product3};
-        Product[] filteredProducts = BinningOp.filterSourceProducts(inputProducts,
-                ProductData.UTC.parse("01-JUL-2000 00:00:00"),
-                ProductData.UTC.parse("01-AUG-2000 00:00:00"));
-        assertArrayEquals(expectedProducts, filteredProducts);
+    public void testCreateAllProductsFilter() throws Exception {
+        BinningOp binningOp = new BinningOp();
+        binningOp.useSpatialDataDay = false;
+        binningOp.startDate = null;
+        binningOp.endDate = null;
 
-        product1.setStartTime(ProductData.UTC.parse("02-JUL-2000 00:00:00"));
-        product1.setEndTime(ProductData.UTC.parse("02-AUG-2000 00:00:00"));
-
-        inputProducts = new Product[]{product1, product2, product3};
-        expectedProducts = new Product[]{product2, product3};
-        filteredProducts = BinningOp.filterSourceProducts(inputProducts, ProductData.UTC.parse("01-JUL-2000 00:00:00"),
-                ProductData.UTC.parse("01-AUG-2000 00:00:00"));
-        assertArrayEquals(expectedProducts, filteredProducts);
+        assertSame(BinningOp.ALL_PRODUCTS, BinningOp.createSourceProductFilter(null, null, null, null));
     }
 
     @Test
-    public void testSetRegionToProductsExtent() throws Exception {
+    public void testCreateSpatialDataDayFilter() throws Exception {
+        DataPeriod dataPeriod = TestUtils.createSpatialDataPeriod();
+
+        Product product1 = TestUtils.createProduct(dataPeriod, DataPeriod.Membership.PREVIOUS_PERIODS, DataPeriod.Membership.PREVIOUS_PERIODS);
+        Product product2 = TestUtils.createProduct(dataPeriod, DataPeriod.Membership.PREVIOUS_PERIODS, DataPeriod.Membership.CURRENT_PERIOD);
+        Product product3 = TestUtils.createProduct(dataPeriod, DataPeriod.Membership.PREVIOUS_PERIODS, DataPeriod.Membership.SUBSEQUENT_PERIODS);
+
+        Product product4 = TestUtils.createProduct(dataPeriod, DataPeriod.Membership.CURRENT_PERIOD, DataPeriod.Membership.CURRENT_PERIOD);
+        Product product5 = TestUtils.createProduct(dataPeriod, DataPeriod.Membership.CURRENT_PERIOD, DataPeriod.Membership.SUBSEQUENT_PERIODS);
+
+        Product product6 = TestUtils.createProduct(dataPeriod, DataPeriod.Membership.SUBSEQUENT_PERIODS, DataPeriod.Membership.SUBSEQUENT_PERIODS);
+
         BinningOp binningOp = new BinningOp();
-        final Product product1 = new Product("name1", "type", 10, 10);
-        final Product product2 = new Product("name2", "type", 10, 10);
+        binningOp.useSpatialDataDay = true;
+        ProductFilter filter = BinningOp.createSourceProductFilter(dataPeriod, null, null, null);
 
-        product1.setGeoCoding(new CrsGeoCoding(DefaultGeographicCRS.WGS84, 10, 10, 10.0, 50.0, 1.0, 1.0));
-        product2.setGeoCoding(new CrsGeoCoding(DefaultGeographicCRS.WGS84, 10, 10, 15.0, 45.0, 1.0, 1.0));
+        assertSame(SpatialDataDaySourceProductFilter.class, filter.getClass());
 
-        binningOp.sourceProducts = new Product[]{product1, product2};
-        binningOp.setRegionToProductsExtent();
-        Geometry region = binningOp.getRegion();
-
-        GeneralPath shape = new GeneralPath();
-        shape.moveTo((float) region.getCoordinates()[0].x, (float) region.getCoordinates()[0].y);
-
-        for (int i = 1; i < region.getNumPoints(); i++) {
-            shape.lineTo((float) region.getCoordinates()[i].x, (float) region.getCoordinates()[i].y);
-        }
-
-        Rectangle2D.Double expected = new Rectangle2D.Double(10.0, 36.0, 14.0, 14.0);
-
-        assertEquals(expected, shape.getBounds2D());
+        assertFalse(filter.accept(product1));
+        assertTrue(filter.accept(product2));
+        assertTrue(filter.accept(product3));
+        assertTrue(filter.accept(product4));
+        assertTrue(filter.accept(product5));
+        assertFalse(filter.accept(product6));
     }
 
     @Test
@@ -617,7 +618,30 @@ public class BinningOpTest {
 
         final Product targetProduct = binningOp.getTargetProduct();
         assertNotNull(targetProduct);
+    }
 
+    @SuppressWarnings("NullArgumentToVariableArgMethod")
+    @Test
+    public void testHasNoAggregatorConfigs() {
+        final BinningConfig binningConfig = new BinningConfig();
+        assertTrue(BinningOp.hasNoAggregatorConfigs(binningConfig));
+        binningConfig.setAggregatorConfigs(null);
+        assertTrue(BinningOp.hasNoAggregatorConfigs(binningConfig));
+
+        binningConfig.setAggregatorConfigs(new AggregatorAverage.Config());
+        assertFalse(BinningOp.hasNoAggregatorConfigs(binningConfig));
+    }
+
+    @SuppressWarnings("NullArgumentToVariableArgMethod")
+    @Test
+    public void testHasNoVariableConfigs() {
+        final BinningConfig binningConfig = new BinningConfig();
+        assertTrue(BinningOp.hasNoVariableConfigs(binningConfig));
+        binningConfig.setVariableConfigs(null);
+        assertTrue(BinningOp.hasNoVariableConfigs(binningConfig));
+
+        binningConfig.setVariableConfigs(new VariableConfig());
+        assertFalse(BinningOp.hasNoVariableConfigs(binningConfig));
     }
 
     private void assertGlobalBinningProductIsOk(Product targetProduct, File location, float obs1, float obs2,

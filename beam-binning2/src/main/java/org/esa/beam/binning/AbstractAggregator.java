@@ -71,6 +71,7 @@ public abstract class AbstractAggregator implements Aggregator {
      *
      * @param varName   The variable name.
      * @param postfixes Array of postfixes to append. A postfix may be {@code null}, in this case no corresponding feature name is generated.
+     *
      * @return Array of feature names. Its length may be less than the length of the postfixes array.
      */
     public static String[] createFeatureNames(String varName, String... postfixes) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2013 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -40,16 +40,19 @@ public final class AggregatorAverage extends AbstractAggregator {
     private final WeightFn weightFn;
     private final boolean outputCounts;
     private final String icName;
+    private final boolean outputSums;
 
     public AggregatorAverage(VariableContext varCtx, String varName, Double weightCoeff) {
-        this(varCtx, varName, weightCoeff != null ? weightCoeff : 0.0, false);
+        this(varCtx, varName, weightCoeff != null ? weightCoeff : 0.0, false, false);
     }
 
-    public AggregatorAverage(VariableContext varCtx, String varName, double weightCoeff, boolean outputCounts) {
+    public AggregatorAverage(VariableContext varCtx, String varName, double weightCoeff, boolean outputCounts, boolean outputSums) {
         super(Descriptor.NAME,
               createFeatureNames(varName, "sum", "sum_sq", outputCounts ? "counts" : null),
               createFeatureNames(varName, "sum", "sum_sq", "weights", outputCounts ? "counts" : null),
-              createFeatureNames(varName, "mean", "sigma", outputCounts ? "counts" : null));
+              outputSums ?
+                      createFeatureNames(varName, "sum", "sum_sq", "weights", outputCounts ? "counts" : null) :
+                      createFeatureNames(varName, "mean", "sigma", outputCounts ? "counts" : null));
         if (varCtx == null) {
             throw new NullPointerException("varCtx");
         }
@@ -62,6 +65,7 @@ public final class AggregatorAverage extends AbstractAggregator {
         this.varIndex = varCtx.getVariableIndex(varName);
         this.weightFn = WeightFn.createPow(weightCoeff);
         this.outputCounts = outputCounts;
+        this.outputSums = outputSums;
         this.icName = "ic." + varName;
     }
 
@@ -147,25 +151,33 @@ public final class AggregatorAverage extends AbstractAggregator {
         final double sumX = temporalVector.get(0);
         final double sumXX = temporalVector.get(1);
         final double sumW = temporalVector.get(2);
-        if (sumW > 0.0) {
-            // Note: sigmaSqr may be negative but not NaN.
-            // If it is negative, sigma is actually a complex number of which
-            // we take the real part, which is zero.  (nf)
-            final double mean = sumX / sumW;
-            final double sigmaSqr = sumXX / sumW - mean * mean;
-            final double sigma = sigmaSqr > 0.0 ? Math.sqrt(sigmaSqr) : 0.0;
-            outputVector.set(0, (float) mean);
-            outputVector.set(1, (float) sigma);
-            if (outputCounts) {
-                float counts = temporalVector.get(3);
-                outputVector.set(2, counts);
-            }
+
+        int index = 0;
+        if (outputSums) {
+            outputVector.set(index++, (float) sumX);
+            outputVector.set(index++, (float) sumXX);
+            outputVector.set(index++, (float) sumW);
         } else {
-            // todo - use fillValue here (nf)
-            outputVector.set(0, Float.NaN);
-            outputVector.set(1, Float.NaN);
-            if (outputCounts) {
-                outputVector.set(2, 0.0f);
+            if (sumW > 0.0) {
+                // Note: sigmaSqr may be negative but not NaN.
+                // If it is negative, sigma is actually a complex number of which
+                // we take the real part, which is zero.  (nf)
+                final double mean = sumX / sumW;
+                final double sigmaSqr = sumXX / sumW - mean * mean;
+                final double sigma = sigmaSqr > 0.0 ? Math.sqrt(sigmaSqr) : 0.0;
+                outputVector.set(index++, (float) mean);
+                outputVector.set(index++, (float) sigma);
+            } else {
+                outputVector.set(index++, Float.NaN);
+                outputVector.set(index++, Float.NaN);
+            }
+        }
+        if (outputCounts) {
+            if (sumW > 0.0) {
+                float counts = temporalVector.get(3);
+                outputVector.set(index, counts);
+            } else {
+                outputVector.set(index, 0.0f);
             }
         }
     }
@@ -200,21 +212,21 @@ public final class AggregatorAverage extends AbstractAggregator {
         @Parameter
         Double weightCoeff;
         @Parameter
-        Float fillValue;
-        @Parameter
         Boolean outputCounts;
+        @Parameter
+        Boolean outputSums;
 
 
         public Config() {
             this(null, null, null, null);
         }
 
-        public Config(String varName, Double weightCoeff, Float fillValue, Boolean outputCounts) {
+        public Config(String varName, Double weightCoeff, Boolean outputCounts, Boolean outputSums) {
             super(Descriptor.NAME);
             this.varName = varName;
             this.weightCoeff = weightCoeff;
-            this.fillValue = fillValue;
             this.outputCounts = outputCounts;
+            this.outputSums = outputSums;
         }
 
         public void setVarName(String varName) {
@@ -241,10 +253,12 @@ public final class AggregatorAverage extends AbstractAggregator {
             PropertySet propertySet = aggregatorConfig.asPropertySet();
             Double weightCoeff = propertySet.getValue("weightCoeff");
             Boolean outputCounts = propertySet.getValue("outputCounts");
+            Boolean outputSums = propertySet.getValue("outputSums");
             return new AggregatorAverage(varCtx,
                                          (String) propertySet.getValue("varName"),
                                          weightCoeff != null ? weightCoeff : 0.0,
-                                         outputCounts != null ? outputCounts : false);
+                                         outputCounts != null ? outputCounts : false,
+                                         outputSums != null ? outputSums : false);
         }
 
         @Override

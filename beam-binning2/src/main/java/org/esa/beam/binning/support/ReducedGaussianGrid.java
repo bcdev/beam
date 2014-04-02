@@ -51,7 +51,7 @@ public class ReducedGaussianGrid implements PlanetaryGrid {
 
     @Override
     public int getRowIndex(long binIndex) {
-        if(binIndex == lastBinIndex) {
+        if (binIndex == lastBinIndex) {
             return lastRow;
         }
 

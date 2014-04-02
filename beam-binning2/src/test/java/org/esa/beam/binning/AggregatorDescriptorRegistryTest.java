@@ -1,14 +1,18 @@
 package org.esa.beam.binning;
 
-import org.esa.beam.binning.aggregators.*;
+import org.esa.beam.binning.aggregators.AggregatorAverage;
+import org.esa.beam.binning.aggregators.AggregatorAverageML;
+import org.esa.beam.binning.aggregators.AggregatorMinMax;
+import org.esa.beam.binning.aggregators.AggregatorOnMaxSet;
+import org.esa.beam.binning.aggregators.AggregatorPercentile;
 import org.junit.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 public class AggregatorDescriptorRegistryTest {
+
     private MyVariableContext ctx = new MyVariableContext("x", "y", "z");
 
     @Test

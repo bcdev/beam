@@ -24,6 +24,7 @@ import org.esa.beam.binning.Observation;
  * @author Norman Fomferra
  */
 public final class ObservationImpl implements Observation {
+
     private final double latitude;
     private final double longitude;
     private final double mjd;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2013 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -23,9 +23,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static java.lang.Float.NaN;
-import static org.esa.beam.binning.aggregators.AggregatorTestUtils.createCtx;
-import static org.esa.beam.binning.aggregators.AggregatorTestUtils.obsNT;
-import static org.esa.beam.binning.aggregators.AggregatorTestUtils.vec;
+import static org.esa.beam.binning.aggregators.AggregatorTestUtils.*;
 import static org.junit.Assert.*;
 
 public class AggregatorPercentileTest {
