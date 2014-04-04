@@ -32,7 +32,6 @@ import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
@@ -116,6 +115,7 @@ class BinningVariablesPanel extends JPanel {
     }
 
     private JPanel createParametersPanel() {
+        JLabel validPixelExpressionLabel = new JLabel("Valid pixel expression:");
         final JButton validPixelExpressionButton = new JButton("...");
         final Dimension preferredSize = validPixelExpressionButton.getPreferredSize();
         preferredSize.setSize(25, preferredSize.getHeight());
@@ -130,6 +130,8 @@ class BinningVariablesPanel extends JPanel {
                 }
             }
         });
+
+        JLabel targetHeightLabel = new JLabel("#Rows (90N - 90S):");
         final JTextField validPixelExpressionField = new JTextField();
         validPixelExpressionButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent event) {
@@ -145,18 +147,20 @@ class BinningVariablesPanel extends JPanel {
             }
         });
 
-        final JTextField numPixelsTextField = new IntegerTextField(BinningFormModel.DEFAULT_NUM_ROWS);
+        final JTextField targetHeightTextField = new IntegerTextField(BinningFormModel.DEFAULT_NUM_ROWS);
 
+        JLabel resolutionLabel = new JLabel("Spatial resolution (km/px):");
         final String defaultResolution = getString(computeResolution(BinningFormModel.DEFAULT_NUM_ROWS));
         final JTextField resolutionTextField = new DoubleTextField(defaultResolution);
         JButton resolutionButton = new JButton("default");
 
+        JLabel supersamplingLabel = new JLabel("Supersampling:");
         final JTextField superSamplingTextField = new IntegerTextField(1);
 
         binningFormModel.getBindingContext().getPropertySet().addProperty(BinningDialog.createProperty(BinningFormModel.PROPERTY_KEY_TARGET_HEIGHT, Integer.class));
         binningFormModel.getBindingContext().getPropertySet().addProperty(BinningDialog.createProperty(BinningFormModel.PROPERTY_KEY_SUPERSAMPLING, Integer.class));
 
-        binningFormModel.getBindingContext().bind(BinningFormModel.PROPERTY_KEY_TARGET_HEIGHT, numPixelsTextField);
+        binningFormModel.getBindingContext().bind(BinningFormModel.PROPERTY_KEY_TARGET_HEIGHT, targetHeightTextField);
         binningFormModel.getBindingContext().bind(BinningFormModel.PROPERTY_KEY_SUPERSAMPLING, superSamplingTextField);
 
         binningFormModel.getBindingContext().getBinding(BinningFormModel.PROPERTY_KEY_TARGET_HEIGHT).setPropertyValue(BinningFormModel.DEFAULT_NUM_ROWS);
@@ -166,12 +170,12 @@ class BinningVariablesPanel extends JPanel {
                 new PropertyChangeListener() {
                     @Override
                     public void propertyChange(PropertyChangeEvent evt) {
-                        updateResolutionLabel(numPixelsTextField, resolutionTextField);
+                        updateResolutionLabel(targetHeightTextField, resolutionTextField);
                     }
                 }
         );
 
-        final ResolutionTextFieldListener listener = new ResolutionTextFieldListener(resolutionTextField, numPixelsTextField);
+        final ResolutionTextFieldListener listener = new ResolutionTextFieldListener(resolutionTextField, targetHeightTextField);
         resolutionTextField.addFocusListener(listener);
         resolutionTextField.addActionListener(listener);
         resolutionButton.addActionListener(new ActionListener() {
@@ -182,17 +186,12 @@ class BinningVariablesPanel extends JPanel {
             }
         });
 
-        final JComponent validPixelExpressionToolTip = new JLabel(UIUtils.loadImageIcon("icons/Help16.gif"));
-        final JComponent numPixelsToolTip = new JLabel(UIUtils.loadImageIcon("icons/Help16.gif"));
-        final JComponent resolutionToolTip = new JLabel(UIUtils.loadImageIcon("icons/Help16.gif"));
-        final JComponent supersamplingToolTip = new JLabel(UIUtils.loadImageIcon("icons/Help16.gif"));
+        validPixelExpressionLabel.setToolTipText("Only those pixels matching this expression are considered");
+        targetHeightLabel.setToolTipText("<html>The height of the <b>maximum</b> target grid in pixels</html>");
+        resolutionLabel.setToolTipText("The spatial resolution, directly depending on #rows");
+        supersamplingLabel.setToolTipText("Every input pixel is subdivided into n x n subpixels in order to reduce or avoid Moiré effect");
 
-        validPixelExpressionToolTip.setToolTipText("Only those pixels matching this expression are considered");
-        numPixelsToolTip.setToolTipText("<html>The height of the <b>maximum</b> target grid in pixels</html>");
-        resolutionToolTip.setToolTipText("The spatial resolution, directly depending on #Pixels");
-        supersamplingToolTip.setToolTipText("Every input pixel is subdivided into n x n subpixels in order to reduce or avoid Moiré effect");
-
-        TableLayout layout = new TableLayout(4);
+        TableLayout layout = new TableLayout(3);
         layout.setTableAnchor(TableLayout.Anchor.NORTHWEST);
         layout.setTableWeightX(0.0);
         layout.setCellColspan(1, 1, 2);
@@ -203,23 +202,19 @@ class BinningVariablesPanel extends JPanel {
 
         final JPanel parametersPanel = new JPanel(layout);
 
-        parametersPanel.add(new JLabel("Valid pixel expression:"));
+        parametersPanel.add(validPixelExpressionLabel);
         parametersPanel.add(validPixelExpressionField);
         parametersPanel.add(validPixelExpressionButton);
-        parametersPanel.add(validPixelExpressionToolTip);
 
-        parametersPanel.add(new JLabel("#Pixels (90N - 90S):"));
-        parametersPanel.add(numPixelsTextField);
-        parametersPanel.add(numPixelsToolTip);
+        parametersPanel.add(targetHeightLabel);
+        parametersPanel.add(targetHeightTextField);
 
-        parametersPanel.add(new JLabel("Spatial resolution (km/px):"));
+        parametersPanel.add(resolutionLabel);
         parametersPanel.add(resolutionTextField);
         parametersPanel.add(resolutionButton);
-        parametersPanel.add(resolutionToolTip);
 
-        parametersPanel.add(new JLabel("Supersampling:"));
+        parametersPanel.add(supersamplingLabel);
         parametersPanel.add(superSamplingTextField);
-        parametersPanel.add(supersamplingToolTip);
 
         return parametersPanel;
     }

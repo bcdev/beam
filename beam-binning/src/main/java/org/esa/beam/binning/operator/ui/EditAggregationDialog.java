@@ -22,23 +22,27 @@ import com.bc.ceres.swing.binding.PropertyPane;
 import org.esa.beam.binning.AggregatorDescriptor;
 import org.esa.beam.binning.aggregators.AggregatorAverageML;
 import org.esa.beam.framework.ui.ModalDialog;
+import org.esa.beam.util.StringUtils;
 
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JList;
 import javax.swing.JPanel;
+import javax.swing.KeyStroke;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.util.List;
 
 /**
  * @author thomas
  */
-public class EditTargetVariableDialog extends ModalDialog {
+public class EditAggregationDialog extends ModalDialog {
 
     private TargetVariableSpec targetVariableSpec;
 
@@ -46,11 +50,22 @@ public class EditTargetVariableDialog extends ModalDialog {
     private JPanel aggregatorPanel;
     private PropertyContainer aggregatorProperties;
 
-    public EditTargetVariableDialog(Window parent, TargetVariableSpec targetVariableSpec) {
-        super(parent, "Edit target variable", ID_OK | ID_CANCEL, null);
+    public EditAggregationDialog(Window parent, TargetVariableSpec targetVariableSpec) {
+        super(parent, getTitle(targetVariableSpec), ID_OK | ID_CANCEL, null);
         this.targetVariableSpec = targetVariableSpec;
+        this.getJDialog().getRootPane().registerKeyboardAction(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                hide();
+            }
+        }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
         setContent(createUI());
         getJDialog().setResizable(false);
+    }
+
+    private static String getTitle(TargetVariableSpec targetVariableSpec) {
+        return "Edit aggregation" + (StringUtils.isNotNullAndNotEmpty(targetVariableSpec.targetName) ?
+                                     " of " + targetVariableSpec.targetName : "");
     }
 
     TargetVariableSpec getSpec() {

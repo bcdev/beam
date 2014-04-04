@@ -74,7 +74,7 @@ class VariableConfigTable {
     private static final String PROPERTY_SOURCE_TYPE = "sourceType";
 
     private final JTable table;
-    private final MyTableModel tableModel;
+    private final VariableTableModel tableModel;
     private final JScrollPane scrollPane;
     private final BinningFormModel binningFormModel;
     private final AppContext appContext;
@@ -88,7 +88,7 @@ class VariableConfigTable {
         currentSourceType.setContainer(new PropertyContainer());
         setCurrentSourceType(TargetVariableSpec.Source.RASTER_SOURCE_TYPE);
 
-        tableModel = new MyTableModel();
+        tableModel = new VariableTableModel();
         tableModel.setColumnIdentifiers(new String[]{
                 "Band / Expression",
                 "Target name",
@@ -343,17 +343,17 @@ class VariableConfigTable {
 
         protected JButton button;
 
-        public DialogButtonEditor(final JTable table, final MyTableModel model) {
+        public DialogButtonEditor(final JTable table, final VariableTableModel model) {
             super(new JCheckBox());
             button = new JButton("...");
             button.addActionListener(new ActionListener() {
 
                 public void actionPerformed(ActionEvent e) {
                     int selectionIndex = table.getSelectionModel().getMinSelectionIndex();
-                    EditTargetVariableDialog editTargetVariableDialog = new EditTargetVariableDialog(UIUtils.getRootWindow(table), model.getSpec(selectionIndex));
-                    int result = editTargetVariableDialog.show();
-                    if (result == EditTargetVariableDialog.ID_OK) {
-                        TargetVariableSpec spec = editTargetVariableDialog.getSpec();
+                    EditAggregationDialog editAggregationDialog = new EditAggregationDialog(UIUtils.getRootWindow(table), model.getSpec(selectionIndex));
+                    int result = editAggregationDialog.show();
+                    if (result == EditAggregationDialog.ID_OK) {
+                        TargetVariableSpec spec = editAggregationDialog.getSpec();
                         model.setSpec(selectionIndex, spec);
                     }
                     fireEditingStopped();
@@ -433,7 +433,7 @@ class VariableConfigTable {
         }
     }
 
-    private class MyTableModel implements TableModel {
+    private class VariableTableModel implements TableModel {
 
         private final HashMap<Integer, TargetVariableSpec> specs = new HashMap<>();
         private final DefaultTableModel delegate = new DefaultTableModel();
@@ -442,7 +442,7 @@ class VariableConfigTable {
 
         @Override
         public int getRowCount() {
-            // test is necessary, because specs indeed is null when method is called the first time
+            // null check is necessary, because specs indeed is null when method is called the first time
             //noinspection ConstantConditions
             if (specs == null) {
                 return 0;
