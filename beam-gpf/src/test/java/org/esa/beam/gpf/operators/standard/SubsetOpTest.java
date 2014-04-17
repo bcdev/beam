@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
+ * Copyright (C) 2014 Brockmann Consult GmbH (info@brockmann-consult.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -191,6 +191,23 @@ public class SubsetOpTest {
         assertEquals(true, rectangle.isEmpty());
     }
 
+    @Test
+    public void testAutoGrouping() throws Exception {
+        final Product sp = createTestProduct(100, 100);
+        sp.setAutoGrouping("radiance");
+        final String[] bandNames = {"radiance_1", "radiance_3"};
+
+        SubsetOp op = new SubsetOp();
+        op.setSourceProduct(sp);
+        op.setBandNames(bandNames);
+
+        Product tp = op.getTargetProduct();
+        assertEquals(2, tp.getNumBands());
+        Product.AutoGrouping autoGrouping = tp.getAutoGrouping();
+        assertNotNull(autoGrouping);
+        assertEquals(1, autoGrouping.size());
+        assertArrayEquals(new String[]{"radiance"}, autoGrouping.get(0));
+    }
 
     @Test
     public void testCopyMetadata() throws Exception {
