@@ -231,13 +231,11 @@ public class PlateCarreeGrid implements PlanetaryGrid {
     }
 
     double tileXToDegree(int tileX) {
-        double degreePerTile = (double) 360 / numTileX;
-        return tileX * degreePerTile - 180.0;
+        return (tileX * TILE_SIZE * 360.0 / numCols) - 180.0;
     }
 
     double tileYToDegree(int tileY) {
-        double degreePerTile = (double) 180 / numTileY;
-        return 90 - tileY * degreePerTile;
+        return  90.0 - (tileY * TILE_SIZE * 180.0 / numRows);
     }
 
     // TODO Compare with implementation in SubsetOp
