@@ -40,7 +40,7 @@ import java.io.IOException;
  */
 public class GeoTiffProductWriter extends AbstractProductWriter {
 
-    private File outputFile;
+    protected File outputFile;
     private ImageOutputStream outputStream;
     private GeoTiffBandWriter bandWriter;
 
@@ -74,6 +74,9 @@ public class GeoTiffProductWriter extends AbstractProductWriter {
         }
 
         outputFile = FileUtils.ensureExtension(file, GeoTiffProductWriterPlugIn.GEOTIFF_FILE_EXTENSION[0]);
+        if(outputFile.getParentFile() != null && !outputFile.getParentFile().exists()) {
+            outputFile.getParentFile().mkdirs();
+        }
         deleteOutput();
 
         ensureNamingConvention();
