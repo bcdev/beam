@@ -70,8 +70,8 @@ import static org.esa.beam.dataio.envisat.EnvisatConstants.*;
 @OperatorMetadata(alias = "Meris.CorrectRadiometry",
                   description = "Performs radiometric corrections on MERIS L1b data products.",
                   authors = "Marc Bouvet (ESTEC); Marco Peters, Ralf Quast, Thomas Storm, Marco Zuehlke (Brockmann Consult)",
-                  copyright = "(c) 2011 by Brockmann Consult",
-                  version = "1.1.2")
+                  copyright = "(c) 2014 by Brockmann Consult",
+                  version = "1.1.3")
 public class MerisRadiometryCorrectionOp extends SampleOperator {
 
     private static final String UNIT_DL = "dl";
@@ -289,7 +289,9 @@ public class MerisRadiometryCorrectionOp extends SampleOperator {
 
     private void initAlgorithms() {
         final String productType = sourceProduct.getProductType();
-        if (doCalibration) {
+        boolean isReprocessing2 = reproVersion == ReprocessingVersion.REPROCESSING_2 ||
+                                  ReprocessingVersion.autoDetect(sourceProduct) == ReprocessingVersion.REPROCESSING_2;
+        if (doCalibration && isReprocessing2) {
             InputStream sourceRacStream = null;
             InputStream targetRacStream = null;
             try {
@@ -313,6 +315,10 @@ public class MerisRadiometryCorrectionOp extends SampleOperator {
             }
             // If calibration is performed the equalization  has to use the LUTs of Reprocessing 3
             reproVersion = ReprocessingVersion.REPROCESSING_3;
+        }else {
+            if(doCalibration){
+                getLogger().warning("Skipping calibration. Source product is already of 3rd reprocessing.");
+            }
         }
         if (doSmile) {
             try {
