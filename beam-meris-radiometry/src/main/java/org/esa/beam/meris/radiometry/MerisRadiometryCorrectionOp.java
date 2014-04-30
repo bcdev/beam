@@ -145,6 +145,7 @@ public class MerisRadiometryCorrectionOp extends SampleOperator {
     private transient int detectorIndexSampleIndex;
     private transient int sunZenithAngleSampleIndex;
     private transient int flagBandIndex;
+    private transient int currentPixel = 0;
 
     @Override
     protected void prepareInputs() throws OperatorException {
@@ -254,6 +255,7 @@ public class MerisRadiometryCorrectionOp extends SampleOperator {
 
     @Override
     protected void computeSample(int x, int y, Sample[] sourceSamples, WritableSample targetSample) {
+        checkCancellation();
         final int bandIndex = targetSample.getIndex();
         final Sample sourceRadiance = sourceSamples[bandIndex];
         int detectorIndex = -1;
@@ -261,7 +263,8 @@ public class MerisRadiometryCorrectionOp extends SampleOperator {
             detectorIndex = sourceSamples[detectorIndexSampleIndex].getInt();
         }
         double value = sourceRadiance.getDouble();
-        if (doCalibration && detectorIndex != -1 && value < sourceRadiance.getNode().scale(RAW_SATURATION_THRESHOLD)) {
+        boolean isValidDetectorIndex = detectorIndex >= 0;
+        if (doCalibration && isValidDetectorIndex && value < sourceRadiance.getNode().scale(RAW_SATURATION_THRESHOLD)) {
             value = calibrationAlgorithm.calibrate(bandIndex, detectorIndex, value);
         }
         if (doSmile) {
@@ -281,7 +284,7 @@ public class MerisRadiometryCorrectionOp extends SampleOperator {
             final float sunZenithSample = sourceSamples[sunZenithAngleSampleIndex].getFloat();
             value = RsMathUtils.radianceToReflectance((float) value, sunZenithSample, solarFlux);
         }
-        if (doEqualization && detectorIndex != -1) {
+        if (doEqualization && isValidDetectorIndex) {
             value = equalizationAlgorithm.performEqualization(value, bandIndex, detectorIndex);
         }
         targetSample.set(value);
@@ -289,9 +292,7 @@ public class MerisRadiometryCorrectionOp extends SampleOperator {
 
     private void initAlgorithms() {
         final String productType = sourceProduct.getProductType();
-        boolean isReprocessing2 = reproVersion == ReprocessingVersion.REPROCESSING_2 ||
-                                  ReprocessingVersion.autoDetect(sourceProduct) == ReprocessingVersion.REPROCESSING_2;
-        if (doCalibration && isReprocessing2) {
+        if (doCalibration) {
             InputStream sourceRacStream = null;
             InputStream targetRacStream = null;
             try {
@@ -315,10 +316,6 @@ public class MerisRadiometryCorrectionOp extends SampleOperator {
             }
             // If calibration is performed the equalization  has to use the LUTs of Reprocessing 3
             reproVersion = ReprocessingVersion.REPROCESSING_3;
-        }else {
-            if(doCalibration){
-                getLogger().warning("Skipping calibration. Source product is already of 3rd reprocessing.");
-            }
         }
         if (doSmile) {
             try {
@@ -349,6 +346,12 @@ public class MerisRadiometryCorrectionOp extends SampleOperator {
             String msg = String.format("Source product must be of type MERIS Level 1b. Product type is: '%s'",
                                        sourceProduct.getProductType());
             getLogger().warning(msg);
+        }
+        boolean isReprocessing2 = reproVersion == ReprocessingVersion.REPROCESSING_2 ||
+                                  ReprocessingVersion.autoDetect(sourceProduct) == ReprocessingVersion.REPROCESSING_2;
+        if (!isReprocessing2 && doCalibration) {
+            getLogger().warning("Skipping calibration. Source product is already of 3rd reprocessing.");
+            doCalibration = false;
         }
         if (doCalibration || doEqualization) {
             if (sourceProduct.getStartTime() == null) {
@@ -384,6 +387,14 @@ public class MerisRadiometryCorrectionOp extends SampleOperator {
                 throw new OperatorException(String.format(msgPatternMissingBand, MERIS_SUN_ZENITH_DS_NAME));
             }
         }
+    }
+
+    private void checkCancellation() {
+        if (currentPixel % 1000 == 0) {
+            checkForCancellation();
+            currentPixel = 0;
+        }
+        currentPixel++;
     }
 
     public static class Spi extends OperatorSpi {
