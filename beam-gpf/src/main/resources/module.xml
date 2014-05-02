@@ -24,13 +24,14 @@
 
     <vendor>Brockmann Consult GmbH</vendor>
     <contactAddress>Max Planck Str.2, 21502 Geesthacht (Germany)</contactAddress>
-    <copyright>(C) 2010 by Brockmann Consult GmbH</copyright>
+    <copyright>(C) 2014 by Brockmann Consult GmbH</copyright>
     <url>http://envisat.esa.int/beam</url>
     <licenseUrl>http://www.gnu.org/licenses/gpl.html</licenseUrl>
 
     <changelog>
         <![CDATA[
         <p>From 4.11.0 to 4.11.1:<br/>
+            [BEAM-1648] Add processing time to metadata<br/>
             [BEAM-1508] No progress indication in VISAT when writing files<br>
             [BEAM-1562] Add version and name of module in metadata<br/>
             [BEAM-1092] Time information gets lost when reprojecting.<br/>
