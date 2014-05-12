@@ -22,6 +22,7 @@ import com.bc.ceres.core.ServiceRegistryManager;
 import org.esa.beam.BeamCoreActivator;
 import org.esa.beam.framework.gpf.OperatorSpi;
 import org.esa.beam.framework.gpf.OperatorSpiRegistry;
+import org.esa.beam.util.logging.BeamLogManager;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -191,6 +192,10 @@ public class OperatorSpiRegistryImpl implements OperatorSpiRegistry {
     private void registerAlias(String spiClassName, String aliasName) {
         Assert.notNull(aliasName, "aliasName");
         Assert.notNull(spiClassName, "spiClassName");
+        if(classNames.get(aliasName) != null) {
+            BeamLogManager.getSystemLogger().severe(
+                    spiClassName+':'+aliasName + " conflicts with "+classNames.get(aliasName)+':'+aliasName);
+        }
         classNames.put(aliasName, spiClassName);
     }
 
@@ -210,4 +215,12 @@ public class OperatorSpiRegistryImpl implements OperatorSpiRegistry {
         }
     }
 
+	/**
+     *  Gets a set of all aliases
+     *
+     * @return the Set<string> of keys
+     */
+    public Set getAliases() {
+        return classNames.keySet();
+    }
 }
