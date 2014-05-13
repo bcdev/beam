@@ -65,7 +65,8 @@ public class VisatMain implements RuntimeRunnable {
 
         Locale.setDefault(Locale.UK); // Force usage of British English locale
 
-        Lm.verifyLicense("Brockmann Consult", "BEAM", "lCzfhklpZ9ryjomwWxfdupxIcuIoCxg2");
+        verifyJideLicense();
+
         if (SystemInfo.isMacOSX()) {
             if (System.getProperty("com.apple.macos.useScreenMenuBar") == null) {
                 System.setProperty("com.apple.macos.useScreenMenuBar", "true");
@@ -128,6 +129,10 @@ public class VisatMain implements RuntimeRunnable {
                 }
             }
         });
+    }
+
+    protected void verifyJideLicense() {
+        Lm.verifyLicense("Brockmann Consult", "BEAM", "lCzfhklpZ9ryjomwWxfdupxIcuIoCxg2");
     }
 
     protected VisatApp createApplication(ApplicationDescriptor applicationDescriptor) {
