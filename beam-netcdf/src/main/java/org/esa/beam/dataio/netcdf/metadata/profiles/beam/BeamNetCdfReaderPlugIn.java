@@ -36,7 +36,7 @@ public class BeamNetCdfReaderPlugIn extends AbstractNetCdfReaderPlugIn {
         if (attribute != null) {
             String value = attribute.getStringValue();
             if (value != null && value.equals("beam")) {
-                return DecodeQualification.INTENDED;
+                return DecodeQualification.SUITABLE;
             }
         }
         return DecodeQualification.UNABLE;
