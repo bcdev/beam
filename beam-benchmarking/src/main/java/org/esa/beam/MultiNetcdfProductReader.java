@@ -10,6 +10,7 @@ import org.esa.beam.framework.datamodel.Band;
 import org.esa.beam.framework.datamodel.BasicPixelGeoCoding;
 import org.esa.beam.framework.datamodel.GeoCoding;
 import org.esa.beam.framework.datamodel.GeoCodingFactory;
+import org.esa.beam.framework.datamodel.MetadataElement;
 import org.esa.beam.framework.datamodel.Product;
 import org.esa.beam.framework.datamodel.ProductData;
 import org.esa.beam.framework.datamodel.TiePointGeoCoding;
@@ -67,6 +68,12 @@ public class MultiNetcdfProductReader extends AbstractProductReader {
             TiePointGrid[] grids = bandProduct.getTiePointGrids();
             if(grids.length > 0) {
                 ProductUtils.copyTiePointGrid(grids[0].getName(), bandProduct, product);
+            }
+            MetadataElement metadataRoot = bandProduct.getMetadataRoot();
+            if(metadataRoot != null) {
+                metadataRoot.removeElement(metadataRoot.getElement("Global_Attributes"));
+                metadataRoot.removeElement(metadataRoot.getElement("Variable_Attributes"));
+                ProductUtils.copyMetadata(bandProduct, product);
             }
         }
 

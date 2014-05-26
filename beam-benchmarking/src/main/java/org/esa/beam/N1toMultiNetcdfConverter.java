@@ -61,6 +61,9 @@ public class N1toMultiNetcdfConverter {
                 String targetProductName = String.format("%s_%03d", FileUtils.getFilenameWithoutExtension(sourceProduct.getName()), rasterIndex);
                 Product subset = subset(raster);
                 subset.setName(targetProductName);
+                if(rasterIndex == 0) {
+                    ProductUtils.copyMetadata(sourceProduct, subset);
+                }
                 ProductIO.writeProduct(subset, new File(targetDir, targetProductName + ".nc"), OUTPUT_FORMAT, false, ProgressMonitor.NULL);
                 subset.dispose();
                 pm.worked(1);
