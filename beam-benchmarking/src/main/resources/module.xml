@@ -1,0 +1,44 @@
+<module>
+    <manifestVersion>1.0.0</manifestVersion>
+    <symbolicName>beam-sbenchmarking</symbolicName>
+    <version>5.0.1</version>
+    <name>BEAM Benchmarking Module</name>
+
+    <description>Module for benchmarking BEAM.</description>
+
+    <vendor>Brockmann Consult GmbH</vendor>
+    <contactAddress>Max Planck Str.2, 21502 Geesthacht (Germany)</contactAddress>
+    <copyright>(C) 2014 by Brockmann Consult GmbH</copyright>
+    <url>http://envisat.esa.int/beam</url>
+    <licenseUrl>http://www.gnu.org/licenses/gpl.html</licenseUrl>
+
+    <changelog>
+        <![CDATA[
+        ]]>
+    </changelog>
+
+    <dependency>
+        <module>beam-core</module>
+    </dependency>
+    <dependency>
+        <module>beam-netcdf</module>
+    </dependency>
+    <dependency>
+        <module>beam-visat-rcp</module>
+        <optional>true</optional>
+    </dependency>
+
+
+    <categories>Reader,CHRIS</categories>
+
+    <extension point="beam-ui:actions">
+        <action>
+            <class>org.esa.beam.visat.actions.ProductImportAction</class>
+            <id>multiNetcdfProduct</id>
+            <formatName>MULTI-NETCDF</formatName>
+            <useAllFileFilter>true</useAllFileFilter>
+            <shortDescr>Import Multi-Netcdf for benchmarking.</shortDescr>
+        </action>
+    </extension>
+
+</module>

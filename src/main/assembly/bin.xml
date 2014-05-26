@@ -98,6 +98,7 @@
             <excludes>
                 <exclude>org.esa.beam:beam-bootstrap</exclude>
                 <exclude>org.esa.beam:beam-installer</exclude>
+                <exclude>org.esa.beam:beam-benchmarking</exclude>
                 <exclude>org.esa.beam:beam-rtp-codec</exclude>
                 <exclude>org.esa.beam:beam-examples</exclude>
                 <exclude>org.esa.beam:beam-reader-tests</exclude>
