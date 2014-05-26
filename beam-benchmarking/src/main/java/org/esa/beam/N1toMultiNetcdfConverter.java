@@ -14,7 +14,6 @@ import org.esa.beam.util.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.logging.Logger;
 
 /**
@@ -36,7 +35,7 @@ public class N1toMultiNetcdfConverter {
         File[] files = targetDir.listFiles();
         if (files != null) {
             for (File file : files) {
-                if (!file.delete()) {
+                if(!file.delete()) {
                     Logger.getAnonymousLogger().warning("Could not delete file: " + file.getCanonicalPath());
                 }
             }
@@ -59,15 +58,8 @@ public class N1toMultiNetcdfConverter {
         stopWatch.start();
         try {
             for (RasterDataNode raster : rasters) {
-                Product subset;
-                String targetProductName;
-                if(raster.getName().equals("l1_flags")) {
-                    subset = createMetadataProduct(sourceProduct, "l1_flags");
-                    targetProductName = String.format("%s_meta", FileUtils.getFilenameWithoutExtension(sourceProduct.getName()));
-                }else {
-                    subset = subset(raster);
-                    targetProductName = String.format("%s_%04d", FileUtils.getFilenameWithoutExtension(sourceProduct.getName()), rasterIndex);
-                }
+                String targetProductName = String.format("%s_%03d", FileUtils.getFilenameWithoutExtension(sourceProduct.getName()), rasterIndex);
+                Product subset = subset(raster);
                 subset.setName(targetProductName);
                 ProductIO.writeProduct(subset, new File(targetDir, targetProductName + ".nc"), OUTPUT_FORMAT, false, ProgressMonitor.NULL);
                 subset.dispose();
@@ -87,18 +79,10 @@ public class N1toMultiNetcdfConverter {
         Product subset = new Product("subset", source.getProductType(), source.getSceneRasterWidth(), source.getSceneRasterHeight());
         if (raster instanceof Band) {
             ProductUtils.copyBand(raster.getName(), source, subset, true);
-        } else {
+        }else {
             ProductUtils.copyTiePointGrid(raster.getName(), source, subset);
         }
         return subset;
     }
-
-    private static Product createMetadataProduct(Product source, String bandName) {
-        HashMap<String, Object> parameters = new HashMap<>();
-        parameters.put("bandNames", new String[]{bandName});
-        parameters.put("tiePointGridNames", new String[0]);
-        return GPF.createProduct("Subset", parameters, source);
-    }
-
 
 }

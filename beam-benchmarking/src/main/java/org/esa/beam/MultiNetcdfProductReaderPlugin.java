@@ -8,6 +8,7 @@ import org.esa.beam.util.io.BeamFileFilter;
 import ucar.nc2.NetcdfFile;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Locale;
 
@@ -24,11 +25,16 @@ public class MultiNetcdfProductReaderPlugin implements ProductReaderPlugIn {
     @Override
     public DecodeQualification getDecodeQualification(Object input) {
         File inputFile = new File(input.toString());
-        if (!inputFile.getName().endsWith("_meta" + FILE_EXTENSION)) {
+        if (!inputFile.getName().endsWith(FILE_EXTENSION)) {
             return DecodeQualification.UNABLE;
         }
         File parentFile = inputFile.getParentFile();
-        File[] files = parentFile.listFiles();
+        File[] files = parentFile.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.endsWith(".nc");
+            }
+        });
         if (files == null) {
             return DecodeQualification.UNABLE;
         }
@@ -82,7 +88,7 @@ public class MultiNetcdfProductReaderPlugin implements ProductReaderPlugIn {
         return new BeamFileFilter(FORMAT_NAME, FILE_EXTENSION, DESCRIPTION) {
             @Override
             public boolean accept(File file) {
-                return super.accept(file) && file.getName().startsWith("MER_") && file.getName().endsWith("_meta" + FILE_EXTENSION);
+                return super.accept(file) && file.getName().startsWith("MER_");
             }
         };
     }

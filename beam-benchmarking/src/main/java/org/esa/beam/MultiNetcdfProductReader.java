@@ -7,9 +7,14 @@ import org.esa.beam.framework.dataio.ProductIOPlugInManager;
 import org.esa.beam.framework.dataio.ProductReader;
 import org.esa.beam.framework.dataio.ProductReaderPlugIn;
 import org.esa.beam.framework.datamodel.Band;
+import org.esa.beam.framework.datamodel.BasicPixelGeoCoding;
+import org.esa.beam.framework.datamodel.GeoCoding;
+import org.esa.beam.framework.datamodel.GeoCodingFactory;
 import org.esa.beam.framework.datamodel.Product;
 import org.esa.beam.framework.datamodel.ProductData;
+import org.esa.beam.framework.datamodel.TiePointGeoCoding;
 import org.esa.beam.framework.datamodel.TiePointGrid;
+import org.esa.beam.util.ProductUtils;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -35,45 +40,51 @@ public class MultiNetcdfProductReader extends AbstractProductReader {
     protected Product readProductNodesImpl() throws IOException {
         File inputFile = new File(getInput().toString());
         File parentFile = inputFile.getParentFile();
-        if (parentFile == null) {
+        if(parentFile == null) {
             return null;
         }
-        File[] files = parentFile.listFiles(new FileFilter() {
-            @Override
-            public boolean accept(File pathname) {
-                String fileName = pathname.getName();
-                return fileName.startsWith("MER_") && fileName.endsWith("_meta.nc");
-            }
-        });
-        File metaFile = files[0];
-        files = parentFile.listFiles(new FileFilter() {
-            @Override
-            public boolean accept(File pathname) {
-                String fileName = pathname.getName();
-                return fileName.startsWith("MER_") && fileName.endsWith(".nc") && !fileName.endsWith("_meta.nc");
-            }
-        });
-        return createProduct(metaFile, files);
+        File[] files = parentFile.listFiles(new NetcdfFileFilter());
+        return createProduct(files);
     }
 
-    private Product createProduct(File metaFile, File[] files) throws IOException {
+    private Product createProduct(File[] files) throws IOException {
 
         ProductReaderPlugIn readerPlugin = getReaderPlugin();
-        Product product = readerPlugin.createReaderInstance().readProductNodes(metaFile, null);
-        for (File file : files) {
+        Product product = null;
+        for (int i = 0; i < files.length; i++) {
+            File file = files[i];
             ProductReader readerInstance = readerPlugin.createReaderInstance();
             Product bandProduct = readerInstance.readProductNodes(file, null);
-            Band[] bands = bandProduct.getBands();
-            if (bands.length > 0) {
-                product.addBand(bands[0]);
+            if (i == 0) {
+                String name = bandProduct.getName();
+                product = new Product(name.substring(0, name.length() - 4), bandProduct.getProductType(),
+                                      bandProduct.getSceneRasterWidth(), bandProduct.getSceneRasterHeight());
             }
-            TiePointGrid[] grid = bandProduct.getTiePointGrids();
-            if (grid.length > 0) {
-                product.addTiePointGrid(grid[0]);
+            Band[] bands = bandProduct.getBands();
+            if(bands.length > 0) {
+                ProductUtils.copyBand(bands[0].getName(), bandProduct, product, true);
+            }
+            TiePointGrid[] grids = bandProduct.getTiePointGrids();
+            if(grids.length > 0) {
+                ProductUtils.copyTiePointGrid(grids[0].getName(), bandProduct, product);
             }
         }
 
+        addGeoCoding(product);
         return product;
+    }
+
+    private void addGeoCoding(Product product) {
+        TiePointGrid latGrid = product.getTiePointGrid("latitude");
+        TiePointGrid lonGrid = product.getTiePointGrid("longitude");
+        if (latGrid != null && lonGrid != null) {
+            product.setGeoCoding(new TiePointGeoCoding(latGrid, lonGrid));
+        }
+
+        Band latBand = product.getBand("corr_latitude");
+        Band lonBand = product.getBand("corr_longitude");
+        GeoCoding pixelGeoCoding = GeoCodingFactory.createPixelGeoCoding(latBand, lonBand, "NOT l1_flags.INVALID", 6);
+        product.setGeoCoding(pixelGeoCoding);
     }
 
     private ProductReaderPlugIn getReaderPlugin() {
@@ -81,7 +92,7 @@ public class MultiNetcdfProductReader extends AbstractProductReader {
         Iterator<ProductReaderPlugIn> readerPlugIns = ioPlugInManager.getReaderPlugIns("NetCDF4-BEAM");
         while (readerPlugIns.hasNext()) {
             ProductReaderPlugIn next = readerPlugIns.next();
-            if (next instanceof BeamNetCdfReaderPlugIn) {
+            if(next instanceof BeamNetCdfReaderPlugIn) {
                 return next;
             }
 
@@ -94,5 +105,16 @@ public class MultiNetcdfProductReader extends AbstractProductReader {
                                           Band destBand, int destOffsetX, int destOffsetY, int destWidth, int destHeight, ProductData destBuffer,
                                           ProgressMonitor pm) throws IOException {
 
+    }
+
+    private class NetcdfFileFilter implements FileFilter {
+
+        private String suffix = getReaderPlugin().getDefaultFileExtensions()[0];
+
+        @Override
+        public boolean accept(File pathname) {
+            String fileName = pathname.getName();
+            return fileName.endsWith(suffix);
+        }
     }
 }
