@@ -20,7 +20,7 @@ public class MultiNetcdfProductReaderPlugin implements ProductReaderPlugIn {
     private static final String FILE_EXTENSION = ".nc";
     private static final int NUM_NC_FILES = 35;
     public static final String FORMAT_NAME = "MULTI-NETCDF";
-    public static final String DESCRIPTION = "MULT-NETCDF for Benchmarking";
+    public static final String DESCRIPTION = "MULTI-NETCDF for Benchmarking";
 
     @Override
     public DecodeQualification getDecodeQualification(Object input) {
