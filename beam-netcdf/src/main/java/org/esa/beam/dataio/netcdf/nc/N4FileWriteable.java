@@ -22,7 +22,6 @@ import edu.ucar.ral.nujan.netcdf.NhException;
 import edu.ucar.ral.nujan.netcdf.NhFileWriter;
 import edu.ucar.ral.nujan.netcdf.NhGroup;
 import edu.ucar.ral.nujan.netcdf.NhVariable;
-import org.esa.beam.util.Debug;
 import org.esa.beam.util.StringUtils;
 import ucar.ma2.DataType;
 
@@ -39,7 +38,7 @@ import java.util.regex.Pattern;
  */
 public class N4FileWriteable implements NFileWriteable {
 
-    private static final int DEFAULT_COMPRESSION = 6;
+    private static final int COMPRESSION_LEVEL = Integer.parseInt(System.getProperty("beam.netcdf4.compressionLevel", "6"));
     private final NhFileWriter nhFileWriter;
     private Map<String, NVariable> variables;
 
@@ -53,7 +52,7 @@ public class N4FileWriteable implements NFileWriteable {
 
     private N4FileWriteable(NhFileWriter nhFileWriter) {
         this.nhFileWriter = nhFileWriter;
-        this.variables = new HashMap<String, NVariable>();
+        this.variables = new HashMap<>();
     }
 
     @Override
@@ -140,8 +139,7 @@ public class N4FileWriteable implements NFileWriteable {
 
         Object fillValue = null; // TODO
         try {
-            NhVariable variable = rootGroup.addVariable(name, nhType, nhDims, chunkLens, fillValue,
-                                                        DEFAULT_COMPRESSION);
+            NhVariable variable = rootGroup.addVariable(name, nhType, nhDims, chunkLens, fillValue, COMPRESSION_LEVEL);
             NVariable nVariable = new N4Variable(variable, tileSize);
             variables.put(name, nVariable);
             return nVariable;
