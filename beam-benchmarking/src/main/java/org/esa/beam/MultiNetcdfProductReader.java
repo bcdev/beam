@@ -60,6 +60,8 @@ public class MultiNetcdfProductReader extends AbstractProductReader {
                 String name = bandProduct.getName();
                 product = new Product(name.substring(0, name.length() - 4), bandProduct.getProductType(),
                                       bandProduct.getSceneRasterWidth(), bandProduct.getSceneRasterHeight());
+                product.setStartTime(bandProduct.getStartTime());
+                product.setEndTime(bandProduct.getEndTime());
             }
             Band[] bands = bandProduct.getBands();
             if(bands.length > 0) {
