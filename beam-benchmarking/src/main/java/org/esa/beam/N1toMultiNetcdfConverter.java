@@ -41,7 +41,7 @@ public class N1toMultiNetcdfConverter {
             }
         }
 
-        System.out.println("Writing to:" + targetDir.getCanonicalPath());
+        System.out.println("Writing to: " + targetDir.getCanonicalPath());
 
         GPF.getDefaultInstance().getOperatorSpiRegistry().loadOperatorSpis();
 
