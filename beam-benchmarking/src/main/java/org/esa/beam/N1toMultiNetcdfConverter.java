@@ -63,6 +63,8 @@ public class N1toMultiNetcdfConverter {
                 subset.setName(targetProductName);
                 if(rasterIndex == 0) {
                     ProductUtils.copyMetadata(sourceProduct, subset);
+                    subset.setStartTime(sourceProduct.getStartTime());
+                    subset.setEndTime(sourceProduct.getEndTime());
                 }
                 ProductIO.writeProduct(subset, new File(targetDir, targetProductName + ".nc"), OUTPUT_FORMAT, false, ProgressMonitor.NULL);
                 subset.dispose();
