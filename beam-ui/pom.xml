@@ -78,6 +78,12 @@
             <groupId>jfree</groupId>
             <artifactId>jcommon</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>flexdock</groupId>
+            <artifactId>flexdock</artifactId>
+        </dependency>
+
     </dependencies>
 
 </project>

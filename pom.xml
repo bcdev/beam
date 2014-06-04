@@ -581,6 +581,12 @@
                 <version>1.0.4</version>
             </dependency>
 
+            <dependency>
+                <groupId>flexdock</groupId>
+                <artifactId>flexdock</artifactId>
+                <version>1.2.4</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 

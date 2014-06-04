@@ -21,19 +21,10 @@ import com.bc.ceres.core.SubProgressMonitor;
 import com.bc.ceres.swing.debug.CheckThreadViolationRepaintManager;
 import com.bc.ceres.swing.debug.EventDispatchThreadHangMonitor;
 import com.jidesoft.action.CommandBar;
-import com.jidesoft.action.DefaultDockableBarDockableHolder;
-import com.jidesoft.action.DockableBar;
-import com.jidesoft.action.DockableBarContext;
-import com.jidesoft.action.DockableBarManager;
-import com.jidesoft.action.event.DockableBarAdapter;
-import com.jidesoft.action.event.DockableBarEvent;
-import com.jidesoft.docking.DefaultDockingManager;
-import com.jidesoft.docking.DockingManager;
 import com.jidesoft.plaf.LookAndFeelFactory;
 import com.jidesoft.status.LabelStatusBarItem;
 import com.jidesoft.swing.FolderChooser;
 import com.jidesoft.swing.JideMenu;
-import com.jidesoft.swing.LayoutPersistence;
 import org.esa.beam.framework.help.HelpSys;
 import org.esa.beam.framework.ui.application.ApplicationDescriptor;
 import org.esa.beam.framework.ui.application.support.DefaultApplicationDescriptor;
@@ -55,6 +46,8 @@ import org.esa.beam.util.io.BeamFileChooser;
 import org.esa.beam.util.io.FileChooserFactory;
 import org.esa.beam.util.io.FileUtils;
 import org.esa.beam.util.logging.BeamLogManager;
+import org.flexdock.docking.DockingConstants;
+import org.flexdock.view.Viewport;
 
 import javax.help.HelpSet;
 import javax.help.HelpSetException;
@@ -64,6 +57,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -86,7 +80,6 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.HeadlessException;
-import java.awt.Rectangle;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -108,6 +101,15 @@ import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+//import com.jidesoft.action.DefaultDockableBarDockableHolder;
+//import com.jidesoft.action.DockableBar;
+//import com.jidesoft.action.DockableBarContext;
+//import com.jidesoft.action.DockableBarManager;
+//import com.jidesoft.action.event.DockableBarAdapter;
+//import com.jidesoft.action.event.DockableBarEvent;
+//import com.jidesoft.docking.DefaultDockingManager;
+//import com.jidesoft.docking.DockingManager;
 
 /**
  * The <code>BasicApp</code> can be used as a base class for applications which use a single main frame as user
@@ -348,7 +350,7 @@ public class BasicApp {
 
             pm.setSubTaskName("Applying UI preferences...");
             applyPreferences();
-            getMainFrame().getLayoutPersistence().loadLayoutData(); // </JIDE>
+//            getMainFrame().getLayoutPersistence().loadLayoutData(); // </JIDE>
             clearStatusBarMessage();
             pm.worked(1);
 
@@ -393,18 +395,20 @@ public class BasicApp {
     private void initMainPane() {
         JComponent mainPane = createMainPane();
         if (mainPane != null) {
-            getMainFrame().getDockingManager().getWorkspace().setLayout(new BorderLayout());
-            getMainFrame().getDockingManager().getWorkspace().add(mainPane, BorderLayout.CENTER);
-            getMainFrame().getDockingManager().setDefaultFocusComponent(mainPane);
+            getMainFrame().getViewport().dock(mainPane, DockingConstants.CENTER_REGION);
+//            getMainFrame().getDockingManager().getWorkspace().setLayout(new BorderLayout());
+//            getMainFrame().getDockingManager().getWorkspace().add(mainPane, BorderLayout.CENTER);
+//            getMainFrame().getDockingManager().setDefaultFocusComponent(mainPane);
         }
     }
 
     private void initMainMenuBar() {
-        CommandBar menuBar = createMainMenuBar();
+        JMenuBar menuBar = createMainMenuBar();
         if (menuBar != null) {
-            menuBar.getContext().setInitSide(DockableBarContext.DOCK_SIDE_NORTH);
-            menuBar.getContext().setInitIndex(1);
-            getMainFrame().getDockableBarManager().addDockableBar(menuBar);
+//            menuBar.getContext().setInitSide(DockableBarContext.DOCK_SIDE_NORTH);
+//            menuBar.getContext().setInitIndex(1);
+//            getMainFrame().getDockableBarManager().addDockableBar(menuBar);
+            getMainFrame().getRootPane().setJMenuBar(menuBar);
             insertCommandMenuItems();
         }
     }
@@ -412,38 +416,38 @@ public class BasicApp {
     private void initMainToolBar() {
         mainToolBar = createMainToolBar();
         if (mainToolBar != null) {
-            mainToolBar.getContext().setInitSide(DockableBarContext.DOCK_SIDE_NORTH);
+//            mainToolBar.getContext().setInitSide(DockableBarContext.DOCK_SIDE_NORTH);
             mainToolBar.getContext().setInitIndex(2);
-            getMainFrame().getDockableBarManager().addDockableBar(mainToolBar);
+//            getMainFrame().getDockableBarManager().addDockableBar(mainToolBar);
         }
     }
 
     private void configureDockingManager() {
-        getMainFrame().getDockingManager().setProfileKey(getAppName());
-        getMainFrame().getDockingManager().setInitBounds(new Rectangle(0, 0, 960, 800));
-        getMainFrame().getDockingManager().setInitSplitPriority(DefaultDockingManager.SPLIT_SOUTH_NORTH_EAST_WEST);
-        getMainFrame().getDockingManager().setInitDelay(100);
-        getMainFrame().getDockingManager().setSteps(1);
-        getMainFrame().getDockingManager().setStepDelay(0);
-        getMainFrame().getDockingManager().setUndoLimit(0);
-        getMainFrame().getDockingManager().setFloatable(true);
-        getMainFrame().getDockingManager().setShowGripper(false);
-        getMainFrame().getDockingManager().setDragGripperOnly(false);
-        getMainFrame().getDockingManager().setContinuousLayout(true);
-        getMainFrame().getDockingManager().setAutoDockingAsDefault(false);
-        getMainFrame().getDockingManager().setHideFloatingFramesWhenDeactivate(true);
-        getMainFrame().getDockingManager().setHideFloatingFramesOnSwitchOutOfApplication(true);
+//        getMainFrame().getDockingManager().setProfileKey(getAppName());
+//        getMainFrame().getDockingManager().setInitBounds(new Rectangle(0, 0, 960, 800));
+//        getMainFrame().getDockingManager().setInitSplitPriority(DefaultDockingManager.SPLIT_SOUTH_NORTH_EAST_WEST);
+//        getMainFrame().getDockingManager().setInitDelay(100);
+//        getMainFrame().getDockingManager().setSteps(1);
+//        getMainFrame().getDockingManager().setStepDelay(0);
+//        getMainFrame().getDockingManager().setUndoLimit(0);
+//        getMainFrame().getDockingManager().setFloatable(true);
+//        getMainFrame().getDockingManager().setShowGripper(false);
+//        getMainFrame().getDockingManager().setDragGripperOnly(false);
+//        getMainFrame().getDockingManager().setContinuousLayout(true);
+//        getMainFrame().getDockingManager().setAutoDockingAsDefault(false);
+//        getMainFrame().getDockingManager().setHideFloatingFramesWhenDeactivate(true);
+//        getMainFrame().getDockingManager().setHideFloatingFramesOnSwitchOutOfApplication(true);
 //        getMainFrame().getDockingManager().setOutlineMode(DockingManager.PARTIAL_OUTLINE_MODE);
 //        getMainFrame().getDockingManager().setOutlineMode(DockingManager.MIX_OUTLINE_MODE);
-        getMainFrame().getDockingManager().setOutlineMode(DockingManager.FULL_OUTLINE_MODE);
+//        getMainFrame().getDockingManager().setOutlineMode(DockingManager.FULL_OUTLINE_MODE);
     }
 
     private void configureLayoutPersitence() {
-        getMainFrame().getLayoutPersistence().setProfileKey(getAppName());
-        getMainFrame().getLayoutPersistence().setUsePref(false);
-        getMainFrame().getLayoutPersistence().setLayoutDirectory(appUserDir.getPath());
-        getMainFrame().getLayoutPersistence().beginLoadLayoutData();
-        getMainFrame().getDockableBarManager().setProfileKey(getAppName());
+//        getMainFrame().getLayoutPersistence().setProfileKey(getAppName());
+//        getMainFrame().getLayoutPersistence().setUsePref(false);
+//        getMainFrame().getLayoutPersistence().setLayoutDirectory(appUserDir.getPath());
+//        getMainFrame().getLayoutPersistence().beginLoadLayoutData();
+//        getMainFrame().getDockableBarManager().setProfileKey(getAppName());
     }
 
     private void initCommandManager() {
@@ -457,7 +461,7 @@ public class BasicApp {
         mainFrame = new MainFrame();
         mainFrame.setTitle(getMainFrameTitle());
         mainFrame.setName("mainFrame" + getAppName());
-        mainFrame.setDefaultCloseOperation(MainFrame.DO_NOTHING_ON_CLOSE);
+        mainFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         mainFrame.addWindowListener(new WindowAdapter() {
 
             @Override
@@ -541,10 +545,10 @@ public class BasicApp {
         Debug.trace(getAppName() + ": handleImminentExit entered");
         if (!unexpectedShutdown) {  // fix BEAM-712 (nf 2007.11.02)
             Debug.trace("(1)");
-            LayoutPersistence layoutPersistence = getMainFrame().getLayoutPersistence();
-            if (layoutPersistence != null) {
-                layoutPersistence.saveLayoutData(); // produces a dead lock, method is certainly not threadsafe!
-            }
+//            LayoutPersistence layoutPersistence = getMainFrame().getLayoutPersistence();
+//            if (layoutPersistence != null) {
+//                layoutPersistence.saveLayoutData(); // produces a dead lock, method is certainly not threadsafe!
+//            }
         }
         Debug.trace("(2)");
         savePreferences();
@@ -590,7 +594,7 @@ public class BasicApp {
     /**
      * @return the menu bar for this application.
      */
-    protected CommandBar createMainMenuBar() {
+    protected JMenuBar createMainMenuBar() {
         return null;
     }
 
@@ -653,7 +657,7 @@ public class BasicApp {
         CommandBar toolBar = new CommandBar(toolBarId);
         toolBar.setName(toolBarId);
         toolBar.setTitle(title);
-        toolBar.addDockableBarListener(new ToolBarListener());
+//        toolBar.addDockableBarListener(new ToolBarListener());
         toolBars.put(toolBarId, toolBar);
         return toolBar;
     }
@@ -663,21 +667,21 @@ public class BasicApp {
     }
 
     public boolean isToolBarVisible(String toolBarId) {
-        DockableBarManager barManager = getMainFrame().getDockableBarManager();
-        if (barManager != null) {
-            DockableBar dockableBar = barManager.getDockableBar(toolBarId);
-            return (dockableBar != null) && !dockableBar.isHidden();
-        }
+//        DockableBarManager barManager = getMainFrame().getDockableBarManager();
+//        if (barManager != null) {
+//            DockableBar dockableBar = barManager.getDockableBar(toolBarId);
+//            return (dockableBar != null) && !dockableBar.isHidden();
+//        }
         return false;
     }
 
     public void setToolBarVisible(String toolBarId, boolean visbile) {
-        DockableBarManager dockableBarManager = getMainFrame().getDockableBarManager();
-        if (visbile) {
-            dockableBarManager.showDockableBar(toolBarId);
-        } else {
-            dockableBarManager.hideDockableBar(toolBarId);
-        }
+//        DockableBarManager dockableBarManager = getMainFrame().getDockableBarManager();
+//        if (visbile) {
+//            dockableBarManager.showDockableBar(toolBarId);
+//        } else {
+//            dockableBarManager.hideDockableBar(toolBarId);
+//        }
     }
 
 
@@ -857,8 +861,8 @@ public class BasicApp {
                 if (command instanceof ExecCommand && command.getLargeIcon() != null) {
                     String rootParent = findRootParent(command);
                     if ((rootParent == null
-                         && toolBarGroup == null)
-                        || (rootParent != null
+                            && toolBarGroup == null)
+                            || (rootParent != null
                             && rootParent.equalsIgnoreCase(toolBarGroup))) {
                         AbstractButton button = command.createToolBarButton();
                         if (button != null) {
@@ -1225,8 +1229,8 @@ public class BasicApp {
      * other top-level containers beside the main frame.
      */
     protected void updateComponentTreeUI() {
-        mainFrame.getDockableBarManager().updateComponentTreeUI();
-        mainFrame.getDockingManager().updateComponentTreeUI();
+//        mainFrame.getDockableBarManager().updateComponentTreeUI();
+//        mainFrame.getDockingManager().updateComponentTreeUI();
         SwingUtilities.updateComponentTreeUI(getMainFrame());
     }
 
@@ -1479,12 +1483,12 @@ public class BasicApp {
             message = "An unknown error occurred."; /*I18N*/
         } else if (e.getMessage() == null) {
             message = "An exception occurred:\n"
-                      + "   Type: " + e.getClass().getName() + "\n"
-                      + "   No message text available."; /*I18N*/
+                    + "   Type: " + e.getClass().getName() + "\n"
+                    + "   No message text available."; /*I18N*/
         } else {
             message = "An exception occurred:\n"
-                      + "   Type: " + e.getClass().getName() + "\n"
-                      + "   Message: " + e.getMessage(); /*I18N*/
+                    + "   Type: " + e.getClass().getName() + "\n"
+                    + "   Message: " + e.getMessage(); /*I18N*/
         }
 
         getMainFrame().setCursor(Cursor.getDefaultCursor());
@@ -1528,10 +1532,10 @@ public class BasicApp {
     public final void showOutOfMemoryErrorDialog(String message) {
         showErrorDialog("Out of Memory",
                         String.format("%s is out of memory.\n%s\n\n" +
-                                      "You can try to release memory by closing products or image views which\n" +
-                                      "you currently not really need.\n" +
-                                      "If this does not help, you can increase the amount of virtual memory\n" +
-                                      "as described on the BEAM website at http://envisat.esa.int/services/beam/.",
+                                              "You can try to release memory by closing products or image views which\n" +
+                                              "you currently not really need.\n" +
+                                              "If this does not help, you can increase the amount of virtual memory\n" +
+                                              "as described on the BEAM website at http://envisat.esa.int/services/beam/.",
                                       getAppName(), message
                         )
         );
@@ -1651,9 +1655,9 @@ public class BasicApp {
         }
         int answer = showQuestionDialog("File Exists",
                                         "The file\n"
-                                        + "'" + file.getPath() + "'\n"
-                                        + "already exists.\n\n"
-                                        + "Do you really want to overwrite it?\n", null
+                                                + "'" + file.getPath() + "'\n"
+                                                + "already exists.\n\n"
+                                                + "Do you really want to overwrite it?\n", null
         );
         return answer == JOptionPane.YES_OPTION;
     }
@@ -1819,19 +1823,27 @@ public class BasicApp {
         return applicationDescriptor;
     }
 
-    public static class MainFrame extends DefaultDockableBarDockableHolder {
+    public static class MainFrame extends JFrame {
+
+        private final Viewport viewport;
 
         public MainFrame() throws HeadlessException {
+            viewport = new Viewport();
         }
+
+        public Viewport getViewport() {
+            return viewport;
+        }
+
     }
 
-    public class ToolBarListener extends DockableBarAdapter {
-
-        @Override
-        public void dockableBarHidden(DockableBarEvent dockableBarEvent) {
-            updateState();
-        }
-    }
+//    public class ToolBarListener extends DockableBarAdapter {
+//
+//        @Override
+//        public void dockableBarHidden(DockableBarEvent dockableBarEvent) {
+//            updateState();
+//        }
+//    }
 }
 
 

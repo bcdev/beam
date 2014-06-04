@@ -31,7 +31,6 @@ import com.bc.ceres.swing.selection.SelectionManager;
 import com.bc.ceres.swing.selection.support.DefaultSelectionManager;
 import com.bc.swing.desktop.TabbedDesktopPane;
 import com.jidesoft.action.CommandBar;
-import com.jidesoft.action.CommandMenuBar;
 import com.jidesoft.action.DockableBarContext;
 import com.jidesoft.status.LabelStatusBarItem;
 import com.jidesoft.status.MemoryStatusBarItem;
@@ -367,15 +366,15 @@ public class VisatApp extends BasicApp implements AppContext {
                 }
             });
 
-            getMainFrame().getDockingManager().setHideFloatingFramesOnSwitchOutOfApplication(true);
-            getMainFrame().getDockingManager().setHideFloatingFramesWhenDeactivate(false);
+//            getMainFrame().getDockingManager().setHideFloatingFramesOnSwitchOutOfApplication(true);
+//            getMainFrame().getDockingManager().setHideFloatingFramesWhenDeactivate(false);
 
             desktopPane = new TabbedDesktopPane();
 
             applicationPage = new VisatApplicationPage(getMainFrame(),
                                                        getCommandManager(),
                                                        new DefaultSelectionManager(this),
-                                                       getMainFrame().getDockingManager(),
+//                                                       getMainFrame().getDockingManager(),
                                                        desktopPane);
 
             pm.setTaskName("Loading commands");
@@ -465,19 +464,19 @@ public class VisatApp extends BasicApp implements AppContext {
             CommandBar layersToolBar = createLayersToolBar();
             layersToolBar.getContext().setInitSide(DockableBarContext.DOCK_SIDE_NORTH);
             layersToolBar.getContext().setInitIndex(2);
-            getMainFrame().getDockableBarManager().addDockableBar(layersToolBar);
+//            getMainFrame().getDockableBarManager().addDockableBar(layersToolBar);
             pm.worked(1);
 
             CommandBar analysisToolBar = createAnalysisToolBar();
             analysisToolBar.getContext().setInitSide(DockableBarContext.DOCK_SIDE_NORTH);
             analysisToolBar.getContext().setInitIndex(2);
-            getMainFrame().getDockableBarManager().addDockableBar(analysisToolBar);
+//            getMainFrame().getDockableBarManager().addDockableBar(analysisToolBar);
             pm.worked(1);
 
             CommandBar toolsToolBar = createInteractionsToolBar();
             toolsToolBar.getContext().setInitSide(DockableBarContext.DOCK_SIDE_EAST);
             toolsToolBar.getContext().setInitIndex(1);
-            getMainFrame().getDockableBarManager().addDockableBar(toolsToolBar);
+//            getMainFrame().getDockableBarManager().addDockableBar(toolsToolBar);
             pm.worked(1);
 
             CommandBar[] viewToolBars = createViewsToolBars();
@@ -489,7 +488,7 @@ public class VisatApp extends BasicApp implements AppContext {
                     viewToolBar.getContext().setInitSide(DockableBarContext.DOCK_SIDE_EAST);
                     viewToolBar.getContext().setInitIndex(1);
                 }
-                getMainFrame().getDockableBarManager().addDockableBar(viewToolBar);
+//                getMainFrame().getDockableBarManager().addDockableBar(viewToolBar);
             }
             pm.worked(1);
 
@@ -2190,10 +2189,13 @@ public class VisatApp extends BasicApp implements AppContext {
      * Overrides the base class version in order to creates the menu bar for VISAT.
      */
     @Override
-    protected CommandBar createMainMenuBar() {
-        final CommandMenuBar menuBar = new CommandMenuBar("Main Menu");
-        menuBar.setHidable(false);
-        menuBar.setStretch(true);
+    protected JMenuBar createMainMenuBar() {
+        final JMenuBar menuBar = new JMenuBar();
+
+
+//        final CommandMenuBar menuBar = new CommandMenuBar("Main Menu");
+//        menuBar.setHidable(false);
+//        menuBar.setStretch(true);
 
         menuBar.add(createJMenu("file", "File", 'F'));
         menuBar.add(createJMenu("edit", "Edit", 'E'));

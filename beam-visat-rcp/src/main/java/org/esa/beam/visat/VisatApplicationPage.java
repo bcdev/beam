@@ -19,45 +19,47 @@ package org.esa.beam.visat;
 import com.bc.ceres.swing.selection.SelectionContext;
 import com.bc.ceres.swing.selection.SelectionManager;
 import com.bc.swing.desktop.TabbedDesktopPane;
-import com.jidesoft.docking.DockableFrame;
-import com.jidesoft.docking.DockingManager;
-import com.jidesoft.docking.event.DockableFrameAdapter;
-import com.jidesoft.docking.event.DockableFrameEvent;
 import org.esa.beam.framework.ui.BasicView;
 import org.esa.beam.framework.ui.application.DocView;
 import org.esa.beam.framework.ui.application.PageComponent;
 import org.esa.beam.framework.ui.application.PageComponentPane;
 import org.esa.beam.framework.ui.application.ToolView;
 import org.esa.beam.framework.ui.application.ToolViewDescriptor;
-import org.esa.beam.framework.ui.application.ToolViewDescriptor.State;
 import org.esa.beam.framework.ui.application.support.AbstractApplicationPage;
 import org.esa.beam.framework.ui.application.support.DefaultToolViewPane;
 import org.esa.beam.framework.ui.command.CommandManager;
-import org.esa.beam.util.Debug;
+import org.flexdock.docking.event.DockingEvent;
+import org.flexdock.docking.event.DockingListener;
+import org.flexdock.view.View;
+import org.flexdock.view.Viewport;
 
 import javax.swing.JComponent;
 import javax.swing.JInternalFrame;
+import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Window;
 import java.beans.PropertyVetoException;
+
+//import com.jidesoft.docking.DockableFrame;
+//import com.jidesoft.docking.DockingManager;
 
 public class VisatApplicationPage extends AbstractApplicationPage {
 
     private final Window window;
     private final CommandManager commandManager;
     private final SelectionManager selectionManager;
-    private final DockingManager dockingManager;
     private final TabbedDesktopPane documentPane;
+    private Viewport viewport;
 
     public VisatApplicationPage(Window window,
                                 CommandManager commandManager,
                                 SelectionManager selectionManager,
-                                DockingManager dockingManager,
                                 TabbedDesktopPane documentPane) {
         this.window = window;
         this.commandManager = commandManager;
         this.selectionManager = selectionManager;
-        this.dockingManager = dockingManager;
+        viewport = new Viewport();
+        window.add(viewport, BorderLayout.CENTER);
         this.documentPane = documentPane;
     }
 
@@ -83,43 +85,89 @@ public class VisatApplicationPage extends AbstractApplicationPage {
 
     @Override
     protected void doAddToolView(final ToolView toolView) {
-        DockableFrame dockableFrame = (DockableFrame) toolView.getContext().getPane().getControl();
-        dockableFrame.addDockableFrameListener(new DockableFrameAdapter() {
+//        DockableFrame dockableFrame = (DockableFrame) toolView.getContext().getPane().getControl();
+//        dockableFrame.addDockableFrameListener(new DockableFrameAdapter() {
+//            @Override
+//            public void dockableFrameActivated(DockableFrameEvent dockableFrameEvent) {
+//                setActiveComponent();
+//            }
+//
+//            @Override
+//            public void dockableFrameDeactivated(DockableFrameEvent dockableFrameEvent) {
+//                setActiveComponent();
+//            }
+//        });
+//        dockingManager.addFrame(dockableFrame);
+        View view = (View) toolView.getContext().getPane().getControl();
+        view.addDockingListener(new DockingListener() {
+//            @Override
+//            public void dockableFrameActivated(DockableFrameEvent dockableFrameEvent) {
+//                setActiveComponent();
+//            }
+//
+//            @Override
+//            public void dockableFrameDeactivated(DockableFrameEvent dockableFrameEvent) {
+//                setActiveComponent();
+//            }
+
             @Override
-            public void dockableFrameActivated(DockableFrameEvent dockableFrameEvent) {
+            public void dockingComplete(DockingEvent dockingEvent) {
                 setActiveComponent();
             }
 
             @Override
-            public void dockableFrameDeactivated(DockableFrameEvent dockableFrameEvent) {
+            public void dockingCanceled(DockingEvent dockingEvent) {
+                setActiveComponent();
+            }
+
+            @Override
+            public void dragStarted(DockingEvent dockingEvent) {
+                setActiveComponent();
+            }
+
+            @Override
+            public void dropStarted(DockingEvent dockingEvent) {
+                setActiveComponent();
+            }
+
+            @Override
+            public void undockingComplete(DockingEvent dockingEvent) {
+                setActiveComponent();
+            }
+
+            @Override
+            public void undockingStarted(DockingEvent dockingEvent) {
                 setActiveComponent();
             }
         });
-        dockingManager.addFrame(dockableFrame);
+        viewport.dock(view);
+//        dockingManager.addFrame(view);
+
     }
 
     @Override
     protected void doRemoveToolView(ToolView toolView) {
-        dockingManager.removeFrame(toolView.getId());
+        viewport.remove(toolView.getControl());
+//        dockingManager.removeFrame(toolView.getId());
     }
 
     @Override
     protected void doShowToolView(ToolView toolView) {
-        dockingManager.showFrame(toolView.getId());
-        if (shouldFloat(toolView)) {
-            dockingManager.floatFrame(toolView.getId(), null, false);
-        }
+//        dockingManager.showFrame(toolView.getId());
+//        if (shouldFloat(toolView)) {
+//            dockingManager.floatFrame(toolView.getId(), null, false);
+//        }
     }
 
     @Override
     protected void doHideToolView(ToolView toolView) {
-        dockingManager.hideFrame(toolView.getId());
+//        dockingManager.hideFrame(toolView.getId());
     }
 
     @Override
     protected boolean giveFocusTo(PageComponent pageComponent) {
         if (pageComponent instanceof ToolView) {
-            dockingManager.activateFrame(pageComponent.getId());
+//            dockingManager.activateFrame(pageComponent.getId());
         } else if (pageComponent instanceof DocView) {
             JInternalFrame frame = (JInternalFrame) pageComponent.getContext().getPane().getControl();
             try {
@@ -135,26 +183,28 @@ public class VisatApplicationPage extends AbstractApplicationPage {
 
     @Override
     protected PageComponentPane createToolViewPane(ToolView toolView) {
+//        return new DefaultToolViewPane(toolView);
         return new DefaultToolViewPane(toolView);
     }
 
     @Override
     protected JComponent createControl() {
-        return dockingManager.getDockedFrameContainer();
+        return viewport.getRootPane();
+//        return dockingManager.getDockedFrameContainer();
     }
 
     @Override
     protected void setActiveComponent() {
-        String activeFrameKey = dockingManager.getActiveFrameKey();
-        Debug.trace("setActiveComponent: " + activeFrameKey);
+//        String activeFrameKey = dockingManager.getActiveFrameKey();
+//        Debug.trace("setActiveComponent: " + activeFrameKey);
 
         ToolView toolView = null;
-        if (activeFrameKey != null) {
-            DockableFrame activeFrame = dockingManager.getFrame(activeFrameKey);
-            if (activeFrame != null) {
-                toolView = getToolView(activeFrame);
-            }
-        }
+//        if (activeFrameKey != null) {
+//            DockableFrame activeFrame = dockingManager.getFrame(activeFrameKey);
+//            if (activeFrame != null) {
+//                toolView = getToolView(activeFrame);
+//            }
+//        }
         if (toolView != null) {
             setActiveComponent(toolView);
         } else {
@@ -172,10 +222,10 @@ public class VisatApplicationPage extends AbstractApplicationPage {
         }
     }
 
-    private ToolView getToolView(DockableFrame activeFrame) {
+    private ToolView getToolView(View view) {
         ToolView[] toolViews = getToolViews();
         for (ToolView toolView : toolViews) {
-            if (activeFrame == toolView.getContext().getPane().getControl()) {
+            if (view == toolView.getContext().getPane().getControl()) {
                 return toolView;
             }
         }
@@ -183,13 +233,14 @@ public class VisatApplicationPage extends AbstractApplicationPage {
     }
 
     private boolean shouldFloat(ToolView toolView) {
-        ToolViewDescriptor toolViewDescriptor = getToolViewDescriptor(toolView.getId());
-        State initState = toolViewDescriptor.getInitState();
-        DockableFrame frame = dockingManager.getFrame(toolView.getId());
-        return frame != null
-                && frame.getContext().getDockPreviousState() == null
-                && frame.getContext().getFloatPreviousState() == null
-                && initState == State.HIDDEN;
+//        ToolViewDescriptor toolViewDescriptor = getToolViewDescriptor(toolView.getId());
+//        State initState = toolViewDescriptor.getInitState();
+//        DockableFrame frame = dockingManager.getFrame(toolView.getId());
+//        return frame != null
+//                && frame.getContext().getDockPreviousState() == null
+//                && frame.getContext().getFloatPreviousState() == null
+//                && initState == State.HIDDEN;
+        return false;
     }
 
 
