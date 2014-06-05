@@ -28,6 +28,7 @@ import org.esa.beam.framework.ui.application.ToolViewDescriptor;
 import org.esa.beam.framework.ui.application.support.AbstractApplicationPage;
 import org.esa.beam.framework.ui.application.support.DefaultToolViewPane;
 import org.esa.beam.framework.ui.command.CommandManager;
+import org.flexdock.docking.DockingConstants;
 import org.flexdock.docking.event.DockingEvent;
 import org.flexdock.docking.event.DockingListener;
 import org.flexdock.view.View;
@@ -35,6 +36,7 @@ import org.flexdock.view.Viewport;
 
 import javax.swing.JComponent;
 import javax.swing.JInternalFrame;
+import javax.swing.JPanel;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Window;
@@ -50,6 +52,7 @@ public class VisatApplicationPage extends AbstractApplicationPage {
     private final SelectionManager selectionManager;
     private final TabbedDesktopPane documentPane;
     private Viewport viewport;
+    private final View mainView;
 
     public VisatApplicationPage(Window window,
                                 CommandManager commandManager,
@@ -60,6 +63,11 @@ public class VisatApplicationPage extends AbstractApplicationPage {
         this.selectionManager = selectionManager;
         viewport = new Viewport();
         window.add(viewport, BorderLayout.CENTER);
+        mainView = new View("main", null, null);
+        mainView.setTerritoryBlocked(DockingConstants.CENTER_REGION, true);
+        mainView.setTitlebar(null);
+        mainView.setContentPane(new JPanel());
+        viewport.dock(mainView);
         this.documentPane = documentPane;
     }
 
@@ -140,7 +148,7 @@ public class VisatApplicationPage extends AbstractApplicationPage {
                 setActiveComponent();
             }
         });
-        viewport.dock(view);
+//        viewport.dock(view);
 //        dockingManager.addFrame(view);
 
     }
@@ -184,7 +192,7 @@ public class VisatApplicationPage extends AbstractApplicationPage {
     @Override
     protected PageComponentPane createToolViewPane(ToolView toolView) {
 //        return new DefaultToolViewPane(toolView);
-        return new DefaultToolViewPane(toolView);
+        return new DefaultToolViewPane(toolView, mainView);
     }
 
     @Override

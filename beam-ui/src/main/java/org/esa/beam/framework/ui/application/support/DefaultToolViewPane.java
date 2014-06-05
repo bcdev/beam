@@ -8,13 +8,18 @@ package org.esa.beam.framework.ui.application.support;
 import org.esa.beam.framework.ui.application.PageComponent;
 import org.esa.beam.framework.ui.application.ToolViewDescriptor;
 import org.esa.beam.util.Debug;
+import org.flexdock.docking.Dockable;
 import org.flexdock.docking.DockingConstants;
+import org.flexdock.docking.DockingManager;
 import org.flexdock.view.View;
+import org.flexdock.view.actions.ViewAction;
 
+import javax.swing.Action;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
 import java.beans.PropertyChangeEvent;
 
 /**
@@ -22,27 +27,33 @@ import java.beans.PropertyChangeEvent;
  */
 public class DefaultToolViewPane extends AbstractPageComponentPane {
 
+    private final View mainView;
     //    private DockableFrame dockableFrame;
     private boolean pageComponentControlCreated;
-    private View view;
+    private final View view;
 
-    public DefaultToolViewPane(PageComponent pageComponent) {
+//    public DefaultToolViewPane(PageComponent pageComponent) {
+//        super(pageComponent);
+//    }
+
+    public DefaultToolViewPane(PageComponent pageComponent, View mainView) {
         super(pageComponent);
+        this.mainView = mainView;
+        view = new View(pageComponent.getId());
     }
 
     @Override
     protected JComponent createControl() {
-        view = new View("Pane");
 //        dockableFrame = new DockableFrame();
 //        dockableFrame.setKey(getPageComponent().getId());
         configureControl(true);
 //        view.addPropertyChangeListener();
 //        dockableFrame.addDockableFrameListener(new DockableFrameHandler());
         nameComponent(view, "Pane");
+        DockingManager.setFloatingEnabled(true);
         view.addAction(DockingConstants.CLOSE_ACTION);
         view.addAction(DockingConstants.PIN_ACTION);
-
-//        nameComponent(dockableFrame, "Pane");
+        view.addAction(new DockAction(view.getPersistentId()));
         return view;
     }
 
@@ -82,11 +93,13 @@ public class DefaultToolViewPane extends AbstractPageComponentPane {
 //                dockableFrame.getContext().setInitIndex(toolViewDescriptor.getInitIndex());
 //            }
             if (toolViewDescriptor.getInitSide() != null) {
+                mainView.dock(view, toFlexdockSide(toolViewDescriptor.getInitSide()));
 //                dockableFrame.getContext().setInitSide(toJideSide(toolViewDescriptor.getInitSide()));
             }
-//            if (toolViewDescriptor.getInitState() != null) {
+            if (toolViewDescriptor.getInitState() != null) {
+                initState(toolViewDescriptor.getInitState());
 //                dockableFrame.getContext().setInitMode(toJideMode(toolViewDescriptor.getInitState()));
-//            }
+            }
         }
     }
 
@@ -105,20 +118,29 @@ public class DefaultToolViewPane extends AbstractPageComponentPane {
 //        return ToolViewDescriptor.State.UNKNOWN;
 //    }
 
-//    private int toJideMode(ToolViewDescriptor.State state) {
-//        if (state == ToolViewDescriptor.State.DOCKED) {
+    private void initState(ToolViewDescriptor.State state) {
+        if (state == ToolViewDescriptor.State.DOCKED) {
+            DockingManager.dock((Dockable) view, (Dockable) mainView);
+            return;
 //            return DockContext.STATE_FRAMEDOCKED;
-//        } else if (state == ToolViewDescriptor.State.FLOATING) {
+        } else if (state == ToolViewDescriptor.State.FLOATING) {
+            DockingManager.getFloatManager().floatDockable(view, mainView);
+            return;
 //            return DockContext.STATE_FLOATING;
-//        } else if (state == ToolViewDescriptor.State.ICONIFIED) {
+        } else if (state == ToolViewDescriptor.State.ICONIFIED) {
+            DockingManager.setMinimized(view, true);
+            return;
 //            return DockContext.STATE_AUTOHIDE;
-//        } else if (state == ToolViewDescriptor.State.ICONIFIED_SHOWING) {
+        } else if (state == ToolViewDescriptor.State.ICONIFIED_SHOWING) {
+            DockingManager.setMinimized(view, true);
+            return;
 //            return DockContext.STATE_AUTOHIDE_SHOWING;
-//        } else if (state == ToolViewDescriptor.State.HIDDEN) {
+        } else if (state == ToolViewDescriptor.State.HIDDEN) {
+            return;
 //            return DockContext.STATE_HIDDEN;
-//        }
-//        throw new IllegalStateException("unhandled " + ToolViewDescriptor.State.class);
-//    }
+        }
+        throw new IllegalStateException("unhandled " + ToolViewDescriptor.State.class);
+    }
 
 //    private ToolViewDescriptor.DockSide toSide(int jideSide) {
 //        if (jideSide == DockContext.DOCK_SIDE_ALL) {
@@ -153,6 +175,23 @@ public class DefaultToolViewPane extends AbstractPageComponentPane {
 //        }
 //        throw new IllegalStateException("unhandled " + ToolViewDescriptor.DockSide.class);
 //    }
+
+    private String toFlexdockSide(ToolViewDescriptor.DockSide dockSide) {
+        if (dockSide == ToolViewDescriptor.DockSide.ALL) {
+            return DockingConstants.UNKNOWN_REGION;
+        } else if (dockSide == ToolViewDescriptor.DockSide.CENTER) {
+            return DockingConstants.CENTER_REGION;
+        } else if (dockSide == ToolViewDescriptor.DockSide.WEST) {
+            return DockingConstants.WEST_REGION;
+        } else if (dockSide == ToolViewDescriptor.DockSide.EAST) {
+            return DockingConstants.EAST_REGION;
+        } else if (dockSide == ToolViewDescriptor.DockSide.NORTH) {
+            return DockingConstants.NORTH_REGION;
+        } else if (dockSide == ToolViewDescriptor.DockSide.SOUTH) {
+            return DockingConstants.SOUTH_REGION;
+        }
+        throw new IllegalStateException("unhandled " + ToolViewDescriptor.DockSide.class);
+    }
 
     private void ensurePageComponentControlCreated() {
         if (!pageComponentControlCreated) {
@@ -266,5 +305,28 @@ public class DefaultToolViewPane extends AbstractPageComponentPane {
 //            ensurePageComponentControlCreated();
 //        }
 //    }
+
+    class DockAction extends ViewAction {
+
+        DockAction(String viewId) {
+            setViewId(viewId);
+            View view = View.getInstance(viewId);
+            if (view != null) {
+                putValue(Action.NAME, view.getTitle());
+                view.getTitlebar().createActionButton(this);
+            }
+        }
+
+        @Override
+        public void actionPerformed(View view, ActionEvent actionEvent) {
+            System.out.println(DockingManager.isDocked((Dockable) view));
+            DockingManager.getFloatManager().removeFromGroup(view);
+//            view.getDockingPort().undock(view);
+//            mainView.dock(view, DockingConstants.NORTH_REGION);
+            view.updateUI();
+//            DockingManager.dock((Dockable)view, (Dockable)mainView);
+            System.out.println(DockingManager.isDocked((Dockable) view));
+        }
+    }
 
 }
