@@ -16,9 +16,6 @@
 package org.esa.beam.framework.ui;
 
 import com.bc.swing.dock.DockablePane;
-import com.bc.swing.dock.FloatingComponentFactory;
-import com.bc.swing.dock.FloatingDockableFrame;
-import com.jidesoft.docking.DockingManager;
 import com.jidesoft.swing.JideSplitPane;
 import org.esa.beam.framework.datamodel.Product;
 import org.esa.beam.framework.datamodel.ProductNode;
@@ -29,7 +26,6 @@ import org.esa.beam.framework.datamodel.RasterDataNode;
 import org.esa.beam.framework.help.HelpSys;
 import org.esa.beam.framework.ui.product.ProductSceneView;
 
-import javax.swing.ImageIcon;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -267,16 +263,16 @@ public class PixelInfoView extends JPanel {
     }
 
     private void createUI() {
-        geolocInfoPane = createDockablePane("Geo-location", 0, UIUtils.loadImageIcon("icons/WorldMap16.gif"),
-                                            geolocModel);
-        scanLineInfoPane = createDockablePane("Time Info", 1, UIUtils.loadImageIcon("icons/Clock16.gif"),
-                                              scanlineModel);
-        bandPixelInfoPane = createDockablePane("Bands", 2, UIUtils.loadImageIcon("icons/RsBandAsSwath16.gif"),
-                                               bandModel);
-        tiePointGridPixelInfoPane = createDockablePane("Tie Point Grids", 3,
-                                                       UIUtils.loadImageIcon("icons/RsBandAsTiePoint16.gif"),
-                                                       tiePointModel);
-        flagPixelInfoPane = createDockablePane("Flags", 4, UIUtils.loadImageIcon("icons/RsBandFlags16.gif"), flagModel);
+//        geolocInfoPane = createDockablePane("Geo-location", 0, UIUtils.loadImageIcon("icons/WorldMap16.gif"),
+//                                            geolocModel);
+//        scanLineInfoPane = createDockablePane("Time Info", 1, UIUtils.loadImageIcon("icons/Clock16.gif"),
+//                                              scanlineModel);
+//        bandPixelInfoPane = createDockablePane("Bands", 2, UIUtils.loadImageIcon("icons/RsBandAsSwath16.gif"),
+//                                               bandModel);
+//        tiePointGridPixelInfoPane = createDockablePane("Tie Point Grids", 3,
+//                                                       UIUtils.loadImageIcon("icons/RsBandAsTiePoint16.gif"),
+//                                                       tiePointModel);
+//        flagPixelInfoPane = createDockablePane("Flags", 4, UIUtils.loadImageIcon("icons/RsBandFlags16.gif"), flagModel);
 
         geolocInfoPane.setPreferredSize(new Dimension(128, 128));
         scanLineInfoPane.setPreferredSize(new Dimension(128, 128));
@@ -325,23 +321,23 @@ public class PixelInfoView extends JPanel {
         });
     }
 
-    private DockablePane createDockablePane(String name, int index, ImageIcon icon, TableModel tableModel) {
-        JTable table = new JTable(tableModel);
-        table.setCellSelectionEnabled(false);
-        table.setColumnSelectionAllowed(false);
-        table.setRowSelectionAllowed(true);
-        table.setTableHeader(null);
-        table.removeEditor();
-        JScrollPane scrollPane = new JScrollPane(table,
-                                                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                                                 JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setBorder(null);
-        scrollPane.setViewportBorder(null);
+//    private DockablePane createDockablePane(String name, int index, ImageIcon icon, TableModel tableModel) {
+//        JTable table = new JTable(tableModel);
+//        table.setCellSelectionEnabled(false);
+//        table.setColumnSelectionAllowed(false);
+//        table.setRowSelectionAllowed(true);
+//        table.setTableHeader(null);
+//        table.removeEditor();
+//        JScrollPane scrollPane = new JScrollPane(table,
+//                                                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+//                                                 JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+//        scrollPane.setBorder(null);
+//        scrollPane.setViewportBorder(null);
 
-        final DockingManager dockingManager = app.getMainFrame().getDockingManager();
-        final FloatingComponentFactory componentFactory = FloatingDockableFrame.getFactory(dockingManager);
-        return new DockablePane(name, icon, scrollPane, index, true, componentFactory);
-    }
+//        final DockingManager dockingManager = app.getMainFrame().getDockingManager();
+//        final FloatingComponentFactory componentFactory = FloatingDockableFrame.getFactory(dockingManager);
+//        return new DockablePane(name, icon, scrollPane, index, true, componentFactory);
+//    }
 
     void clearSelectionInRasterTables() {
         final JTable bandTable = getTable(bandPixelInfoPane);

@@ -11,6 +11,9 @@ import org.esa.beam.util.Debug;
 import org.flexdock.docking.Dockable;
 import org.flexdock.docking.DockingConstants;
 import org.flexdock.docking.DockingManager;
+import org.flexdock.docking.event.DockingEvent;
+import org.flexdock.docking.event.DockingListener;
+import org.flexdock.docking.state.FloatManager;
 import org.flexdock.view.View;
 import org.flexdock.view.actions.ViewAction;
 
@@ -18,7 +21,6 @@ import javax.swing.Action;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
-import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.beans.PropertyChangeEvent;
 
@@ -54,6 +56,7 @@ public class DefaultToolViewPane extends AbstractPageComponentPane {
         view.addAction(DockingConstants.CLOSE_ACTION);
         view.addAction(DockingConstants.PIN_ACTION);
         view.addAction(new DockAction(view.getPersistentId()));
+        view.addDockingListener(new ToolViewDockableListener());
         return view;
     }
 
@@ -64,7 +67,7 @@ public class DefaultToolViewPane extends AbstractPageComponentPane {
 
     private void configureControl(boolean init) {
         ToolViewDescriptor toolViewDescriptor = (ToolViewDescriptor) getPageComponent().getDescriptor();
-
+//        view.setContentPane(getPageComponent().getControl());
         view.setTitle(toolViewDescriptor.getTitle());
         view.setTabText(toolViewDescriptor.getTabTitle());
         view.setIcon(toolViewDescriptor.getSmallIcon());
@@ -213,10 +216,48 @@ public class DefaultToolViewPane extends AbstractPageComponentPane {
             if (pageComponentControl.getName() == null) {
                 nameComponent(pageComponentControl, "Control");
             }
-            view.getContentPane().add(pageComponentControl, BorderLayout.CENTER);
+            view.setContentPane(pageComponentControl);
+            view.setSize(pageComponentControl.getPreferredSize());
+            view.setPreferredSize(pageComponentControl.getPreferredSize());
+            pageComponentControl.validate();
+//            view.getContentPane().add(pageComponentControl);
+//            view.getContentPane().add(pageComponentControl, BorderLayout.CENTER);
 //            dockableFrame.getContentPane().add(pageComponentControl, BorderLayout.CENTER);
             pageComponentControlCreated = true;
             getPageComponent().componentOpened();
+        }
+    }
+
+    private class ToolViewDockableListener implements DockingListener {
+
+        @Override
+        public void dockingComplete(DockingEvent evt) {
+            ensurePageComponentControlCreated();
+        }
+
+        @Override
+        public void dockingCanceled(DockingEvent evt) {
+            ensurePageComponentControlCreated();
+        }
+
+        @Override
+        public void dragStarted(DockingEvent evt) {
+            ensurePageComponentControlCreated();
+        }
+
+        @Override
+        public void dropStarted(DockingEvent evt) {
+            ensurePageComponentControlCreated();
+        }
+
+        @Override
+        public void undockingComplete(DockingEvent evt) {
+            ensurePageComponentControlCreated();
+        }
+
+        @Override
+        public void undockingStarted(DockingEvent evt) {
+            ensurePageComponentControlCreated();
         }
     }
 
@@ -319,13 +360,23 @@ public class DefaultToolViewPane extends AbstractPageComponentPane {
 
         @Override
         public void actionPerformed(View view, ActionEvent actionEvent) {
-            System.out.println(DockingManager.isDocked((Dockable) view));
-            DockingManager.getFloatManager().removeFromGroup(view);
+            final FloatManager floatManager = DockingManager.getFloatManager();
+            if (!view.isFloating()) {
+                DockingManager.setFloatingEnabled(true);
+                DockingManager.undock((Dockable) view);
+                floatManager.floatDockable(view, getPageComponent().getContext().getPage().getWindow());
+                floatManager.addToGroup(view, view.getPersistentId());
+            } else {
+                floatManager.removeFromGroup(view);
+                DockingManager.dock((Dockable) view, (Dockable) mainView);
+            }
+//            System.out.println(DockingManager.isDocked((Dockable) view));
+//            DockingManager.getFloatManager().removeFromGroup(view);
 //            view.getDockingPort().undock(view);
 //            mainView.dock(view, DockingConstants.NORTH_REGION);
-            view.updateUI();
+//            view.updateUI();
 //            DockingManager.dock((Dockable)view, (Dockable)mainView);
-            System.out.println(DockingManager.isDocked((Dockable) view));
+//            System.out.println(DockingManager.isDocked((Dockable) view));
         }
     }
 
