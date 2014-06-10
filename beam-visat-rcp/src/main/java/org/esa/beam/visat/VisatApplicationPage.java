@@ -27,6 +27,7 @@ import org.esa.beam.framework.ui.application.ToolView;
 import org.esa.beam.framework.ui.application.ToolViewDescriptor;
 import org.esa.beam.framework.ui.application.support.AbstractApplicationPage;
 import org.esa.beam.framework.ui.application.support.DefaultToolViewPane;
+import org.esa.beam.framework.ui.application.support.ToolViewViewport;
 import org.esa.beam.framework.ui.command.CommandManager;
 import org.flexdock.docking.DockingConstants;
 import org.flexdock.docking.event.DockingEvent;
@@ -36,7 +37,6 @@ import org.flexdock.view.Viewport;
 
 import javax.swing.JComponent;
 import javax.swing.JInternalFrame;
-import javax.swing.JPanel;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Window;
@@ -61,14 +61,24 @@ public class VisatApplicationPage extends AbstractApplicationPage {
         this.window = window;
         this.commandManager = commandManager;
         this.selectionManager = selectionManager;
-        viewport = new Viewport();
+        viewport = new ToolViewViewport();
         window.add(viewport, BorderLayout.CENTER);
-        mainView = new View("main", null, null);
-        mainView.setTerritoryBlocked(DockingConstants.CENTER_REGION, true);
-        mainView.setTitlebar(null);
-        mainView.setContentPane(new JPanel());
+        mainView = createMainView(documentPane);
+//        mainView = new View("main", null, null);
+//        mainView.setTerritoryBlocked(DockingConstants.CENTER_REGION, true);
+//        mainView.setTitlebar(null);
+//        mainView1.setContentPane(documentPane);
         viewport.dock(mainView);
         this.documentPane = documentPane;
+    }
+
+    private View createMainView(TabbedDesktopPane documentPane) {
+        String id = "startPage";
+        View view = new View(id, null, null);
+        view.setTerritoryBlocked(DockingConstants.CENTER_REGION, true);
+        view.setTitlebar(null);
+        view.setContentPane(documentPane);
+        return view;
     }
 
     @Override
@@ -192,7 +202,7 @@ public class VisatApplicationPage extends AbstractApplicationPage {
     @Override
     protected PageComponentPane createToolViewPane(ToolView toolView) {
 //        return new DefaultToolViewPane(toolView);
-        return new DefaultToolViewPane(toolView, mainView);
+        return new DefaultToolViewPane(toolView, viewport, mainView);
     }
 
     @Override

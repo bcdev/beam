@@ -11,10 +11,15 @@ import org.esa.beam.util.Debug;
 import org.flexdock.docking.Dockable;
 import org.flexdock.docking.DockingConstants;
 import org.flexdock.docking.DockingManager;
+import org.flexdock.docking.DockingPort;
+import org.flexdock.docking.DockingStrategy;
 import org.flexdock.docking.event.DockingEvent;
 import org.flexdock.docking.event.DockingListener;
 import org.flexdock.docking.state.FloatManager;
+import org.flexdock.event.EventManager;
+import org.flexdock.util.DockingUtility;
 import org.flexdock.view.View;
+import org.flexdock.view.Viewport;
 import org.flexdock.view.actions.ViewAction;
 
 import javax.swing.Action;
@@ -32,16 +37,20 @@ public class DefaultToolViewPane extends AbstractPageComponentPane {
     private final View mainView;
     //    private DockableFrame dockableFrame;
     private boolean pageComponentControlCreated;
-    private final View view;
+    private final ToolViewView view;
+    private final DockingPort port;
+    //    private String flexdockSide;
 
 //    public DefaultToolViewPane(PageComponent pageComponent) {
 //        super(pageComponent);
 //    }
 
-    public DefaultToolViewPane(PageComponent pageComponent, View mainView) {
+    public DefaultToolViewPane(PageComponent pageComponent, Viewport viewport, View mainView) {
         super(pageComponent);
         this.mainView = mainView;
-        view = new View(pageComponent.getId());
+        port = viewport;
+        view = new ToolViewView(pageComponent.getId());
+
     }
 
     @Override
@@ -92,11 +101,14 @@ public class DefaultToolViewPane extends AbstractPageComponentPane {
                 view.setSize(view.getWidth(), toolViewDescriptor.getDockedHeight());
 //                dockableFrame.getContext().setDockedHeight(toolViewDescriptor.getDockedHeight());
             }
-//            if (toolViewDescriptor.getInitIndex() >= 0) {
+            if (toolViewDescriptor.getInitIndex() >= 0) {
 //                dockableFrame.getContext().setInitIndex(toolViewDescriptor.getInitIndex());
-//            }
+                view.setRelativeIndex(toolViewDescriptor.getInitIndex());
+            }
             if (toolViewDescriptor.getInitSide() != null) {
-                mainView.dock(view, toFlexdockSide(toolViewDescriptor.getInitSide()));
+                view.setFlexdockSide(toFlexdockSide(toolViewDescriptor.getInitSide()));
+//                flexdockSide = toFlexdockSide(toolViewDescriptor.getInitSide());
+//                mainView.dock(view, toFlexdockSide(toolViewDescriptor.getInitSide()));
 //                dockableFrame.getContext().setInitSide(toJideSide(toolViewDescriptor.getInitSide()));
             }
             if (toolViewDescriptor.getInitState() != null) {
@@ -123,7 +135,9 @@ public class DefaultToolViewPane extends AbstractPageComponentPane {
 
     private void initState(ToolViewDescriptor.State state) {
         if (state == ToolViewDescriptor.State.DOCKED) {
-            DockingManager.dock((Dockable) view, (Dockable) mainView);
+//            mainView.dock(view, toFlexdockSide(toolViewDescriptor.getInitSide()));
+//            DockingManager.dock((Dockable) view, (Dockable) mainView, view.getFlexdockSide());
+            dock();
             return;
 //            return DockContext.STATE_FRAMEDOCKED;
         } else if (state == ToolViewDescriptor.State.FLOATING) {
@@ -139,10 +153,16 @@ public class DefaultToolViewPane extends AbstractPageComponentPane {
             return;
 //            return DockContext.STATE_AUTOHIDE_SHOWING;
         } else if (state == ToolViewDescriptor.State.HIDDEN) {
+//            DockingManager.setMinimized(view, true);
             return;
 //            return DockContext.STATE_HIDDEN;
         }
         throw new IllegalStateException("unhandled " + ToolViewDescriptor.State.class);
+    }
+
+    private void dock() {
+//        mainView.getDockingPort().getDockingStrategy()
+        DockingManager.dock((Dockable) view, port, view.getFlexdockSide());
     }
 
 //    private ToolViewDescriptor.DockSide toSide(int jideSide) {
@@ -362,13 +382,50 @@ public class DefaultToolViewPane extends AbstractPageComponentPane {
         public void actionPerformed(View view, ActionEvent actionEvent) {
             final FloatManager floatManager = DockingManager.getFloatManager();
             if (!view.isFloating()) {
-                DockingManager.setFloatingEnabled(true);
-                DockingManager.undock((Dockable) view);
-                floatManager.floatDockable(view, getPageComponent().getContext().getPage().getWindow());
-                floatManager.addToGroup(view, view.getPersistentId());
+//                DockingManager.setFloatingEnabled(true);
+//                view.getDockingPort().undock(view);
+//                DockingManager.undock((Dockable) view);
+//                floatManager.floatDockable(view, getPageComponent().getContext().getPage().getWindow());
+//                floatManager.addToGroup(view, view.getPersistentId());
+//                DockingManager.dock((Dockable) view, )
+
+                DockingStrategy docker = DockingManager.getDockingStrategy(view);
+                DockingPort currentPort = DockingUtility.getParentDockingPort((Dockable) view);
+                DockingPort targetPort = null;
+                String region = null;
+
+                // issue a DockingEvent to allow any listeners the chance to cancel the operation.
+                DockingEvent evt = new DockingEvent(view, currentPort, targetPort, DockingEvent.DROP_STARTED, actionEvent, null);
+//                DockingEvent evt = new DockingEvent(view, currentPort, targetPort, DockingEvent.DROP_STARTED, actionEvent, getDragContext());
+                evt.setRegion(region);
+                evt.setOverWindow(false);
+//		EventManager.notifyDockingMonitor(dockable, evt);
+                EventManager.dispatch(evt, view);
+
+
+                // attempt to complete the docking operation
+                if (!evt.isConsumed())
+                    docker.dock(view, targetPort, region);
+
             } else {
-                floatManager.removeFromGroup(view);
-                DockingManager.dock((Dockable) view, (Dockable) mainView);
+//                floatManager.removeFromGroup(view);
+//                DockingManager.dock((Dockable) view, (Dockable) mainView, DockingConstants.SOUTH_REGION);
+                DockingStrategy docker = DockingManager.getDockingStrategy(view);
+                DockingPort currentPort = DockingUtility.getParentDockingPort((Dockable) view);
+                DockingPort targetPort = mainView.getDockingPort();
+                String region = DockingConstants.SOUTH_REGION;
+
+                // issue a DockingEvent to allow any listeners the chance to cancel the operation.
+                DockingEvent evt = new DockingEvent(view, currentPort, targetPort, DockingEvent.DROP_STARTED, actionEvent, null);
+//                DockingEvent evt = new DockingEvent(view, currentPort, targetPort, DockingEvent.DROP_STARTED, actionEvent, getDragContext());
+                evt.setRegion(region);
+                evt.setOverWindow(true);
+//		EventManager.notifyDockingMonitor(dockable, evt);
+                EventManager.dispatch(evt, view);
+
+                // attempt to complete the docking operation
+                if (!evt.isConsumed())
+                    docker.dock(view, targetPort, region);
             }
 //            System.out.println(DockingManager.isDocked((Dockable) view));
 //            DockingManager.getFloatManager().removeFromGroup(view);

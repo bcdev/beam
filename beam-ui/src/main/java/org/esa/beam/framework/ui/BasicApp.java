@@ -28,6 +28,9 @@ import com.jidesoft.swing.JideMenu;
 import org.esa.beam.framework.help.HelpSys;
 import org.esa.beam.framework.ui.application.ApplicationDescriptor;
 import org.esa.beam.framework.ui.application.support.DefaultApplicationDescriptor;
+import org.esa.beam.framework.ui.application.support.ToolViewView;
+import org.esa.beam.framework.ui.application.support.ToolViewViewport;
+import org.esa.beam.framework.ui.application.support.UsefulDockingStrategy;
 import org.esa.beam.framework.ui.command.Command;
 import org.esa.beam.framework.ui.command.CommandGroup;
 import org.esa.beam.framework.ui.command.CommandManager;
@@ -46,7 +49,7 @@ import org.esa.beam.util.io.BeamFileChooser;
 import org.esa.beam.util.io.FileChooserFactory;
 import org.esa.beam.util.io.FileUtils;
 import org.esa.beam.util.logging.BeamLogManager;
-import org.flexdock.docking.DockingConstants;
+import org.flexdock.docking.DockingManager;
 import org.flexdock.view.Viewport;
 
 import javax.help.HelpSet;
@@ -307,6 +310,8 @@ public class BasicApp {
         }
 
         startingUp = true;
+        DockingManager.setDockingStrategy(ToolViewView.class, new UsefulDockingStrategy());
+        DockingManager.setDockingStrategy(Viewport.class, new UsefulDockingStrategy());
 
         try {
             pm.beginTask("Starting " + getAppName(), 6);
@@ -395,7 +400,16 @@ public class BasicApp {
     private void initMainPane() {
         JComponent mainPane = createMainPane();
         if (mainPane != null) {
-            getMainFrame().getViewport().dock(mainPane, DockingConstants.CENTER_REGION);
+//            String id = "mainPane";
+//            View mainPaneView = new View(id, null, null);
+//            mainPaneView.setTerritoryBlocked(DockingConstants.EAST_REGION, true);
+//            mainPaneView.setTitlebar(null);
+//            mainPaneView.setContentPane(mainPane);
+//            DockingManager.dock((Dockable)mainPaneView, getMainFrame().getViewport(), DockingConstants.EAST_REGION);
+
+//            DockingManager.dock(mainPane, getMainFrame(), DockingConstants.EAST_REGION);
+//            getMainFrame().getViewport().dock(mainPane, DockingConstants.CENTER_REGION);
+
 //            getMainFrame().getDockingManager().getWorkspace().setLayout(new BorderLayout());
 //            getMainFrame().getDockingManager().getWorkspace().add(mainPane, BorderLayout.CENTER);
 //            getMainFrame().getDockingManager().setDefaultFocusComponent(mainPane);
@@ -1828,7 +1842,7 @@ public class BasicApp {
         private final Viewport viewport;
 
         public MainFrame() throws HeadlessException {
-            viewport = new Viewport();
+            viewport = new ToolViewViewport();
         }
 
         public Viewport getViewport() {
