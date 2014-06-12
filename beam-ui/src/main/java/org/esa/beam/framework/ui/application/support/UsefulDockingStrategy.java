@@ -3,6 +3,7 @@ package org.esa.beam.framework.ui.application.support;
 import org.flexdock.docking.Dockable;
 import org.flexdock.docking.DockingManager;
 import org.flexdock.docking.DockingPort;
+import org.flexdock.docking.defaults.DefaultDockingPort;
 import org.flexdock.docking.defaults.DefaultDockingStrategy;
 import org.flexdock.docking.drag.DragManager;
 import org.flexdock.docking.drag.DragOperation;
@@ -14,6 +15,7 @@ import org.flexdock.util.DockingUtility;
 import org.flexdock.util.SwingUtility;
 
 import java.awt.Component;
+import java.awt.Container;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.Map;
@@ -27,12 +29,12 @@ public class UsefulDockingStrategy extends DefaultDockingStrategy {
                         DragOperation operation) {
 //        if (!isDockingPossible(dockable, port, region, operation))
 //            return false;
-        if (dockable instanceof ToolViewView) {
-            final int relativeIndex = ((ToolViewView) dockable).getRelativeIndex();
-            if (relativeIndex >= 0) {
-                port.getDockable(region);
-            }
-        }
+//        if (dockable instanceof ToolViewView) {
+//            final int relativeIndex = ((ToolViewView) dockable).getRelativeIndex();
+//            if (relativeIndex >= 0) {
+//                port.getDockable(region);
+//            }
+//        }
 
         if (!dragThresholdElapsed(operation))
             return false;
@@ -113,49 +115,85 @@ public class UsefulDockingStrategy extends DefaultDockingStrategy {
             return results;
         }
 
-        // obtain a reference to the content pane that holds the target
-        // DockingPort.
-        // MUST happen before undock(), in case the undock() operation removes
-        // the
-        // target DockingPort from the container tree.
+        if (token == null) {
+            undock(dockable);
+        } else {
 
-//        Container contentPane = SwingUtility.getContentPane((Component) target);
-//        Point contentPaneLocation = token == null ? null : token
-//                .getCurrentMouse(contentPane);
-//        if(contentPaneLocation == null) {
-//            contentPaneLocation = contentPane.getLocation();
-//        }
+            // obtain a reference to the content pane that holds the target
+            // DockingPort.
+            // MUST happen before undock(), in case the undock() operation removes
+            // the
+            // target DockingPort from the container tree.
 
-        // undock the current Dockable instance from it's current parent
-        // container
-        undock(dockable);
+            Container contentPane = SwingUtility.getContentPane((Component) target);
+            Point contentPaneLocation = token == null ? null : token
+                    .getCurrentMouse(contentPane);
+            if (contentPaneLocation == null) {
+                contentPaneLocation = contentPane.getLocation();
+            }
 
-        // when the original parent reevaluates its container tree after
-        // undocking, it checks to see how
-        // many immediate child components it has. split layouts and tabbed
-        // interfaces may be managed by
-        // intermediate wrapper components. When undock() is called, the docking
-        // port
-        // may decide that some of its intermedite wrapper components are no
-        // longer needed, and it may get
-        // rid of them. this isn't a hard rule, but it's possible for any given
-        // DockingPort implementation.
-        // In this case, the target we had resolved earlier may have been
-        // removed from the component tree
-        // and may no longer be valid. to be safe, we'll resolve the target
-        // docking port again and see if
-        // it has changed. if so, we'll adopt the resolved port as our new
-        // target.
+            // undock the current Dockable instance from it's current parent
+            // container
+            undock(dockable);
 
-//        if (contentPaneLocation != null && contentPane != null) {
-//            results.dropTarget = DockingUtility.findDockingPort(contentPane,
-//                                                                contentPaneLocation);
-//            target = results.dropTarget;
-//        }
+            // when the original parent reevaluates its container tree after
+            // undocking, it checks to see how
+            // many immediate child components it has. split layouts and tabbed
+            // interfaces may be managed by
+            // intermediate wrapper components. When undock() is called, the docking
+            // port
+            // may decide that some of its intermedite wrapper components are no
+            // longer needed, and it may get
+            // rid of them. this isn't a hard rule, but it's possible for any given
+            // DockingPort implementation.
+            // In this case, the target we had resolved earlier may have been
+            // removed from the component tree
+            // and may no longer be valid. to be safe, we'll resolve the target
+            // docking port again and see if
+            // it has changed. if so, we'll adopt the resolved port as our new
+            // target.
 
+            if (contentPaneLocation != null && contentPane != null) {
+                results.dropTarget = DockingUtility.findDockingPort(contentPane,
+                                                                    contentPaneLocation);
+                target = results.dropTarget;
+            }
+        }
         results.success = target.dock(dockableCmp, region);
         SwingUtility.revalidate((Component) target);
         return results;
+    }
+
+    /**
+     * Returns a new {@code DefaultDockingPort} with characteristics similar to
+     * the specified base {@code DockingPort}. If the base {@code DockingPort}
+     * is a {@code DefaultDockingPort}, then the returned {@code DockingPort}
+     * will share the base {@code DockingPort's} border manager and tabbed
+     * drag-source flag. The returned {@code DockingPort's} {@code isRoot()}
+     * method will return {@code false}.
+     *
+     * @param base the {@code DockingPort} off of which to base the returned
+     *             {@code DockingPort}
+     * @return a new {@code DefaultDockingPort} with characteristics similar to
+     * the specified base {@code DockingPort}.
+     * @see org.flexdock.docking.defaults.DefaultDockingPort#getBorderManager()
+     * @see org.flexdock.docking.defaults.DefaultDockingPort#setBorderManager(org.flexdock.docking.defaults.BorderManager)
+     * @see org.flexdock.docking.defaults.DefaultDockingPort#isTabsAsDragSource()
+     * @see org.flexdock.docking.defaults.DefaultDockingPort#setTabsAsDragSource(boolean)
+     * @see org.flexdock.docking.defaults.DefaultDockingPort#setRoot(boolean)
+     */
+    public DockingPort createDockingPort(DockingPort base) {
+        DockingPort port = createDockingPortImpl(base);
+
+        if (port instanceof DefaultDockingPort
+                && base instanceof ToolViewViewport) {
+            ToolViewViewport newPort = (ToolViewViewport) port;
+            ToolViewViewport ddp = (ToolViewViewport) base;
+            newPort.setBorderManager(ddp.getBorderManager());
+            newPort.setTabsAsDragSource(ddp.isTabsAsDragSource());
+            newPort.setRoot(false);
+        }
+        return port;
     }
 
     @Override

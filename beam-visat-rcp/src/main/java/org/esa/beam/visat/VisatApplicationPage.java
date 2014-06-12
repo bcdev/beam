@@ -27,13 +27,13 @@ import org.esa.beam.framework.ui.application.ToolView;
 import org.esa.beam.framework.ui.application.ToolViewDescriptor;
 import org.esa.beam.framework.ui.application.support.AbstractApplicationPage;
 import org.esa.beam.framework.ui.application.support.DefaultToolViewPane;
+import org.esa.beam.framework.ui.application.support.ToolViewView;
 import org.esa.beam.framework.ui.application.support.ToolViewViewport;
 import org.esa.beam.framework.ui.command.CommandManager;
 import org.flexdock.docking.DockingConstants;
 import org.flexdock.docking.event.DockingEvent;
 import org.flexdock.docking.event.DockingListener;
 import org.flexdock.view.View;
-import org.flexdock.view.Viewport;
 
 import javax.swing.JComponent;
 import javax.swing.JInternalFrame;
@@ -51,7 +51,7 @@ public class VisatApplicationPage extends AbstractApplicationPage {
     private final CommandManager commandManager;
     private final SelectionManager selectionManager;
     private final TabbedDesktopPane documentPane;
-    private Viewport viewport;
+    private ToolViewViewport viewport;
     private final View mainView;
 
     public VisatApplicationPage(Window window,
@@ -74,7 +74,7 @@ public class VisatApplicationPage extends AbstractApplicationPage {
 
     private View createMainView(TabbedDesktopPane documentPane) {
         String id = "startPage";
-        View view = new View(id, null, null);
+        View view = new ToolViewView(id);
         view.setTerritoryBlocked(DockingConstants.CENTER_REGION, true);
         view.setTitlebar(null);
         view.setContentPane(documentPane);

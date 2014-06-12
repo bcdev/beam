@@ -29,7 +29,6 @@ import org.esa.beam.framework.help.HelpSys;
 import org.esa.beam.framework.ui.application.ApplicationDescriptor;
 import org.esa.beam.framework.ui.application.support.DefaultApplicationDescriptor;
 import org.esa.beam.framework.ui.application.support.ToolViewView;
-import org.esa.beam.framework.ui.application.support.ToolViewViewport;
 import org.esa.beam.framework.ui.application.support.UsefulDockingStrategy;
 import org.esa.beam.framework.ui.command.Command;
 import org.esa.beam.framework.ui.command.CommandGroup;
@@ -398,8 +397,9 @@ public class BasicApp {
     }
 
     private void initMainPane() {
-        JComponent mainPane = createMainPane();
-        if (mainPane != null) {
+        createMainPane();
+//        JComponent mainPane = createMainPane();
+//        if (mainPane != null) {
 //            String id = "mainPane";
 //            View mainPaneView = new View(id, null, null);
 //            mainPaneView.setTerritoryBlocked(DockingConstants.EAST_REGION, true);
@@ -413,7 +413,7 @@ public class BasicApp {
 //            getMainFrame().getDockingManager().getWorkspace().setLayout(new BorderLayout());
 //            getMainFrame().getDockingManager().getWorkspace().add(mainPane, BorderLayout.CENTER);
 //            getMainFrame().getDockingManager().setDefaultFocusComponent(mainPane);
-        }
+//        }
     }
 
     private void initMainMenuBar() {
@@ -1839,15 +1839,15 @@ public class BasicApp {
 
     public static class MainFrame extends JFrame {
 
-        private final Viewport viewport;
+//        private final DockingPort viewport;
 
         public MainFrame() throws HeadlessException {
-            viewport = new ToolViewViewport();
+//            viewport = new ToolViewViewport();
         }
 
-        public Viewport getViewport() {
-            return viewport;
-        }
+//        public DockingPort getDockingPort() {
+//            return viewport;
+//        }
 
     }
 

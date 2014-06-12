@@ -273,7 +273,7 @@ public class PixelInfoView extends JPanel {
 //                                                       UIUtils.loadImageIcon("icons/RsBandAsTiePoint16.gif"),
 //                                                       tiePointModel);
 //        flagPixelInfoPane = createDockablePane("Flags", 4, UIUtils.loadImageIcon("icons/RsBandFlags16.gif"), flagModel);
-
+//
         geolocInfoPane.setPreferredSize(new Dimension(128, 128));
         scanLineInfoPane.setPreferredSize(new Dimension(128, 128));
         bandPixelInfoPane.setPreferredSize(new Dimension(128, 512));
@@ -294,7 +294,7 @@ public class PixelInfoView extends JPanel {
         multiSplitPane.addPane(tiePointGridPixelInfoPane);
         multiSplitPane.addPane(bandPixelInfoPane);
         // Flags are not added, they are only displayed on request
-//        multiSplitPane.addPane(flagPixelInfoPane);
+        multiSplitPane.addPane(flagPixelInfoPane);
 
         final JTable flagsTable = getTable(flagPixelInfoPane);
         flagsTable.setDefaultRenderer(String.class, new FlagCellRenderer());
@@ -333,7 +333,7 @@ public class PixelInfoView extends JPanel {
 //                                                 JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 //        scrollPane.setBorder(null);
 //        scrollPane.setViewportBorder(null);
-
+//
 //        final DockingManager dockingManager = app.getMainFrame().getDockingManager();
 //        final FloatingComponentFactory componentFactory = FloatingDockableFrame.getFactory(dockingManager);
 //        return new DockablePane(name, icon, scrollPane, index, true, componentFactory);

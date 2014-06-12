@@ -75,8 +75,12 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 
@@ -153,6 +157,11 @@ import java.util.WeakHashMap;
  */
 public class UsefulDockingPort extends JPanel implements DockingPort,
         DockingConstants {
+
+    static {
+        DockingManager.setDockingStrategy(UsefulDockingPort.class, new UsefulDockingStrategy());
+    }
+
     protected class PortLayout implements LayoutManager2, Serializable {
         /**
          * Returns the amount of space the layout would like to have.
@@ -274,6 +283,8 @@ public class UsefulDockingPort extends JPanel implements DockingPort,
 
     private Object lock = new Object();
 
+    private Map<String, List> componentIndexes;
+
     static {
         // setup PropertyChangeListenerFactory to respond to
         // DefaultDockingPort-specific
@@ -321,6 +332,11 @@ public class UsefulDockingPort extends JPanel implements DockingPort,
 
         //configure the default border manager
         setBorderManager(createBorderManager());
+        componentIndexes = new HashMap<>();
+        componentIndexes.put(DockingConstants.NORTH_REGION, new ArrayList());
+        componentIndexes.put(DockingConstants.SOUTH_REGION, new ArrayList());
+        componentIndexes.put(DockingConstants.EAST_REGION, new ArrayList());
+        componentIndexes.put(DockingConstants.WEST_REGION, new ArrayList());
     }
 
     protected LayoutManager createLayout() {
@@ -710,6 +726,63 @@ public class UsefulDockingPort extends JPanel implements DockingPort,
         return CENTER_REGION.equals(region) ? docked : null;
     }
 
+    private Component getComponentAlsoWhenItIsASplitPane(String region) {
+        Component docked = getDockedComponent();
+        if (docked == null)
+            return null;
+
+        if (docked instanceof JTabbedPane) {
+            // they can only get tabbed dockables if they were checking the
+            // CENTER region.
+            if (!CENTER_REGION.equals(region))
+                return null;
+
+            JTabbedPane tabs = (JTabbedPane) docked;
+            return tabs.getSelectedComponent();
+        }
+
+        if (docked instanceof JSplitPane) {
+            // they can only get split dockables if they were checking an outer
+            // region.
+            if (CENTER_REGION.equals(region))
+                return null;
+
+            JSplitPane split = (JSplitPane) docked;
+
+            // make sure the supplied regions correspond to the current
+            // splitpane orientation
+            boolean horizontal = split.getOrientation() == JSplitPane.HORIZONTAL_SPLIT;
+            if (horizontal) {
+                if (NORTH_REGION.equals(region) || SOUTH_REGION.equals(region))
+                    return null;
+            } else {
+                if (EAST_REGION.equals(region) || WEST_REGION.equals(region))
+                    return null;
+            }
+
+            boolean left = NORTH_REGION.equals(region)
+                    || WEST_REGION.equals(region);
+            Component c = left ? split.getLeftComponent() : split
+                    .getRightComponent();
+            // split panes only contain sub-dockingports. if 'c' is not a
+            // sub-dockingport,
+            // then something is really screwed up.
+            if (c instanceof DockingPort) {
+                return ((DockingPort) c).getDockedComponent();
+            } else if (c instanceof JSplitPane) {
+                return c;
+            } else {
+                return null;
+            }
+        }
+
+        // we already checked the tabbed layout and split layout. all that's
+        // left is the direct-child component itself. this will only ever
+        // exist in the CENTER, so return it if they requested the CENTER
+        // region.
+        return CENTER_REGION.equals(region) ? docked : null;
+    }
+
     /**
      * Returns the {@code Dockable} currently docked within the specified
      * {@code region}. This method dispatches to
@@ -1061,16 +1134,114 @@ public class UsefulDockingPort extends JPanel implements DockingPort,
     }
 
     private boolean dockInOuterRegion(Dockable dockable, Component comp, String region) {
-        final Dockable dockableInRegion = this.getDockable(region);
-        if (dockableInRegion == null) {
-
-        }
-
-        int index;
+        final Component componentInRegion = getComponentAlsoWhenItIsASplitPane(region);
+        int index = -1;
         if (dockable instanceof ToolViewView) {
             index = ((ToolViewView) dockable).getRelativeIndex();
         }
+        if (componentInRegion == null || index < 0) {
+            if (index >= 0) {
+                final List indexList = componentIndexes.get(region);
+                indexList.add(index);
+                Collections.sort(indexList);
+            }
+            return dockAsSplitPane(comp, region);
+        } else if (!(componentInRegion instanceof JSplitPane)) {
+            final List indexList = componentIndexes.get(region);
+            final int indexInSplitPane = indexList.indexOf(index);
+            final JSplitPane parentComponent = (JSplitPane) getDockedComponent();
+            if (indexInSplitPane < 0) {
+                dockAsSubSplitPane(parentComponent, componentInRegion, comp, region, (int) indexList.get(0), index);
+                indexList.add(index);
+                Collections.sort(indexList);
+            } else {
+                if (componentInRegion instanceof JTabbedPane) {
+                    JTabbedPane tabs = (JTabbedPane) componentInRegion;
+                    addTab(tabs, comp);
+                    tabs.revalidate();
+                    tabs.setSelectedIndex(tabs.getTabCount() - 1);
+                    return true;
+                } else {
+                    parentComponent.remove(componentInRegion);
+                    final JTabbedPane tabs = createTabbedPane();
+                    addTab(tabs, componentInRegion);
+                    addTab(tabs, comp);
+                    tabs.revalidate();
+                    tabs.setSelectedIndex(tabs.getTabCount() - 1);
+                    if (NORTH_REGION.equals(region)) {
+                        parentComponent.setTopComponent(tabs);
+                    } else if (SOUTH_REGION.equals(region)) {
+                        parentComponent.setBottomComponent(tabs);
+                    } else if (EAST_REGION.equals(region)) {
+                        parentComponent.setRightComponent(tabs);
+                    } else if (WEST_REGION.equals(region)) {
+                        parentComponent.setLeftComponent(tabs);
+                    }
+                    return true;
+                }
+            }
+        } else {
+            final List indexList = componentIndexes.get(region);
+            final int indexInSplitPane = indexList.indexOf(index);
+            if (indexInSplitPane >= 0) {
+                final JSplitPane splitpaneInRegion = (JSplitPane) componentInRegion;
+                final Component componentFromSplitPane =
+                        getComponentFromSplitPane(indexList, index, splitpaneInRegion);
+                if (componentFromSplitPane instanceof JTabbedPane) {
+                    JTabbedPane tabs = (JTabbedPane) componentFromSplitPane;
+                    addTab(tabs, comp);
+                    tabs.revalidate();
+                    tabs.setSelectedIndex(tabs.getTabCount() - 1);
+                    return true;
+                } else {
+                    splitpaneInRegion.remove(componentFromSplitPane);
+                    final JTabbedPane tabs = createTabbedPane();
+                    addTab(tabs, componentFromSplitPane);
+                    addTab(tabs, comp);
+                    tabs.revalidate();
+                    tabs.setSelectedIndex(tabs.getTabCount() - 1);
+                    switch (region) {
+                        case NORTH_REGION:
+                            splitpaneInRegion.setTopComponent(tabs);
+                            break;
+                        case SOUTH_REGION:
+                            splitpaneInRegion.setBottomComponent(tabs);
+                            break;
+                        case EAST_REGION:
+                            splitpaneInRegion.setRightComponent(tabs);
+                            break;
+                        case WEST_REGION:
+                            splitpaneInRegion.setLeftComponent(tabs);
+                            break;
+                    }
+                    return true;
+                }
+//                final int indexListSize = indexList.size();
+//                indexList.add(index);
+//                Collections.sort(indexList);
+//                final int requiredIndexInSplitPane = indexList.indexOf(index);
+            } else {
+                //todo consider case when dockable has to be inserted into an existing split pane
+            }
+        }
+        return false;
+    }
 
+    private Component getComponentFromSplitPane(List indexList, int index, JSplitPane splitPane) {
+        //todo implement correctly
+        final int indexListSize = indexList.size();
+        indexList.add(index);
+        Collections.sort(indexList);
+        final int requiredIndexInSplitPane = indexList.indexOf(index);
+        if (requiredIndexInSplitPane < indexListSize / 2) {
+            splitPane.getComponent(0);
+        } else {
+            splitPane.getComponent(1);
+        }
+        return splitPane;
+    }
+
+    private boolean dockAsSplitPane(Component comp, String region) {
         // cache the current size and cut it in half for later in the method.
         Dimension halfSize = getSize();
         halfSize.width /= 2;
@@ -1079,10 +1250,6 @@ public class UsefulDockingPort extends JPanel implements DockingPort,
         // remove the old docked content. we'll be adding it to another
         // dockingPort.
         Component docked = getDockedComponent();
-
-
-        final Component dockableInRegionComponent = dockableInRegion.getComponent();
-
         remove(docked);
 
         // add the components to their new parents.
@@ -1091,7 +1258,6 @@ public class UsefulDockingPort extends JPanel implements DockingPort,
         DockingPort newContent = strategy.createDockingPort(this);
         addCmp(oldContent, docked);
         dockCmp(newContent, comp);
-
 
         JSplitPane newDockedContent = strategy.createSplitPane(this, region);
 
@@ -1136,6 +1302,108 @@ public class UsefulDockingPort extends JPanel implements DockingPort,
         // determined until after we're visible. cache the desired size
         // values now for use later during rendering.
         double proportion = strategy.getDividerProportion(this,
+                                                          newDockedContent);
+        SwingUtility.putClientProperty((Component) oldContent,
+                                       UsefulDockingStrategy.PREFERRED_PROPORTION, new Float(
+                        proportion)
+        );
+        SwingUtility.putClientProperty((Component) newContent,
+                                       UsefulDockingStrategy.PREFERRED_PROPORTION, new Float(
+                        1f - proportion)
+        );
+
+        return true;
+    }
+
+    private boolean dockAsSubSplitPane(JSplitPane parentSplitPane, Component docked, Component comp, String region, int oldIndex, int newIndex) {
+        // cache the current size and cut it in half for later in the method.
+        Dimension halfSize = docked.getSize();
+        halfSize.width /= 2;
+        halfSize.height /= 2;
+
+        // remove the old docked content. we'll be adding it to another
+        // dockingPort.
+//        Component docked = getDockedComponent();
+        parentSplitPane.remove(docked);
+//        remove(docked);
+
+        // add the components to their new parents.
+        DockingStrategy strategy = getDockingStrategy();
+        final DockingPort dockingPort = getDockable(region).getDockingPort();
+        DockingPort oldContent = strategy.createDockingPort(dockingPort);
+        DockingPort newContent = strategy.createDockingPort(dockingPort);
+        addCmp(oldContent, docked);
+        dockCmp(newContent, comp);
+
+        //todo how to split?
+        JSplitPane newDockedContent;
+        if (region.equals(DockingConstants.WEST_REGION) || region.equals(DockingConstants.EAST_REGION)) {
+            if (oldIndex < newIndex) {
+                newDockedContent = strategy.createSplitPane(dockingPort, DockingConstants.SOUTH_REGION);
+            } else {
+                newDockedContent = strategy.createSplitPane(dockingPort, DockingConstants.NORTH_REGION);
+            }
+        } else {
+            if (oldIndex < newIndex) {
+                newDockedContent = strategy.createSplitPane(dockingPort, DockingConstants.EAST_REGION);
+            } else {
+                newDockedContent = strategy.createSplitPane(dockingPort, DockingConstants.WEST_REGION);
+            }
+        }
+
+        // put the ports in the correct order and add them to a new wrapper
+        // panel
+        DockingPort[] ports;
+        if (oldIndex < newIndex) {
+            ports = putPortsInOrder(newContent, oldContent, region);
+        } else {
+            ports = putPortsInOrder(oldContent, newContent, region);
+        }
+
+        if (ports[0] instanceof JComponent) {
+            ((JComponent) ports[0]).setMinimumSize(new Dimension(0, 0));
+        }
+        if (ports[1] instanceof JComponent) {
+            ((JComponent) ports[1]).setMinimumSize(new Dimension(0, 0));
+        }
+
+        if (ports[0] instanceof Component)
+            newDockedContent.setLeftComponent((Component) ports[0]);
+        if (ports[1] instanceof Component)
+            newDockedContent.setRightComponent((Component) ports[1]);
+
+        // set the split in the middle
+        double ratio = .5;
+
+        if (docked instanceof Dockable
+                && newDockedContent instanceof DockingSplitPane) {
+            Float siblingRatio = ((Dockable) docked).getDockingProperties()
+                    .getSiblingSize(region);
+            if (siblingRatio != null) {
+                ratio = siblingRatio.doubleValue();
+            }
+
+            ((DockingSplitPane) newDockedContent).setInitialDividerRatio(ratio);
+        }
+        newDockedContent.setDividerLocation(ratio);
+
+        // now set the wrapper panel as the currently docked component
+
+//        setComponent(newDockedContent);
+        if (oldIndex < newIndex) {
+            parentSplitPane.setLeftComponent(newDockedContent);
+        } else {
+            parentSplitPane.setRightComponent(newDockedContent);
+        }
+
+        // if we're currently showing, then we can exit now
+        if (isShowing())
+            return true;
+
+        // otherwise, we have unrealized components whose sizes cannot be
+        // determined until after we're visible. cache the desired size
+        // values now for use later during rendering.
+        double proportion = strategy.getDividerProportion(dockingPort,
                                                           newDockedContent);
         SwingUtility.putClientProperty((Component) oldContent,
                                        UsefulDockingStrategy.PREFERRED_PROPORTION, new Float(
@@ -1354,7 +1622,11 @@ public class UsefulDockingPort extends JPanel implements DockingPort,
     }
 
     protected boolean isValidDockingRegion(String region) {
-        return DockingManager.isValidDockingRegion(region);
+        boolean valid = DockingManager.isValidDockingRegion(region);
+        if (getDockable(region) != null) {
+            return valid && !getDockable(region).getDockingProperties().isTerritoryBlocked(region);
+        }
+        return valid;
     }
 
     private boolean isSingleComponentDocked() {

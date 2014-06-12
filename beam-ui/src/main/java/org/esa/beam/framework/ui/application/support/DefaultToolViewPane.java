@@ -19,7 +19,6 @@ import org.flexdock.docking.state.FloatManager;
 import org.flexdock.event.EventManager;
 import org.flexdock.util.DockingUtility;
 import org.flexdock.view.View;
-import org.flexdock.view.Viewport;
 import org.flexdock.view.actions.ViewAction;
 
 import javax.swing.Action;
@@ -45,7 +44,7 @@ public class DefaultToolViewPane extends AbstractPageComponentPane {
 //        super(pageComponent);
 //    }
 
-    public DefaultToolViewPane(PageComponent pageComponent, Viewport viewport, View mainView) {
+    public DefaultToolViewPane(PageComponent pageComponent, DockingPort viewport, View mainView) {
         super(pageComponent);
         this.mainView = mainView;
         port = viewport;
