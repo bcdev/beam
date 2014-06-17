@@ -16,13 +16,7 @@
 
 package org.esa.beam.visat.actions;
 
-import org.esa.beam.framework.datamodel.Band;
-import org.esa.beam.framework.datamodel.FilterBand;
-import org.esa.beam.framework.datamodel.Product;
-import org.esa.beam.framework.datamodel.ProductData;
-import org.esa.beam.framework.datamodel.ProductNode;
-import org.esa.beam.framework.datamodel.ProductNodeGroup;
-import org.esa.beam.framework.datamodel.VirtualBand;
+import org.esa.beam.framework.datamodel.*;
 import org.esa.beam.framework.ui.command.CommandEvent;
 import org.esa.beam.framework.ui.command.ExecCommand;
 import org.esa.beam.util.Debug;
@@ -81,7 +75,12 @@ public class ConvertComputedBandIntoBandAction extends ExecCommand {
         if (computedBand.isStxSet()) {
             realBand.setStx(computedBand.getStx());
         }
-        realBand.setImageInfo(computedBand.getImageInfo().clone());
+
+        ImageInfo imageInfo = computedBand.getImageInfo();
+        if(imageInfo == null) {
+            VisatApp.getApp().showErrorDialog("Load the band data prior to conversion");
+        }
+        realBand.setImageInfo(imageInfo.clone());
 
         Product product = computedBand.getProduct();
         final JInternalFrame[] internalFrames = visatApp.findInternalFrames(computedBand);
