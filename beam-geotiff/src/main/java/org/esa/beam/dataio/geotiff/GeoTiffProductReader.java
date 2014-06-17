@@ -100,6 +100,7 @@ public class GeoTiffProductReader extends AbstractProductReader {
 
     private TIFFImageReader imageReader;
     private boolean isGlobalShifted180;
+    private boolean productIsCorrupt = false;
 
     public GeoTiffProductReader(ProductReaderPlugIn readerPlugIn) {
         super(readerPlugIn);
@@ -121,6 +122,7 @@ public class GeoTiffProductReader extends AbstractProductReader {
                 input = productZip.getInputStream(zipEntry);
             }
         }
+        productIsCorrupt = false;
         inputStream = ImageIO.createImageInputStream(input);
         return readGeoTIFFProduct(inputStream, inputFile);
     }
@@ -181,7 +183,11 @@ public class GeoTiffProductReader extends AbstractProductReader {
                 pm.worked(1);
             } catch(Throwable e) {
                 for (int i=0; i<destSize; ++i) {
-                    destBuffer.setElemDoubleAt(i, 0);
+                    destBuffer.setElemDoubleAt(i, destBand.getNoDataValue());
+                }
+                if(!productIsCorrupt) {
+                    productIsCorrupt = true;
+                    BeamLogManager.getSystemLogger().severe(destBand.getName() + " may be corrupted. "+e.getMessage());
                 }
             } finally {
                 pm.done();
