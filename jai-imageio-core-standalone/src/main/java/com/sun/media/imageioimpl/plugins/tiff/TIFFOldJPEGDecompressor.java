@@ -44,23 +44,13 @@
  */
 package com.sun.media.imageioimpl.plugins.tiff;
 
-import java.awt.Point;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Iterator;
 import javax.imageio.IIOException;
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.ImageReadParam;
-import javax.imageio.plugins.jpeg.JPEGHuffmanTable;
-import javax.imageio.plugins.jpeg.JPEGImageReadParam;
-import javax.imageio.plugins.jpeg.JPEGQTable;
 import javax.imageio.stream.MemoryCacheImageInputStream;
 import javax.imageio.stream.ImageInputStream;
 import com.sun.media.imageio.plugins.tiff.BaselineTIFFTagSet;
-import com.sun.media.imageio.plugins.tiff.TIFFDecompressor;
 import com.sun.media.imageio.plugins.tiff.TIFFField;
 
 /**
@@ -227,7 +217,7 @@ public class TIFFOldJPEGDecompressor extends TIFFJPEGDecompressor {
 
                 // Set initialization flag and return.
                 if(DEBUG) System.out.println("OLD JPEG CASE 1");
-                ((TIFFImageReader)reader).forwardWarningMessage("SOI marker detected at start of strip or tile.");
+                ((TIFFImageReader2)reader).forwardWarningMessage("SOI marker detected at start of strip or tile.");
                 isInitialized = true;
                 stream.reset();
                 return;
@@ -246,7 +236,7 @@ public class TIFFOldJPEGDecompressor extends TIFFJPEGDecompressor {
                     // JPEGInterchangeFormat offset points to SOI.
                     JPEGStreamOffset = new Long(jpegInterchangeOffset);
                 else
-                    ((TIFFImageReader)reader).forwardWarningMessage("JPEGInterchangeFormat does not point to SOI");
+                    ((TIFFImageReader2)reader).forwardWarningMessage("JPEGInterchangeFormat does not point to SOI");
                 stream.reset();
 
                 // Get the JPEGInterchangeFormatLength field.
@@ -255,7 +245,7 @@ public class TIFFOldJPEGDecompressor extends TIFFJPEGDecompressor {
 
                 if(JPEGInterchangeFormatLengthField == null) {
                     if(DEBUG) System.out.println("OLD JPEG CASE 2");
-                    ((TIFFImageReader)reader).forwardWarningMessage("JPEGInterchangeFormatLength field is missing");
+                    ((TIFFImageReader2)reader).forwardWarningMessage("JPEGInterchangeFormatLength field is missing");
                 } else {
                     // Get the JPEGInterchangeFormatLength field's value.
                     long jpegInterchangeLength =
@@ -267,7 +257,7 @@ public class TIFFOldJPEGDecompressor extends TIFFJPEGDecompressor {
                         if(DEBUG) System.out.println("OLD JPEG CASE 3");
                     } else {
                         if(DEBUG) System.out.println("OLD JPEG CASE 3A");
-                        ((TIFFImageReader)reader).forwardWarningMessage("JPEGInterchangeFormatLength field value is invalid");
+                        ((TIFFImageReader2)reader).forwardWarningMessage("JPEGInterchangeFormatLength field value is invalid");
                     }
                 }
 
@@ -326,9 +316,9 @@ public class TIFFOldJPEGDecompressor extends TIFFJPEGDecompressor {
                     stream.reset();
 
                     if(DEBUG) System.out.println("OLD JPEG CASE 4");
-                    ((TIFFImageReader)reader).forwardWarningMessage("Incorrect JPEG interchange format: using JPEGInterchangeFormat offset to derive tables.");
+                    ((TIFFImageReader2)reader).forwardWarningMessage("Incorrect JPEG interchange format: using JPEGInterchangeFormat offset to derive tables.");
                 } else {
-                    ((TIFFImageReader)reader).forwardWarningMessage("JPEGInterchangeFormat+JPEGInterchangeFormatLength > offset to first strip or tile.");
+                    ((TIFFImageReader2)reader).forwardWarningMessage("JPEGInterchangeFormat+JPEGInterchangeFormatLength > offset to first strip or tile.");
                 }
             }
         }

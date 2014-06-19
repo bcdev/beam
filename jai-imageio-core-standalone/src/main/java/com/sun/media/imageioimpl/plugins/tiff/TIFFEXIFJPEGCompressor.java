@@ -44,30 +44,17 @@
  */
 package com.sun.media.imageioimpl.plugins.tiff;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import javax.imageio.IIOException;
-import javax.imageio.IIOImage;
-import javax.imageio.ImageIO;
 import javax.imageio.ImageWriteParam;
-import javax.imageio.ImageWriter;
 import javax.imageio.metadata.IIOMetadata;
-import javax.imageio.stream.MemoryCacheImageOutputStream;
+
 import com.sun.media.imageio.plugins.tiff.BaselineTIFFTagSet;
-import com.sun.media.imageio.plugins.tiff.EXIFParentTIFFTagSet;
-import com.sun.media.imageio.plugins.tiff.EXIFTIFFTagSet;
-import com.sun.media.imageio.plugins.tiff.TIFFCompressor;
-import com.sun.media.imageio.plugins.tiff.TIFFField;
-import com.sun.media.imageio.plugins.tiff.TIFFTag;
-import com.sun.media.imageio.plugins.tiff.TIFFTagSet;
 
 /**
  * A <code>TIFFCompressor</code> for the JPEG variant of EXIF.
  */
 public class TIFFEXIFJPEGCompressor extends TIFFBaseJPEGCompressor {
     public TIFFEXIFJPEGCompressor(ImageWriteParam param) {
-        super(TIFFImageWriter.EXIF_JPEG_COMPRESSION_TYPE,
+        super(TIFFImageWriter2.EXIF_JPEG_COMPRESSION_TYPE,
               BaselineTIFFTagSet.COMPRESSION_OLD_JPEG,
               false,
               param);

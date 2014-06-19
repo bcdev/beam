@@ -44,11 +44,9 @@
  */
 package com.sun.media.imageio.plugins.tiff;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Locale;
 import javax.imageio.ImageWriteParam;
-import com.sun.media.imageioimpl.plugins.tiff.TIFFImageWriter;
+import com.sun.media.imageioimpl.plugins.tiff.TIFFImageWriter2;
 
 /**
  * A subclass of {@link ImageWriteParam <code>ImageWriteParam</code>}
@@ -181,7 +179,7 @@ public class TIFFImageWriteParam extends ImageWriteParam {
         super(locale);
         this.canWriteCompressed = true;
         this.canWriteTiles = true;
-        this.compressionTypes = TIFFImageWriter.TIFFCompressionTypes;
+        this.compressionTypes = TIFFImageWriter2.TIFFCompressionTypes;
     };
 
     public boolean isCompressionLossless() {
@@ -201,7 +199,7 @@ public class TIFFImageWriteParam extends ImageWriteParam {
 
         for (int i = 0; i < compressionTypes.length; i++) {
             if (compressionType.equals(compressionTypes[i])) {
-                return TIFFImageWriter.isCompressionLossless[i];
+                return TIFFImageWriter2.isCompressionLossless[i];
             }
         }
 

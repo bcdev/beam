@@ -64,8 +64,8 @@
             <artifactId>mlibwrapper-jai</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.sun.media</groupId>
-            <artifactId>jai-imageio</artifactId>
+            <groupId>net.java.dev.jai-imageio</groupId>
+            <artifactId>jai-imageio-core-standalone</artifactId>
         </dependency>
         <dependency>
             <groupId>com.sun.media</groupId>

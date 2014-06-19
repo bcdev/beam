@@ -44,6 +44,11 @@
  */
 package com.sun.media.imageioimpl.plugins.tiff;
 
+import com.sun.media.imageio.plugins.tiff.TIFFImageReadParam;
+import com.sun.media.imageio.plugins.tiff.TIFFTagSet;
+
+import javax.imageio.ImageReadParam;
+import javax.imageio.ImageTypeSpecifier;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
@@ -55,14 +60,10 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
-import javax.imageio.ImageReadParam;
-import javax.imageio.ImageTypeSpecifier;
-import com.sun.media.imageio.plugins.tiff.TIFFImageReadParam;
-import com.sun.media.imageio.plugins.tiff.TIFFTagSet;
 
 public class TIFFRenderedImage implements RenderedImage {
 
-    TIFFImageReader reader;
+    TIFFImageReader2 reader;
     int imageIndex;
     ImageReadParam tileParam;
 
@@ -78,7 +79,7 @@ public class TIFFRenderedImage implements RenderedImage {
 
     ImageTypeSpecifier its;
 
-    public TIFFRenderedImage(TIFFImageReader reader,
+    public TIFFRenderedImage(TIFFImageReader2 reader,
                              int imageIndex,
                              ImageReadParam readParam,
                              int width, int height) throws IOException {
@@ -92,13 +93,25 @@ public class TIFFRenderedImage implements RenderedImage {
         this.isSubsampling = this.subsampleX != 1 || this.subsampleY != 1;
 
         this.width = width/subsampleX;
+        if (this.width == 0) {
+            this.width = 1;
+        }
         this.height = height/subsampleY;
+        if (this.height == 0) {
+            this.height = 1;
+        }
 
         // If subsampling is being used, we may not match the
         // true tile grid exactly, but everything should still work
         this.tileWidth = reader.getTileWidth(imageIndex)/subsampleX;
+        if (this.tileWidth == 0) {
+            this.tileWidth = 1;
+        }
         this.tileHeight = reader.getTileHeight(imageIndex)/subsampleY;
-        
+        if (this.tileHeight == 0) {
+            this.tileHeight = 1;
+        }
+
         Iterator iter = reader.getImageTypes(imageIndex);
         this.its = (ImageTypeSpecifier)iter.next();
         tileParam.setDestinationType(its);

@@ -44,12 +44,9 @@
  */
 package com.sun.media.imageioimpl.plugins.tiff;
 
-import java.awt.Rectangle;
 import java.io.IOException;
-import javax.imageio.ImageReader;
-import com.sun.media.imageio.plugins.tiff.BaselineTIFFTagSet;
+
 import com.sun.media.imageio.plugins.tiff.TIFFDecompressor;
-import com.sun.media.imageio.plugins.tiff.TIFFTag;
 
 public class TIFFPackBitsDecompressor extends TIFFDecompressor {
 
@@ -89,8 +86,8 @@ public class TIFFPackBitsDecompressor extends TIFFDecompressor {
                 }
             }
         } catch(ArrayIndexOutOfBoundsException e) {
-            if(reader instanceof TIFFImageReader) {
-                ((TIFFImageReader)reader).forwardWarningMessage
+            if(reader instanceof TIFFImageReader2) {
+                ((TIFFImageReader2)reader).forwardWarningMessage
                     ("ArrayIndexOutOfBoundsException ignored in TIFFPackBitsDecompressor.decode()");
             }
         }

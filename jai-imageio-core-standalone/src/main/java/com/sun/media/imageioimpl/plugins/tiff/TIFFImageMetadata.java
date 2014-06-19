@@ -44,8 +44,6 @@
  */
 package com.sun.media.imageioimpl.plugins.tiff;
 
-import java.awt.image.ColorModel;
-import java.awt.image.SampleModel;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -55,8 +53,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.StringTokenizer;
-import java.util.Vector;
-import javax.imageio.ImageTypeSpecifier;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.metadata.IIOInvalidTreeException;
 import javax.imageio.metadata.IIOMetadataFormatImpl;
@@ -332,13 +328,13 @@ public class TIFFImageMetadata extends IIOMetadata {
                 compressionTypeName = "None";
                 isLossless = true;
             } else {
-                int[] compressionNumbers = TIFFImageWriter.compressionNumbers;
+                int[] compressionNumbers = TIFFImageWriter2.compressionNumbers;
                 for(int i = 0; i < compressionNumbers.length; i++) {
                     if(compression == compressionNumbers[i]) {
                         compressionTypeName =
-                            TIFFImageWriter.compressionTypes[i];
+                            TIFFImageWriter2.compressionTypes[i];
                         isLossless =
-                            TIFFImageWriter.isCompressionLossless[i];
+                            TIFFImageWriter2.isCompressionLossless[i];
                         break;
                     }
                 }
@@ -989,11 +985,11 @@ public class TIFFImageMetadata extends IIOMetadata {
                                 BaselineTIFFTagSet.COMPRESSION_NONE;
                         } else {
                             String[] compressionNames =
-                                TIFFImageWriter.compressionTypes;
+                                TIFFImageWriter2.compressionTypes;
                             for(int i = 0; i < compressionNames.length; i++) {
                                 if(compressionNames[i].equalsIgnoreCase(compressionTypeName)) {
                                     compression =
-                                        TIFFImageWriter.compressionNumbers[i];
+                                        TIFFImageWriter2.compressionNumbers[i];
                                     break;
                                 }
                             }

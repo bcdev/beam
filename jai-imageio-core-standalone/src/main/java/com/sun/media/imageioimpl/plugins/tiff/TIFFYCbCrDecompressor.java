@@ -44,10 +44,8 @@
  */
 package com.sun.media.imageioimpl.plugins.tiff;
 
-import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
-import java.awt.image.DataBufferByte;
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -112,8 +110,8 @@ public class TIFFYCbCrDecompressor extends TIFFDecompressor {
     }
 
     private void warning(String message) {
-        if(this.reader instanceof TIFFImageReader) {
-            ((TIFFImageReader)reader).forwardWarningMessage(message);
+        if(this.reader instanceof TIFFImageReader2) {
+            ((TIFFImageReader2)reader).forwardWarningMessage(message);
         }
     }
 

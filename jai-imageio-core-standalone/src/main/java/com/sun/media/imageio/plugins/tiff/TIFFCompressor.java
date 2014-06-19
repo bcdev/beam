@@ -48,7 +48,7 @@ import java.io.IOException;
 import javax.imageio.ImageWriter;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.stream.ImageOutputStream;
-import com.sun.media.imageioimpl.plugins.tiff.TIFFImageWriter;
+import com.sun.media.imageioimpl.plugins.tiff.TIFFImageWriter2;
 
 /**
  * An abstract superclass for pluggable TIFF compressors.
@@ -131,7 +131,7 @@ public abstract class TIFFCompressor {
         // Determine whether this type is either defined in the TIFF 6.0
         // specification or is already supported.
         int compressionIndex = -1;
-        String[] compressionTypes = TIFFImageWriter.compressionTypes;
+        String[] compressionTypes = TIFFImageWriter2.compressionTypes;
         int len = compressionTypes.length;
         for(int i = 0; i < len; i++) {
             if(compressionTypes[i].equals(compressionType)) {
@@ -144,9 +144,9 @@ public abstract class TIFFCompressor {
         if(compressionIndex != -1) {
             // Known compression type.
             this.compressionTagValue =
-                TIFFImageWriter.compressionNumbers[compressionIndex];
+                TIFFImageWriter2.compressionNumbers[compressionIndex];
             this.isCompressionLossless =
-                TIFFImageWriter.isCompressionLossless[compressionIndex];
+                TIFFImageWriter2.isCompressionLossless[compressionIndex];
         } else {
             // Unknown compression type.
             this.compressionTagValue = compressionTagValue;

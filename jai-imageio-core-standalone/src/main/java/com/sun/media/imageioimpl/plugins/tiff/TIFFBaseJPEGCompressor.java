@@ -66,7 +66,6 @@ import java.util.Iterator;
 import javax.imageio.IIOException;
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
 import javax.imageio.metadata.IIOInvalidTreeException;
@@ -336,7 +335,7 @@ public abstract class TIFFBaseJPEGCompressor extends TIFFCompressor {
         }
         if(JPEGImageMetadata == null &&
            IMAGE_METADATA_NAME.equals(JPEGWriter.getOriginatingProvider().getNativeImageMetadataFormatName())) {
-            TIFFImageWriter tiffWriter = (TIFFImageWriter)this.writer;
+            TIFFImageWriter2 tiffWriter = (TIFFImageWriter2)this.writer;
 
             // Get default image metadata.
             JPEGImageMetadata =
