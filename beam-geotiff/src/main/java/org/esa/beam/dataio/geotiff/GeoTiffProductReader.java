@@ -27,7 +27,23 @@ import org.esa.beam.dataio.dimap.DimapProductHelpers;
 import org.esa.beam.dataio.geotiff.internal.GeoKeyEntry;
 import org.esa.beam.framework.dataio.AbstractProductReader;
 import org.esa.beam.framework.dataio.ProductReaderPlugIn;
-import org.esa.beam.framework.datamodel.*;
+import org.esa.beam.framework.datamodel.Band;
+import org.esa.beam.framework.datamodel.ColorPaletteDef;
+import org.esa.beam.framework.datamodel.CrsGeoCoding;
+import org.esa.beam.framework.datamodel.FilterBand;
+import org.esa.beam.framework.datamodel.GcpDescriptor;
+import org.esa.beam.framework.datamodel.GcpGeoCoding;
+import org.esa.beam.framework.datamodel.GeoPos;
+import org.esa.beam.framework.datamodel.ImageInfo;
+import org.esa.beam.framework.datamodel.IndexCoding;
+import org.esa.beam.framework.datamodel.PixelPos;
+import org.esa.beam.framework.datamodel.Placemark;
+import org.esa.beam.framework.datamodel.Product;
+import org.esa.beam.framework.datamodel.ProductData;
+import org.esa.beam.framework.datamodel.ProductNodeGroup;
+import org.esa.beam.framework.datamodel.TiePointGeoCoding;
+import org.esa.beam.framework.datamodel.TiePointGrid;
+import org.esa.beam.framework.datamodel.VirtualBand;
 import org.esa.beam.framework.dataop.maptransf.Datum;
 import org.esa.beam.jai.ImageManager;
 import org.esa.beam.util.geotiff.EPSGCodes;
@@ -35,7 +51,12 @@ import org.esa.beam.util.geotiff.GeoTIFFCodes;
 import org.esa.beam.util.io.FileUtils;
 import org.esa.beam.util.jai.JAIUtils;
 import org.esa.beam.util.logging.BeamLogManager;
-import org.geotools.coverage.grid.io.imageio.geotiff.*;
+import org.geotools.coverage.grid.io.imageio.geotiff.GeoTiffConstants;
+import org.geotools.coverage.grid.io.imageio.geotiff.GeoTiffException;
+import org.geotools.coverage.grid.io.imageio.geotiff.GeoTiffIIOMetadataDecoder;
+import org.geotools.coverage.grid.io.imageio.geotiff.GeoTiffMetadata2CRSAdapter;
+import org.geotools.coverage.grid.io.imageio.geotiff.PixelScale;
+import org.geotools.coverage.grid.io.imageio.geotiff.TiePoint;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.referencing.operation.matrix.GeneralMatrix;
 import org.geotools.referencing.operation.transform.ProjectiveTransform;
@@ -48,18 +69,37 @@ import org.xml.sax.SAXException;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReadParam;
 import javax.imageio.ImageReader;
+import javax.imageio.ImageTypeSpecifier;
 import javax.imageio.stream.ImageInputStream;
+import javax.media.jai.ImageLayout;
+import javax.media.jai.JAI;
+import javax.media.jai.PlanarImage;
+import javax.media.jai.operator.BandSelectDescriptor;
+import javax.media.jai.operator.FormatDescriptor;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
-import java.awt.image.*;
+import java.awt.image.ColorModel;
+import java.awt.image.DataBuffer;
+import java.awt.image.IndexColorModel;
+import java.awt.image.Raster;
+import java.awt.image.RenderedImage;
+import java.awt.image.SampleModel;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.logging.Level;
 
 public class GeoTiffProductReader extends AbstractProductReader {
@@ -67,7 +107,7 @@ public class GeoTiffProductReader extends AbstractProductReader {
     private static final int FIRST_IMAGE = 0;
 
     private ImageInputStream inputStream;
-    private Map<Band, Integer> bandMap;
+    private Map<Band, Integer> bandIndexMap;
 
     private TIFFImageReader imageReader;
     private boolean isGlobalShifted180;
@@ -102,18 +142,18 @@ public class GeoTiffProductReader extends AbstractProductReader {
         if (isGlobalShifted180) {
             // SPECIAL CASE of a global geographic lat/lon with lon from 0..360 instead of -180..180
             readBandRasterDataImplGlobalShifted180(sourceOffsetX, sourceOffsetY, sourceWidth, sourceHeight,
-                    sourceStepX, sourceStepY, destBand, destOffsetX, destOffsetY,
-                    destWidth, destHeight, destBuffer, pm);
+                                                   sourceStepX, sourceStepY, destBand, destOffsetX, destOffsetY,
+                                                   destWidth, destHeight, destBuffer, pm);
         } else {
             // the normal case!!
             final int destSize = destWidth * destHeight;
             pm.beginTask("Reading data...", 3);
             try {
                 final Raster data = readRect(sourceOffsetX, sourceOffsetY, sourceStepX, sourceStepY,
-                        destOffsetX, destOffsetY, destWidth, destHeight);
+                                             destOffsetX, destOffsetY, destWidth, destHeight);
                 pm.worked(1);
 
-                Integer bandIdx = bandMap.get(destBand);
+                Integer bandIdx = bandIndexMap.get(destBand);
                 if (bandIdx == null) {
                     bandIdx = 0;
                 }
@@ -122,8 +162,8 @@ public class GeoTiffProductReader extends AbstractProductReader {
                 final int dataBufferType = dataBuffer.getDataType();
 
                 boolean isInteger = dataBufferType == DataBuffer.TYPE_SHORT
-                        || dataBufferType == DataBuffer.TYPE_USHORT
-                        || dataBufferType == DataBuffer.TYPE_INT;
+                                    || dataBufferType == DataBuffer.TYPE_USHORT
+                                    || dataBufferType == DataBuffer.TYPE_INT;
                 boolean isIntegerTarget = destBuffer.getElems() instanceof int[];
                 if (isInteger && isIntegerTarget) {
                     sampleModel.getSamples(0, 0, data.getWidth(), data.getHeight(), bandIdx, (int[]) destBuffer.getElems(), dataBuffer);
@@ -162,14 +202,14 @@ public class GeoTiffProductReader extends AbstractProductReader {
         try {
 
             final Raster dataLeft = readRect(sourceOffsetX, sourceOffsetY, sourceStepX, sourceStepY,
-                    destOffsetX, destOffsetY, destWidth / 2, destHeight);
+                                             destOffsetX, destOffsetY, destWidth / 2, destHeight);
             final Raster dataRight = readRect(sourceOffsetX, sourceOffsetY, sourceStepX, sourceStepY,
-                    destOffsetX + destWidth / 2, destOffsetY, destWidth / 2, destHeight);
+                                              destOffsetX + destWidth / 2, destOffsetY, destWidth / 2, destHeight);
             pm.worked(1);
 
             double[] dArrayLeft = new double[destSize / 2];
             double[] dArrayRight = new double[destSize / 2];
-            Integer bandIdx = bandMap.get(destBand);
+            Integer bandIdx = bandIndexMap.get(destBand);
             if (bandIdx == null) {
                 bandIdx = 0;
             }
@@ -246,8 +286,8 @@ public class GeoTiffProductReader extends AbstractProductReader {
                     is = new ByteArrayInputStream(s.getBytes());
                     final Document document = new DOMBuilder().build(builder.parse(is));
                     product = DimapProductHelpers.createProduct(document);
-                    removeGeoCodingAndTiePointGrids(product);
-                    initBandsMap(product);
+                    removeBeamDimapGeoCodingAndTiePointGrids(product);
+                    initBeamDimapBandsMap(product);
                 } catch (ParserConfigurationException | SAXException ignore) {
                     // ignore if it can not be read
                 } finally {
@@ -286,7 +326,7 @@ public class GeoTiffProductReader extends AbstractProductReader {
             initMetadata(product, inputFile);
             product.setFileLocation(inputFile);
         }
-        setPreferredTiling(product);
+        //setPreferredTiling(product);
 
         return product;
     }
@@ -304,17 +344,19 @@ public class GeoTiffProductReader extends AbstractProductReader {
         // implemented by NEST
     }
 
-    private void initBandsMap(Product product) {
+    private void initBeamDimapBandsMap(Product product) throws IOException {
         final Band[] bands = product.getBands();
-        bandMap = new HashMap<>(bands.length);
+        bandIndexMap = new HashMap<>(bands.length);
         for (Band band : bands) {
             if (!(band instanceof VirtualBand || band instanceof FilterBand)) {
-                bandMap.put(band, bandMap.size());
+                int bandIndex = bandIndexMap.size();
+                bandIndexMap.put(band, bandIndex);
+                band.setSourceImage(getBandSourceImage(bandIndex));
             }
         }
     }
 
-    private static void removeGeoCodingAndTiePointGrids(Product product) {
+    private static void removeBeamDimapGeoCodingAndTiePointGrids(Product product) {
         product.setGeoCoding(null);
         final TiePointGrid[] pointGrids = product.getTiePointGrids();
         for (TiePointGrid pointGrid : pointGrids) {
@@ -324,28 +366,75 @@ public class GeoTiffProductReader extends AbstractProductReader {
 
     private void addBandsToProduct(TiffFileInfo tiffInfo, Product product) throws
             IOException {
-        final ImageReadParam readParam = imageReader.getDefaultReadParam();
-        TIFFRenderedImage baseImage = (TIFFRenderedImage) imageReader.readAsRenderedImage(FIRST_IMAGE, readParam);
-        SampleModel sampleModel = baseImage.getSampleModel();
-        final int numBands = sampleModel.getNumBands();
-        final int productDataType = ImageManager.getProductDataType(sampleModel.getDataType());
-        bandMap = new HashMap<>(numBands);
-        for (int i = 0; i < numBands; i++) {
-            final String bandName = String.format("band_%d", i + 1);
+        ImageTypeSpecifier rawImageType = imageReader.getRawImageType(0);
+        final int numBands = rawImageType.getNumBands();
+        final int productDataType = ImageManager.getProductDataType(rawImageType.getSampleModel().getDataType());
+        bandIndexMap = new HashMap<>(numBands);
+        for (int bandIndex = 0; bandIndex < numBands; bandIndex++) {
+            final String bandName = String.format("band_%d", bandIndex + 1);
             final Band band = product.addBand(bandName, productDataType);
+
+            band.setSourceImage(getBandSourceImage(bandIndex));
+
             if (tiffInfo.containsField(
-                    BaselineTIFFTagSet.TAG_COLOR_MAP) && baseImage.getColorModel() instanceof IndexColorModel) {
-                band.setImageInfo(createIndexedImageInfo(product, baseImage, band));
+                    BaselineTIFFTagSet.TAG_COLOR_MAP) && rawImageType.getColorModel() instanceof IndexColorModel) {
+                IndexColorModel colorModel = (IndexColorModel) rawImageType.getColorModel();
+                band.setImageInfo(createIndexedImageInfo(product, band, colorModel));
             }
-            bandMap.put(band, i);
+            bandIndexMap.put(band, bandIndex);
         }
+    }
+
+    private RenderedImage getBandSourceImage(int bandIndex) throws IOException {
+
+        final ImageReadParam readParam = imageReader.getDefaultReadParam();
+        readParam.setSourceBands(new int[]{bandIndex});
+        readParam.setDestinationBands(new int[]{bandIndex});
+        //readParam.setDestination(new BufferedImage());
+
+        ImageTypeSpecifier imageType = imageReader.getRawImageType(FIRST_IMAGE);
+        SampleModel destSampleModel = imageType.getSampleModel().createSubsetSampleModel(new int[]{bandIndex});
+        ColorModel destColorModel = PlanarImage.createColorModel(destSampleModel);
+        //ColorModel destColorModel = imageType.getColorModel();
+        readParam.setDestinationType(new ImageTypeSpecifier(destColorModel, destSampleModel));
+        //readParam.setDestinationType(imageType);
+
+        TIFFRenderedImage tiffImage;
+        try {
+            tiffImage = (TIFFRenderedImage) imageReader.readAsRenderedImage(FIRST_IMAGE, readParam);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw e;
+        }
+
+        RenderedImage bandImage;
+        int numBands = tiffImage.getSampleModel().getNumBands();
+        if (numBands == 1) {
+            bandImage = tiffImage;
+        } else {
+            System.out.println(">>>>>>>>>>>>>>>>>>>>>>> GeoTIFF: getBandSourceImage(" + bandIndex + "): " + numBands);
+            bandImage = BandSelectDescriptor.create(tiffImage, new int[]{bandIndex}, null);
+        }
+
+        if (bandImage.getTileHeight() == 1) {
+            ImageLayout imageLayout = new ImageLayout();
+            SampleModel sampleModel = bandImage.getSampleModel();
+            imageLayout.setSampleModel(sampleModel);
+            //imageLayout.setTileWidth(512);
+            //imageLayout.setTileHeight(512);
+            imageLayout.setTileHeight(64);
+            RenderingHints renderingHints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, imageLayout);
+            bandImage = FormatDescriptor.create(bandImage, sampleModel.getDataType(), renderingHints);
+        }
+
+        return bandImage;
     }
 
     private void setPreferredTiling(Product product) throws IOException {
         final Dimension dimension;
         if (isBadTiling()) {
             dimension = JAIUtils.computePreferredTileSize(imageReader.getWidth(FIRST_IMAGE),
-                    imageReader.getHeight(FIRST_IMAGE), 1);
+                                                          imageReader.getHeight(FIRST_IMAGE), 1);
         } else {
             dimension = new Dimension(imageReader.getTileWidth(FIRST_IMAGE), imageReader.getTileHeight(FIRST_IMAGE));
         }
@@ -366,6 +455,10 @@ public class GeoTiffProductReader extends AbstractProductReader {
 
     private static ImageInfo createIndexedImageInfo(Product product, TIFFRenderedImage baseImage, Band band) {
         final IndexColorModel colorModel = (IndexColorModel) baseImage.getColorModel();
+        return createIndexedImageInfo(product, band, colorModel);
+    }
+
+    private static ImageInfo createIndexedImageInfo(Product product, Band band, IndexColorModel colorModel) {
         final IndexCoding indexCoding = new IndexCoding("color_map");
         final int colorCount = colorModel.getMapSize();
         final ColorPaletteDef.Point[] points = new ColorPaletteDef.Point[colorCount];
@@ -429,8 +522,8 @@ public class GeoTiffProductReader extends AbstractProductReader {
 
     private boolean isPixelScaleValid(double[] pixelScales) {
         return pixelScales != null &&
-                !Double.isNaN(pixelScales[0]) && !Double.isInfinite(pixelScales[0]) &&
-                !Double.isNaN(pixelScales[1]) && !Double.isInfinite(pixelScales[1]);
+               !Double.isNaN(pixelScales[0]) && !Double.isInfinite(pixelScales[0]) &&
+               !Double.isNaN(pixelScales[1]) && !Double.isInfinite(pixelScales[1]);
     }
 
     private static void applyGeoCodingFromGeoTiff(TIFFImageMetadata metadata, Product product) throws Exception {
@@ -511,9 +604,9 @@ public class GeoTiffProductReader extends AbstractProductReader {
             gm.setElement(1, 0, 0);
 
             gm.setElement(0, 2, tiePoints[0].getValueAt(3)
-                    - (scaleRaster2ModelLongitude * tiePointColumn));
+                                - (scaleRaster2ModelLongitude * tiePointColumn));
             gm.setElement(1, 2, tiePoints[0].getValueAt(4)
-                    - (scaleRaster2ModelLatitude * tiePointRow));
+                                - (scaleRaster2ModelLatitude * tiePointRow));
 
             // make it a LinearTransform
             xform = ProjectiveTransform.create(gm);
@@ -530,12 +623,12 @@ public class GeoTiffProductReader extends AbstractProductReader {
             } else {
                 assert rasterType == GeoTiffConstants.RasterPixelIsPoint;
                 xform = ProjectiveTransform.create(metadata
-                        .getModelTransformation());
+                                                           .getModelTransformation());
 
             }
         } else {
             throw new GeoTiffException(metadata,
-                    "Unknown Raster to Model configuration.", null);
+                                       "Unknown Raster to Model configuration.", null);
         }
 
         return xform;
@@ -695,7 +788,7 @@ public class GeoTiffProductReader extends AbstractProductReader {
             final GeoPos geoPos = new GeoPos(lat, lon);
 
             final Placemark gcp = Placemark.createPointPlacemark(gcpDescriptor, "gcp_" + i, "GCP_" + i, "",
-                    pixelPos, geoPos, product.getGeoCoding());
+                                                                 pixelPos, geoPos, product.getGeoCoding());
             gcpGroup.add(gcp);
         }
 
