@@ -17,7 +17,7 @@
 package org.esa.beam.dataio.geotiff;
 
 import com.bc.ceres.core.ProgressMonitor;
-import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReader;
+import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReader2;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFRenderedImage;
 import com.sun.media.jai.codec.ByteArraySeekableStream;
 import org.esa.beam.framework.datamodel.Band;
@@ -164,11 +164,11 @@ public class GeoTiffWriteReadTest {
         ByteArraySeekableStream inputStream = new ByteArraySeekableStream(outputStream.toByteArray());
         final MemoryCacheImageInputStream imageStream = new MemoryCacheImageInputStream(inputStream);
         Iterator<ImageReader> imageReaders = ImageIO.getImageReaders(imageStream);
-        TIFFImageReader imageReader = null;
+        TIFFImageReader2 imageReader = null;
         while(imageReaders.hasNext()) {
             final ImageReader nextReader = imageReaders.next();
-            if (nextReader instanceof TIFFImageReader) {
-                imageReader = (TIFFImageReader) nextReader;
+            if (nextReader instanceof TIFFImageReader2) {
+                imageReader = (TIFFImageReader2) nextReader;
             }
         }
         if (imageReader == null) {

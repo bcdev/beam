@@ -15,7 +15,7 @@
  */
 package org.esa.beam.dataio.geotiff;
 
-import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReader;
+import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReader2;
 import org.esa.beam.framework.dataio.DecodeQualification;
 import org.esa.beam.framework.dataio.ProductReader;
 import org.esa.beam.framework.dataio.ProductReaderPlugIn;
@@ -60,11 +60,11 @@ public class GeoTiffProductReaderPlugIn implements ProductReaderPlugIn {
     static DecodeQualification getDecodeQualificationImpl(ImageInputStream stream) {
         try {
             Iterator<ImageReader> imageReaders = ImageIO.getImageReaders(stream);
-            TIFFImageReader imageReader = null;
+            TIFFImageReader2 imageReader = null;
             while (imageReaders.hasNext()) {
                 final ImageReader reader = imageReaders.next();
-                if (reader instanceof TIFFImageReader) {
-                    imageReader = (TIFFImageReader) reader;
+                if (reader instanceof TIFFImageReader2) {
+                    imageReader = (TIFFImageReader2) reader;
                     break;
                 }
             }
