@@ -444,6 +444,8 @@ public class GeoTiffProductReader extends AbstractProductReader {
                 int dataType = bandImage.getSampleModel().getDataType();
                 //System.out.println(">>>>>>>>>>>>>>>>>>>>>> dataType = " + dataType + ", tiling: " + bandImage.getTileWidth() + ", " + bandImage.getTileHeight());
 
+                // If the following line doesn't compile, use the following (because MultiLevelModel.getImageBounds() is new):
+                // Rectangle expectedImageBounds = getModel().getModelToImageTransform(level).createTransformedShape(getModel().getModelBounds()).getBounds();
                 Rectangle expectedImageBounds = getModel().getImageBounds(level);
                 if (bandImage.getWidth() < expectedImageBounds.width
                     || bandImage.getHeight() < expectedImageBounds.height) {
