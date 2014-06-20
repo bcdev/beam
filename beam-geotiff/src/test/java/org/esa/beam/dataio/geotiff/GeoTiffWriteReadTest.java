@@ -18,7 +18,7 @@ package org.esa.beam.dataio.geotiff;
 
 import com.bc.ceres.core.ProgressMonitor;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReader2;
-import com.sun.media.imageioimpl.plugins.tiff.TIFFRenderedImage;
+import com.sun.media.imageioimpl.plugins.tiff.TIFFRenderedImage2;
 import com.sun.media.jai.codec.ByteArraySeekableStream;
 import org.esa.beam.framework.datamodel.Band;
 import org.esa.beam.framework.datamodel.ColorPaletteDef;
@@ -70,7 +70,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings({"InstanceVariableMayNotBeInitialized"})
 public class GeoTiffWriteReadTest {
@@ -165,7 +168,7 @@ public class GeoTiffWriteReadTest {
         final MemoryCacheImageInputStream imageStream = new MemoryCacheImageInputStream(inputStream);
         Iterator<ImageReader> imageReaders = ImageIO.getImageReaders(imageStream);
         TIFFImageReader2 imageReader = null;
-        while(imageReaders.hasNext()) {
+        while (imageReaders.hasNext()) {
             final ImageReader nextReader = imageReaders.next();
             if (nextReader instanceof TIFFImageReader2) {
                 imageReader = (TIFFImageReader2) nextReader;
@@ -179,7 +182,7 @@ public class GeoTiffWriteReadTest {
         assertEquals(1, imageReader.getNumImages(true));
 
         final ImageReadParam readParam = imageReader.getDefaultReadParam();
-        TIFFRenderedImage image = (TIFFRenderedImage) imageReader.readAsRenderedImage(0, readParam);
+        TIFFRenderedImage2 image = (TIFFRenderedImage2) imageReader.readAsRenderedImage(0, readParam);
         assertEquals(1, image.getSampleModel().getNumBands());
         inputStream.close();
     }
@@ -422,7 +425,7 @@ public class GeoTiffWriteReadTest {
 
     private static void setLambertConformalConicGeoCoding_MapGeoCoding(final Product product) {
         final MapTransformDescriptor descriptor = MapProjectionRegistry.getDescriptor(
-                    LambertConformalConicDescriptor.TYPE_ID);
+                LambertConformalConicDescriptor.TYPE_ID);
         final double[] values = descriptor.getParameterDefaultValues();
         for (int i = 0; i < values.length; i++) {
             values[i] = values[i] - 0.001;
@@ -436,7 +439,7 @@ public class GeoTiffWriteReadTest {
     }
 
     private static void setLambertConformalConicGeoCoding(final Product product) throws FactoryException,
-                                                                                        TransformException {
+            TransformException {
         final MathTransformFactory transformFactory = ReferencingFactoryFinder.getMathTransformFactory(null);
         final ParameterValueGroup parameters = transformFactory.getDefaultParameters(LAMBERT_CONIC_CONFORMAL_1SP);
         final Ellipsoid ellipsoid = DefaultGeodeticDatum.WGS84.getEllipsoid();
@@ -487,14 +490,14 @@ public class GeoTiffWriteReadTest {
 
     private static void setTiePointGeoCoding(final Product product) {
         final TiePointGrid latGrid = new TiePointGrid("lat", 3, 3, 0.5f, 0.5f, 5, 5, new float[]{
-                    85, 84, 83,
-                    75, 74, 73,
-                    65, 64, 63
+                85, 84, 83,
+                75, 74, 73,
+                65, 64, 63
         });
         final TiePointGrid lonGrid = new TiePointGrid("lon", 3, 3, 0.5f, 0.5f, 5, 5, new float[]{
-                    -15, -5, 5,
-                    -16, -6, 4,
-                    -17, -7, 3
+                -15, -5, 5,
+                -16, -6, 4,
+                -17, -7, 3
         });
         product.addTiePointGrid(latGrid);
         product.addTiePointGrid(lonGrid);

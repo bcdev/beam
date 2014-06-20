@@ -61,7 +61,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
-public class TIFFRenderedImage implements RenderedImage {
+public class TIFFRenderedImage2 implements RenderedImage {
 
     TIFFImageReader2 reader;
     int imageIndex;
@@ -79,10 +79,10 @@ public class TIFFRenderedImage implements RenderedImage {
 
     ImageTypeSpecifier its;
 
-    public TIFFRenderedImage(TIFFImageReader2 reader,
-                             int imageIndex,
-                             ImageReadParam readParam,
-                             int width, int height) throws IOException {
+    public TIFFRenderedImage2(TIFFImageReader2 reader,
+                              int imageIndex,
+                              ImageReadParam readParam,
+                              int width, int height) throws IOException {
         this.reader = reader;
         this.imageIndex = imageIndex;
         this.tileParam = cloneImageReadParam(readParam, false);
@@ -92,28 +92,32 @@ public class TIFFRenderedImage implements RenderedImage {
 
         this.isSubsampling = this.subsampleX != 1 || this.subsampleY != 1;
 
-        this.width = width/subsampleX;
+        this.width = width / subsampleX;
+        // --> Norman added the following
         if (this.width == 0) {
             this.width = 1;
         }
-        this.height = height/subsampleY;
+        this.height = height / subsampleY;
+        // --> Norman added the following
         if (this.height == 0) {
             this.height = 1;
         }
 
         // If subsampling is being used, we may not match the
         // true tile grid exactly, but everything should still work
-        this.tileWidth = reader.getTileWidth(imageIndex)/subsampleX;
+        this.tileWidth = reader.getTileWidth(imageIndex) / subsampleX;
+        // --> Norman added the following
         if (this.tileWidth == 0) {
             this.tileWidth = 1;
         }
-        this.tileHeight = reader.getTileHeight(imageIndex)/subsampleY;
+        this.tileHeight = reader.getTileHeight(imageIndex) / subsampleY;
+        // --> Norman added the following
         if (this.tileHeight == 0) {
             this.tileHeight = 1;
         }
 
         Iterator iter = reader.getImageTypes(imageIndex);
-        this.its = (ImageTypeSpecifier)iter.next();
+        this.its = (ImageTypeSpecifier) iter.next();
         tileParam.setDestinationType(its);
     }
 
@@ -125,9 +129,9 @@ public class TIFFRenderedImage implements RenderedImage {
      * <code>TIFFColorConverter</code> settings are also copied; otherwise
      * they are explicitly set to <code>null</code>.
      *
-     * @param param the parameters to be copied.
+     * @param param       the parameters to be copied.
      * @param copyTagSets whether the <code>TIFFTagSet</code> settings
-     * should be copied if set.
+     *                    should be copied if set.
      * @return copied parameters.
      */
     private ImageReadParam cloneImageReadParam(ImageReadParam param,
@@ -145,19 +149,19 @@ public class TIFFRenderedImage implements RenderedImage {
         newParam.setDestinationOffset(param.getDestinationOffset());
 
         // Set the decompressor and color converter.
-        if(param instanceof TIFFImageReadParam) {
+        if (param instanceof TIFFImageReadParam) {
             // Copy the settings from the input parameter.
-            TIFFImageReadParam tparam = (TIFFImageReadParam)param;
+            TIFFImageReadParam tparam = (TIFFImageReadParam) param;
             newParam.setTIFFDecompressor(tparam.getTIFFDecompressor());
             newParam.setColorConverter(tparam.getColorConverter());
 
-            if(copyTagSets) {
+            if (copyTagSets) {
                 List tagSets = tparam.getAllowedTagSets();
-                if(tagSets != null) {
+                if (tagSets != null) {
                     Iterator tagSetIter = tagSets.iterator();
-                    if(tagSetIter != null) {
-                        while(tagSetIter.hasNext()) {
-                            TIFFTagSet tagSet = (TIFFTagSet)tagSetIter.next();
+                    if (tagSetIter != null) {
+                        while (tagSetIter.hasNext()) {
+                            TIFFTagSet tagSet = (TIFFTagSet) tagSetIter.next();
                             newParam.addAllowedTagSet(tagSet);
                         }
                     }
@@ -209,11 +213,11 @@ public class TIFFRenderedImage implements RenderedImage {
     }
 
     public int getNumXTiles() {
-        return (width + tileWidth - 1)/tileWidth;
+        return (width + tileWidth - 1) / tileWidth;
     }
 
     public int getNumYTiles() {
-        return (height + tileHeight - 1)/tileHeight;
+        return (height + tileHeight - 1) / tileHeight;
     }
 
     public int getMinTileX() {
@@ -241,8 +245,8 @@ public class TIFFRenderedImage implements RenderedImage {
     }
 
     public Raster getTile(int tileX, int tileY) {
-        Rectangle tileRect = new Rectangle(tileX*tileWidth,
-                                           tileY*tileHeight,
+        Rectangle tileRect = new Rectangle(tileX * tileWidth,
+                                           tileY * tileHeight,
                                            tileWidth,
                                            tileHeight);
         return getData(tileRect);
@@ -258,25 +262,30 @@ public class TIFFRenderedImage implements RenderedImage {
 
     // This method needs to be synchronized as it updates the instance
     // variable 'tileParam'.
-    public synchronized WritableRaster read(Rectangle rect) {
-        // XXX Does this need to consider the subsampling offsets or is
-        // that handled implicitly by the reader?
-        tileParam.setSourceRegion(isSubsampling ?
-                                  new Rectangle(subsampleX*rect.x,
-                                                subsampleY*rect.y,
-                                                subsampleX*rect.width,
-                                                subsampleY*rect.height) :
-                                  rect);
+    //public synchronized WritableRaster read(Rectangle rect) {
+    // --> Norman changed signature to
+    public WritableRaster read(Rectangle rect) {
+        // --> Norman added synchronized (reader) {}
+        synchronized (reader) {
+            // XXX Does this need to consider the subsampling offsets or is
+            // that handled implicitly by the reader?
+            tileParam.setSourceRegion(isSubsampling ?
+                                              new Rectangle(subsampleX * rect.x,
+                                                            subsampleY * rect.y,
+                                                            subsampleX * rect.width,
+                                                            subsampleY * rect.height) :
+                                              rect);
 
-        try {
-            BufferedImage bi = reader.read(imageIndex, tileParam);
-            WritableRaster ras = bi.getRaster();
-            return ras.createWritableChild(0, 0,
-                                           ras.getWidth(), ras.getHeight(),
-                                           rect.x, rect.y,
-                                           null);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            try {
+                BufferedImage bi = reader.read(imageIndex, tileParam);
+                WritableRaster ras = bi.getRaster();
+                return ras.createWritableChild(0, 0,
+                                               ras.getWidth(), ras.getHeight(),
+                                               rect.x, rect.y,
+                                               null);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

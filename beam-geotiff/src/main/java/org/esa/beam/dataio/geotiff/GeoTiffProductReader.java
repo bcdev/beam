@@ -27,7 +27,7 @@ import com.sun.media.imageio.plugins.tiff.TIFFField;
 import com.sun.media.imageio.plugins.tiff.TIFFTag;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageMetadata;
 import com.sun.media.imageioimpl.plugins.tiff.TIFFImageReader2;
-import com.sun.media.imageioimpl.plugins.tiff.TIFFRenderedImage;
+import com.sun.media.imageioimpl.plugins.tiff.TIFFRenderedImage2;
 import org.esa.beam.dataio.dimap.DimapProductHelpers;
 import org.esa.beam.dataio.geotiff.internal.GeoKeyEntry;
 import org.esa.beam.framework.dataio.AbstractProductReader;
@@ -54,7 +54,6 @@ import org.esa.beam.jai.ImageManager;
 import org.esa.beam.util.geotiff.EPSGCodes;
 import org.esa.beam.util.geotiff.GeoTIFFCodes;
 import org.esa.beam.util.io.FileUtils;
-import org.esa.beam.util.jai.JAIUtils;
 import org.esa.beam.util.logging.BeamLogManager;
 import org.geotools.coverage.grid.io.imageio.geotiff.GeoTiffConstants;
 import org.geotools.coverage.grid.io.imageio.geotiff.GeoTiffException;
@@ -76,9 +75,11 @@ import javax.imageio.ImageReadParam;
 import javax.imageio.ImageReader;
 import javax.imageio.ImageTypeSpecifier;
 import javax.imageio.stream.ImageInputStream;
+import javax.media.jai.BorderExtender;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
 import javax.media.jai.operator.BandSelectDescriptor;
+import javax.media.jai.operator.BorderDescriptor;
 import javax.media.jai.operator.FormatDescriptor;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -269,7 +270,7 @@ public class GeoTiffProductReader extends AbstractProductReader {
             }
         }
         if (imageReader == null) {
-            throw new IOException("GeoTiff imageReader not found");
+            throw new RuntimeException("image reader '" + TIFFImageReader2.class.getName() + "' not found");
         }
 
         imageReader.setInput(stream);
@@ -289,6 +290,7 @@ public class GeoTiffProductReader extends AbstractProductReader {
                     is = new ByteArrayInputStream(s.getBytes());
                     final Document document = new DOMBuilder().build(builder.parse(is));
                     product = DimapProductHelpers.createProduct(document);
+                    setPreferredTileSize(product);
                     removeBeamDimapGeoCodingAndTiePointGrids(product);
                     initBeamDimapBandsMap(product);
                 } catch (ParserConfigurationException | SAXException ignore) {
@@ -316,6 +318,7 @@ public class GeoTiffProductReader extends AbstractProductReader {
             final int width = imageReader.getWidth(FIRST_IMAGE);
             final int height = imageReader.getHeight(FIRST_IMAGE);
             product = new Product(productName, productType, width, height, this);
+            setPreferredTileSize(product);
             addBandsToProduct(tiffInfo, product);
         }
 
@@ -329,7 +332,6 @@ public class GeoTiffProductReader extends AbstractProductReader {
             initMetadata(product, inputFile);
             product.setFileLocation(inputFile);
         }
-        //setPreferredTiling(product);
 
         return product;
     }
@@ -394,136 +396,112 @@ public class GeoTiffProductReader extends AbstractProductReader {
         }
     }
 
-    private RenderedImage getBandSourceImage(int bandIndex) throws IOException {
-
-        final ImageReadParam readParam = imageReader.getDefaultReadParam();
-        readParam.setSourceBands(new int[]{bandIndex});
-        readParam.setDestinationBands(new int[]{bandIndex});
-        //readParam.setDestination(new BufferedImage());
-
-        //ImageTypeSpecifier imageType = imageReader.getRawImageType(FIRST_IMAGE);
-        //SampleModel destSampleModel = imageType.getSampleModel().createSubsetSampleModel(new int[]{bandIndex});
-        //ColorModel destColorModel = PlanarImage.createColorModel(destSampleModel);
-        //ColorModel destColorModel = imageType.getColorModel();
-        //readParam.setDestinationType(new ImageTypeSpecifier(destColorModel, destSampleModel));
-        //readParam.setDestinationType(imageType);
-
-        TIFFRenderedImage tiffImage;
-        try {
-            tiffImage = (TIFFRenderedImage) imageReader.readAsRenderedImage(FIRST_IMAGE, readParam);
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw e;
-        }
-
-        RenderedImage bandImage;
-        int numBands = tiffImage.getSampleModel().getNumBands();
-        if (numBands == 1) {
-            bandImage = tiffImage;
-        } else {
-            System.out.println(">>>>>>>>>>>>>>>>>>>>>>> GeoTIFF: getBandSourceImage(" + bandIndex + "): " + numBands);
-            bandImage = BandSelectDescriptor.create(tiffImage, new int[]{bandIndex}, null);
-        }
-
-        int dataType = bandImage.getSampleModel().getDataType();
-        System.out.println(">>>>>>>>>>>>>>>>>>>>>> dataType = " + dataType);
-
-        if (false && bandImage.getTileHeight() == 1) {
-            ImageLayout imageLayout = new ImageLayout();
-            SampleModel sampleModel = bandImage.getSampleModel();
-            imageLayout.setSampleModel(sampleModel);
-            //imageLayout.setTileWidth(512);
-            //imageLayout.setTileHeight(512);
-            imageLayout.setTileHeight(64);
-            RenderingHints renderingHints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, imageLayout);
-            bandImage = FormatDescriptor.create(bandImage, sampleModel.getDataType(), renderingHints);
-        }
-
-        return bandImage;
-    }
-
     private MultiLevelImage getMultiLevelImageSourceImage(final Band band, final int bandIndex) throws IOException {
-        final ImageTypeSpecifier imageType = imageReader.getRawImageType(FIRST_IMAGE);
         MultiLevelModel model = ImageManager.getMultiLevelModel(band);
         Assert.state(model.getLevelCount() == 1 || model.getScale(1) == 2.0);
         return new DefaultMultiLevelImage(new AbstractMultiLevelSource(model) {
             @Override
             protected RenderedImage createImage(int level) {
 
-                synchronized (imageReader) {
-                    final ImageReadParam readParam = new ImageReadParam(); //imageReader.getDefaultReadParam();
-                    readParam.setSourceBands(new int[]{bandIndex});
-                    readParam.setDestinationBands(new int[]{bandIndex});
+                final ImageReadParam readParam = new ImageReadParam(); //imageReader.getDefaultReadParam();
+                readParam.setSourceBands(new int[]{bandIndex});
+                readParam.setDestinationBands(new int[]{bandIndex});
 
-                    double scale = this.getModel().getScale(level);
-                    System.out.println("level = " + level + ", scale = " + scale);
+                //double scale = this.getModel().getScale(level);
+                //System.out.println("level = " + level + ", scale = " + scale);
 
-                    if (level > 0) {
-                        int sourceSubsampling = 1 << level;
-                        readParam.setSourceSubsampling(sourceSubsampling, sourceSubsampling, 0, 0);
-                    }
-
-                    //readParam.setDestination(new BufferedImage());
-
-                    //ImageTypeSpecifier imageType = imageReader.getRawImageType(FIRST_IMAGE);
-                    //SampleModel destSampleModel = imageType.getSampleModel().createSubsetSampleModel(new int[]{bandIndex});
-                    //ColorModel destColorModel = PlanarImage.createColorModel(destSampleModel);
-                    //ColorModel destColorModel = imageType.getColorModel();
-                    //readParam.setDestinationType(new ImageTypeSpecifier(destColorModel, destSampleModel));
-                    //readParam.setDestinationType(imageType);
-
-                    TIFFRenderedImage tiffImage;
-                    try {
-                        tiffImage = (TIFFRenderedImage) imageReader.readAsRenderedImage(FIRST_IMAGE, readParam);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        throw new RuntimeException(e);
-                    }
-
-                    RenderedImage bandImage;
-                    int numBands = tiffImage.getSampleModel().getNumBands();
-                    if (numBands == 1) {
-                        bandImage = tiffImage;
-                    } else {
-                        System.out.println(">>>>>>>>>>>>>>>>>>>>>>> GeoTIFF: getBandSourceImage(" + bandIndex + "): " + numBands);
-                        bandImage = BandSelectDescriptor.create(tiffImage, new int[]{bandIndex}, null);
-                    }
-
-                    int dataType = bandImage.getSampleModel().getDataType();
-                    System.out.println(">>>>>>>>>>>>>>>>>>>>>> dataType = " + dataType + ", tiling: " + bandImage.getTileWidth() + ", " + bandImage.getTileHeight());
-
-                    if (bandImage.getTileHeight() == 1) {
-                        ImageLayout imageLayout = new ImageLayout();
-                        SampleModel sampleModel = bandImage.getSampleModel();
-                        //imageLayout.setSampleModel(sampleModel);
-                        //imageLayout.setTileWidth(512);
-                        //imageLayout.setTileHeight(512);
-                        imageLayout.setTileWidth(bandImage.getWidth());
-                        imageLayout.setTileHeight(Math.min(64, bandImage.getHeight()));
-                        RenderingHints renderingHints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, imageLayout);
-                        bandImage = FormatDescriptor.create(bandImage, sampleModel.getDataType(), renderingHints);
-                    }
-
-                    return bandImage;
+                if (level > 0) {
+                    int sourceSubsampling = 1 << level;
+                    readParam.setSourceSubsampling(sourceSubsampling, sourceSubsampling, 0, 0);
                 }
+
+                //readParam.setDestination(new BufferedImage());
+
+                //ImageTypeSpecifier imageType = imageReader.getRawImageType(FIRST_IMAGE);
+                //SampleModel destSampleModel = imageType.getSampleModel().createSubsetSampleModel(new int[]{bandIndex});
+                //ColorModel destColorModel = PlanarImage.createColorModel(destSampleModel);
+                //ColorModel destColorModel = imageType.getColorModel();
+                //readParam.setDestinationType(new ImageTypeSpecifier(destColorModel, destSampleModel));
+                //readParam.setDestinationType(imageType);
+
+                TIFFRenderedImage2 tiffImage;
+                try {
+                    tiffImage = (TIFFRenderedImage2) imageReader.readAsRenderedImage(FIRST_IMAGE, readParam);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                }
+
+                RenderedImage bandImage;
+                int numBands = tiffImage.getSampleModel().getNumBands();
+                if (numBands == 1) {
+                    bandImage = tiffImage;
+                } else {
+                    //System.out.println(">>>>>>>>>>>>>>>>>>>>>>> GeoTIFF: getBandSourceImage(" + bandIndex + "): " + numBands);
+                    bandImage = BandSelectDescriptor.create(tiffImage, new int[]{bandIndex}, null);
+                }
+
+                int dataType = bandImage.getSampleModel().getDataType();
+                //System.out.println(">>>>>>>>>>>>>>>>>>>>>> dataType = " + dataType + ", tiling: " + bandImage.getTileWidth() + ", " + bandImage.getTileHeight());
+
+                Rectangle expectedImageBounds = getModel().getImageBounds(level);
+                if (bandImage.getWidth() < expectedImageBounds.width
+                    || bandImage.getHeight() < expectedImageBounds.height) {
+                    bandImage = BorderDescriptor.create(bandImage,
+                                                        0,
+                                                        expectedImageBounds.width - bandImage.getWidth(),
+                                                        0,
+                                                        expectedImageBounds.height - bandImage.getHeight(),
+                                                        BorderExtender.createInstance(BorderExtender.BORDER_COPY),
+                                                        null);
+                }
+
+                Dimension expectedTileSize = band.getProduct().getPreferredTileSize();
+                if (bandImage.getTileWidth() != expectedTileSize.width
+                    || bandImage.getTileHeight() != expectedTileSize.height) {
+                    ImageLayout imageLayout = new ImageLayout();
+                    SampleModel sampleModel = bandImage.getSampleModel();
+                    //imageLayout.setSampleModel(sampleModel);
+                    imageLayout.setTileWidth(expectedTileSize.width);
+                    imageLayout.setTileHeight(expectedTileSize.height);
+                    //imageLayout.setTileWidth(bandImage.getWidth());
+                    //imageLayout.setTileHeight(Math.min(64, bandImage.getHeight()));
+                    RenderingHints renderingHints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, imageLayout);
+                    bandImage = FormatDescriptor.create(bandImage, sampleModel.getDataType(), renderingHints);
+                }
+
+                return bandImage;
             }
         });
-
     }
 
-    private void setPreferredTiling(Product product) throws IOException {
-        final Dimension dimension;
-        if (isBadTiling()) {
-            dimension = JAIUtils.computePreferredTileSize(imageReader.getWidth(FIRST_IMAGE),
-                                                          imageReader.getHeight(FIRST_IMAGE), 1);
-        } else {
-            dimension = new Dimension(imageReader.getTileWidth(FIRST_IMAGE), imageReader.getTileHeight(FIRST_IMAGE));
-        }
+    private void setPreferredTileSize(Product product) throws IOException {
+        final int imageWidth = imageReader.getWidth(FIRST_IMAGE);
+        final int imageHeight = imageReader.getHeight(FIRST_IMAGE);
+
         if (isGlobalShifted180) {
-            product.setPreferredTileSize(new Dimension(imageReader.getWidth(FIRST_IMAGE), imageReader.getHeight(FIRST_IMAGE)));
-        } else {
-            product.setPreferredTileSize(dimension);
+            product.setPreferredTileSize(imageWidth, imageHeight);
+            return;
         }
+
+        int tileWidth = imageReader.getTileWidth(FIRST_IMAGE);
+        int tileHeight = imageReader.getTileHeight(FIRST_IMAGE);
+        boolean singlePixelTiles = tileWidth == 1 || tileHeight == 1;
+        boolean noTilingAtAll = tileWidth == imageWidth && tileHeight == imageHeight;
+        if (singlePixelTiles || noTilingAtAll) {
+            final int DEFAULT_TILE_SIZE = 512;
+            if (imageWidth >= 2 * DEFAULT_TILE_SIZE) {
+                tileWidth = DEFAULT_TILE_SIZE;
+            } else {
+                tileWidth = imageWidth;
+            }
+            if (imageHeight >= 2 * DEFAULT_TILE_SIZE) {
+                tileHeight = DEFAULT_TILE_SIZE;
+            } else {
+                tileHeight = imageHeight;
+            }
+        }
+        product.setPreferredTileSize(tileWidth, tileHeight);
     }
 
     private boolean isBadTiling() throws IOException {
@@ -534,7 +512,7 @@ public class GeoTiffProductReader extends AbstractProductReader {
         return tileWidth <= 1 || tileHeight <= 1 || imageWidth == tileWidth || imageHeight == tileHeight;
     }
 
-    private static ImageInfo createIndexedImageInfo(Product product, TIFFRenderedImage baseImage, Band band) {
+    private static ImageInfo createIndexedImageInfo(Product product, TIFFRenderedImage2 baseImage, Band band) {
         final IndexColorModel colorModel = (IndexColorModel) baseImage.getColorModel();
         return createIndexedImageInfo(product, band, colorModel);
     }
