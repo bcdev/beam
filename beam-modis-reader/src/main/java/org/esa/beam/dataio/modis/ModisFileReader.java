@@ -56,6 +56,9 @@ import java.util.logging.Logger;
 
 class ModisFileReader {
 
+    private static final String READ_AS_PROPERTY = "beam.modis.MOD021KM.readAs";
+    private static final String MODIS021KM_TYPE = "MOD021KM";
+
     private Logger logger;
     private HashMap<Band, ModisBandReader> bandReaderMap;
     private ModisProductDb prodDb;
@@ -225,6 +228,19 @@ class ModisFileReader {
             prodType = product.getProductType();
         } else {
             prodType = type;
+        }
+
+        if(prodType.equals(MODIS021KM_TYPE)) {
+            String readAs = System.getProperty(READ_AS_PROPERTY, "radiance");
+            switch(readAs) {
+                case "reflectance":
+                    return prodType + "_reflec";
+                case "radiance":
+                    return prodType;
+                default:
+                    Logger systemLogger = BeamLogManager.getSystemLogger();
+                    systemLogger.warning(String.format("Property '%s' has unsupported value '%s'", READ_AS_PROPERTY, readAs));
+            }
         }
 
         return prodType;
