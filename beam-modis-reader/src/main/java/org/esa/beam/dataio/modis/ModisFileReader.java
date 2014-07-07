@@ -70,7 +70,7 @@ class ModisFileReader {
     public ModisFileReader() {
         prodDb = ModisProductDb.getInstance();
         logger = BeamLogManager.getSystemLogger();
-        bandReaderMap = new HashMap<Band, ModisBandReader>();
+        bandReaderMap = new HashMap<>();
     }
 
     /**
@@ -234,7 +234,7 @@ class ModisFileReader {
             String readAs = System.getProperty(READ_AS_PROPERTY, "radiance");
             switch(readAs) {
                 case "reflectance":
-                    return prodType + "_reflec";
+                    return prodType + "-REFLEC";
                 case "radiance":
                     return prodType;
                 default:

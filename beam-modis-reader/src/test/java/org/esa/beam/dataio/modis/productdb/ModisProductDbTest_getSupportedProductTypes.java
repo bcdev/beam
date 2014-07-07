@@ -28,6 +28,7 @@ public class ModisProductDbTest_getSupportedProductTypes {
         final String[] expectedProductTypes = new String[]{
                 "MOD021KM", "MYD021KM",
                 "MOD021KM_IMAPP",
+                "MOD021KM-REFLEC",
                 "MOD02HKM", "MYD02HKM",
                 "MOD02QKM", "MYD02QKM",
                 "MODOCL2", "MYDOCL2",

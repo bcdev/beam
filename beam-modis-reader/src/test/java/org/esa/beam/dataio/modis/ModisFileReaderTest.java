@@ -34,13 +34,14 @@ public class ModisFileReaderTest extends TestCase {
     public void testGetTypeString_typeSupplied_WithProperty() {
         final Product product = new Product("Name", "PROD_TYPE", 5, 5);
         System.setProperty("beam.modis.MOD021KM.readAs", "reflectance");
-        assertEquals("MOD021KM_reflec", ModisFileReader.getTypeString("MOD021KM", product));
+        assertEquals("MOD021KM-REFLEC", ModisFileReader.getTypeString("MOD021KM", product));
         assertEquals("something_else", ModisFileReader.getTypeString("something_else", product));
     }
+
     public void testGetTypeString_typeNUll_WithProperty() {
         final Product product = new Product("Name", "MOD021KM", 5, 5);
         System.setProperty("beam.modis.MOD021KM.readAs", "reflectance");
-        assertEquals("MOD021KM_reflec", ModisFileReader.getTypeString(null, product));
+        assertEquals("MOD021KM-REFLEC", ModisFileReader.getTypeString(null, product));
     }
 
     public void testCreateRangeFromArray_nullArray() {
