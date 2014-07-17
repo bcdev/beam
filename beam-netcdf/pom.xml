@@ -27,7 +27,7 @@
 
     <artifactId>beam-netcdf</artifactId>
     <name>BEAM NetCDF Product Reader and Writer</name>
-    <version>5.0.1-SNAPSHOT</version>
+    <version>5.0.1</version>
 
     <dependencies>
         <dependency>
@@ -37,6 +37,7 @@
         <dependency>
             <groupId>edu.ucar</groupId>
             <artifactId>netcdf</artifactId>
+            <version>4.3.22</version>
         </dependency>
         <dependency>
             <groupId>edu.ucar</groupId>

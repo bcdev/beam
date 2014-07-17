@@ -12,6 +12,10 @@ if len(sys.argv) != 2:
     print("usage: %s <file>" % sys.argv[0]);
     sys.exit(1)
 
+# Uncomment if you receive errors of type com.sun.media.jai.util.ServiceConfigurationError, see
+# http://www.brockmann-consult.de/beam-jira/browse/BEAM-1699
+#beampy.SystemUtils.init3rdPartyLibs(None)  # Initialise BEAM's third party Java libraries JAI and GeoTools.
+
 print("Reading...")
 sourceProduct = ProductIO.readProduct(sys.argv[1])
 b1 = sourceProduct.getBand('reflec_5')

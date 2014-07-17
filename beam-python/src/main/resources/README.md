@@ -29,7 +29,7 @@ Installation
 ------------
 
 The first step is to properly install `jpy` as described in the [jpy documentation](http://jpy.readthedocs.org/en/latest/install.html).
-(Be sure use `jpy` version 0.7.2 or higher.) After successful installation of `jpy`, you will need to install `beampy` as follows:
+(Be sure use `jpy` version 0.7.3 or higher.) After successful installation of `jpy`, you will need to install `beampy` as follows:
 
 On Darwin / Linux type:
 
@@ -70,7 +70,7 @@ If the import is successful (no errors are raised) you can exit the Python inter
 They all require an EO data product file as input named `MER_RR__1P.N1`, which is an Envisat MERIS L1b product.
 You can download an Envisat MERIS L1b test file from the
 [BEAM home page](http://www.brockmann-consult.de/cms/web/beam/meris-products)
-and rename it to `MER_RR__1P.N1` in order to run the tests.
+and rename it to `MER_RR__1P.N1` in order to run the tests. The tests expect [numpy](http://www.numpy.org/) to be installed. 
 
     python beampy_mem_test.py
     python beampy_perf_test.py
@@ -103,6 +103,7 @@ The examples for the API usage are simple tools that compute an output product f
 You can download an Envisat MERIS test files used as input from the
 [BEAM home page](http://www.brockmann-consult.de/cms/web/beam/meris-products)
 and rename it to `MER_RR__1P.N1` and `MER_RR__2P.N1` in order to run the example code.
+All examples expect [numpy](http://www.numpy.org/) to be installed. 
 
 Computing a Fluorescence Line Height (FLH) product from water-leaving reflectances:
 
@@ -128,7 +129,6 @@ Please check:
 
 * [BEAM API Documentation](http://www.brockmann-consult.de/beam/doc/apidocs/index.html)
 * [BEAM Programming Tutorial](http://www.brockmann-consult.de/beam-wiki/display/BEAM/BEAM+4+Programming+Tutorial)
-
 
 ### BEAM Operator Plugin
 
