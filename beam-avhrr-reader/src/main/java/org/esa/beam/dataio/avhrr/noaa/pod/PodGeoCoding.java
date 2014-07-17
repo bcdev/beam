@@ -1,8 +1,13 @@
 package org.esa.beam.dataio.avhrr.noaa.pod;
 
-import com.bc.ceres.glevel.MultiLevelImage;
 import org.esa.beam.framework.dataio.ProductSubsetDef;
-import org.esa.beam.framework.datamodel.*;
+import org.esa.beam.framework.datamodel.GeoApproximation;
+import org.esa.beam.framework.datamodel.GeoPos;
+import org.esa.beam.framework.datamodel.PixelPos;
+import org.esa.beam.framework.datamodel.PixelPosEstimator;
+import org.esa.beam.framework.datamodel.Scene;
+import org.esa.beam.framework.datamodel.TiePointGeoCoding;
+import org.esa.beam.framework.datamodel.TiePointGrid;
 
 import javax.media.jai.PlanarImage;
 import java.awt.Rectangle;
@@ -19,13 +24,13 @@ import java.awt.Rectangle;
 final class PodGeoCoding extends TiePointGeoCoding {
 
     private transient PixelPosEstimator pixelPosEstimator;
-    private transient PixelFinder pixelFinder;
+    private transient PodPixelFinder pixelFinder;
 
     PodGeoCoding(TiePointGrid latGrid, TiePointGrid lonGrid) {
         super(latGrid, lonGrid);
 
-        final MultiLevelImage lonImage = lonGrid.getGeophysicalImage();
-        final MultiLevelImage latImage = latGrid.getGeophysicalImage();
+        final PlanarImage lonImage = lonGrid.getGeophysicalImage();
+        final PlanarImage latImage = latGrid.getGeophysicalImage();
 
         final GeoApproximation[] approximations = createApproximations(lonImage, latImage);
         final Rectangle bounds = new Rectangle(0, 0, lonGrid.getSceneRasterWidth(), lonGrid.getSceneRasterHeight());

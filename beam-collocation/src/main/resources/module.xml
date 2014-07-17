@@ -1,15 +1,17 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>beam-collocation</symbolicName>
-    <version>5.0</version>
+    <version>5.0.1</version>
     <name>Collocation</name>
 
     <description>
-        Collocation tool.
+        Performs a geographic collocation of two data products.
     </description>
 
     <changelog>
         <![CDATA[
+        <b>Changes in 5.0.1</b><br/>
+        NPE fixed in mask expression string in Geocoding display panel; slight simplification in CollocateOp <br/>
         ]]>
     </changelog>
 

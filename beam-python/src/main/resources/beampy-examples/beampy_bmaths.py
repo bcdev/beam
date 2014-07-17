@@ -11,6 +11,11 @@ if len(sys.argv) != 2:
 
 file = sys.argv[1]
 
+
+# Uncomment if you receive errors of type com.sun.media.jai.util.ServiceConfigurationError, see
+# http://www.brockmann-consult.de/beam-jira/browse/BEAM-1699
+#beampy.SystemUtils.init3rdPartyLibs(None)  # Initialise BEAM's third party Java libraries JAI and GeoTools.
+
 print("Reading...")
 product = ProductIO.readProduct(file)
 width = product.getSceneRasterWidth()
