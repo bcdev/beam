@@ -228,25 +228,45 @@ public class SeabassReader extends LineNumberReader {
 
         float lat;
         float lon;
-        try {
-            if (latIndex != -1) {
+
+        if (latIndex != -1) {
+            try {
                 lat = Float.parseFloat(record[latIndex]);
-            } else {
-                lat = Float.parseFloat(headerLatStr);
+            } catch (Exception e) {
+                throw new IOException("lat is not a valid float on line " + getLineNumber(), e);
             }
-        } catch (Exception e) {
-            throw new IOException("lat is not a valid float on line " + getLineNumber(), e);
+        } else {
+            if (headerLatStr != null) {
+                try {
+                    lat = Float.parseFloat(headerLatStr);
+                } catch (Exception e) {
+                    throw new IOException("lat is not a valid float in header " + getLineNumber(), e);
+                }
+            } else {
+                throw new IOException("lat not found in header ");
+            }
         }
 
-        try {
-            if (lonIndex != -1) {
+
+        if (lonIndex != -1) {
+            try {
                 lon = Float.parseFloat(record[lonIndex]);
-            } else {
-                lon = Float.parseFloat(headerLonStr);
+            } catch (Exception e) {
+                throw new IOException("lon is not a valid float on line " + getLineNumber(), e);
             }
-        } catch (Exception e) {
-            throw new IOException("lon is not a valid float on line " + getLineNumber(), e);
+        } else {
+            if (headerLonStr != null) {
+                try {
+                    lon = Float.parseFloat(headerLonStr);
+                } catch (Exception e) {
+                    throw new IOException("lon is not a valid float in header " + getLineNumber(), e);
+                }
+            } else {
+                throw new IOException("lon not found in header ");
+            }
         }
+
+
 
         PixelPos pixelPos = geoCoding.getPixelPos(new GeoPos(lat, lon), null);
         if (!pixelPos.isValid()) {
