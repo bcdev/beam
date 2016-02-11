@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -73,7 +74,7 @@ public class L1BHicoProductReaderPlugIn implements ProductReaderPlugIn {
         try {
             ncfile = NetcdfFileOpener.open(file.getPath());
             if (ncfile != null) {
-                Attribute instrumentName = ncfile.findGlobalAttribute("metadata/FGDC/Instrument_Information/Instrument_Name");
+                Attribute instrumentName = ncfile.findGlobalAttribute("metadata_FGDC_Instrument_Information_Instrument_Name");
 
                 //metadata/FGDC/Instrument_Information/Instrument_Name = "Hyperspectral Imager for Coastal Oceans"
 
