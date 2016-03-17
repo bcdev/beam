@@ -311,10 +311,12 @@ public class BowtieTiePointGeoCoding extends AbstractBowtieGeoCoding {
         removeTiePointGrid(destScene, latGridName);
         removeTiePointGrid(destScene, lonGridName);
 
-        if (subsetDef == null) {
-            destProduct.addTiePointGrid(_latGrid);
-            destProduct.addTiePointGrid(_lonGrid);
-            BowtieTiePointGeoCoding destGeo = new BowtieTiePointGeoCoding(_latGrid, _lonGrid, _scanlineHeight);
+        if (subsetDef == null || subsetDef.getRegion() == null) {
+            final TiePointGrid clonedLatGrid = _latGrid.cloneTiePointGrid();
+            final TiePointGrid clonedLonGrid = _lonGrid.cloneTiePointGrid();
+            destProduct.addTiePointGrid(clonedLatGrid);
+            destProduct.addTiePointGrid(clonedLonGrid);
+            BowtieTiePointGeoCoding destGeo = new BowtieTiePointGeoCoding(clonedLatGrid, clonedLonGrid, _scanlineHeight);
             destScene.setGeoCoding(destGeo);
             return true;
         }
@@ -339,13 +341,6 @@ public class BowtieTiePointGeoCoding extends AbstractBowtieGeoCoding {
         }
 
         Rectangle region = subsetDef.getRegion();
-        if(region == null) {
-            destProduct.addTiePointGrid(_latGrid);
-            destProduct.addTiePointGrid(_lonGrid);
-            BowtieTiePointGeoCoding destGeo = new BowtieTiePointGeoCoding(_latGrid, _lonGrid, _scanlineHeight);
-            destScene.setGeoCoding(destGeo);
-            return true;
-        }
 
         // make sub grids
         float[] newLatFloats = new float[region.width * region.height];
