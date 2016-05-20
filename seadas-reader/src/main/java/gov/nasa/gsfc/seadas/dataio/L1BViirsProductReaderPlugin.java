@@ -1,20 +1,13 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, see http://www.gnu.org/licenses/
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
  */
 package gov.nasa.gsfc.seadas.dataio;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Locale;
 import org.esa.beam.dataio.netcdf.util.NetcdfFileOpener;
 import org.esa.beam.framework.dataio.DecodeQualification;
 import org.esa.beam.framework.dataio.ProductReader;
@@ -23,56 +16,27 @@ import org.esa.beam.util.io.BeamFileFilter;
 import ucar.nc2.Attribute;
 import ucar.nc2.NetcdfFile;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Set;
-
-public class L2ProductReaderPlugIn implements ProductReaderPlugIn {
-
-    // Set to "true" to output debugging information.
+/**
+ *
+ * @author sean
+ */
+public class L1BViirsProductReaderPlugin implements ProductReaderPlugIn {
+        // Set to "true" to output debugging information.
     // Don't forget to setback to "false" in production code!
     //
     private static final boolean DEBUG = false;
 
-    private static final String DEFAULT_FILE_EXTENSION = ".nc";
+    private static final String DEFAULT_FILE_EXTENSION_L1B_MOD = ".L1B-M_SNPP.nc";
+    private static final String DEFAULT_FILE_EXTENSION_L1B_IMG = ".L1B-I_SNPP.nc";
+    private static final String DEFAULT_FILE_EXTENSION_L1B_DNB = ".L1B-D_SNPP.nc";
 
-    private static final String DEFAULT_FILE_EXTENSION_L2 = ".L2";
-    private static final String DEFAULT_FILE_EXTENSION_L2_GAC = DEFAULT_FILE_EXTENSION_L2 + "_GAC";
-    private static final String DEFAULT_FILE_EXTENSION_L2_GAC_OC = DEFAULT_FILE_EXTENSION_L2_GAC + "_OC";
-    private static final String DEFAULT_FILE_EXTENSION_L2_LAC = DEFAULT_FILE_EXTENSION_L2 + "_LAC";
-    private static final String DEFAULT_FILE_EXTENSION_L2_LAC_OC = DEFAULT_FILE_EXTENSION_L2_LAC + "_OC";
-    private static final String DEFAULT_FILE_EXTENSION_L2_LAC_SST = DEFAULT_FILE_EXTENSION_L2_LAC + "_SST";
-    private static final String DEFAULT_FILE_EXTENSION_L2_LAC_SST4 = DEFAULT_FILE_EXTENSION_L2_LAC + "_SST4";
-    private static final String DEFAULT_FILE_EXTENSION_L2_MLAC = DEFAULT_FILE_EXTENSION_L2 + "_MLAC";
-    private static final String DEFAULT_FILE_EXTENSION_L2_MLAC_OC = DEFAULT_FILE_EXTENSION_L2_MLAC + "_OC";
+    public static final String READER_DESCRIPTION = "VIIRS L1B Products (NASA)";
+    public static final String FORMAT_NAME = "VIIRS-L1B";
 
-    public static final String READER_DESCRIPTION = "SeaDAS-Supported Level 2 Products";
-    public static final String FORMAT_NAME = "SeaDAS-L2";
-
-    private static final String[] supportedProductTypes = {
-            "AVHRR Level-2 Data",
-            "CZCS Level-2 Data",
-            "HMODISA Level-2 Data",
-            "HMODIST Level-2 Data",
-            "MERIS Level-2 Data",
-            "MODISA Level-2 Data",
-            "MODIST Level-2 Data",
-            "MOS Level-2 Data",
-            "OSMI Level-2 Data",
-            "OCTS Level-2 Data",
-            "SeaWiFS Level-2 Data",
-            "VIIRSN Level-2 Data",
-            "OCM2 Level-2 Data",
-            "OCM Level-2 Data",
-            "HICO Level-2 Data",
-            "GOCI Level-2 Data",
-            "OLI Level-2 Data",
-            "OLCI Level-2 Data",
-    };
-    private static final Set<String> supportedProductTypeSet = new HashSet<String>(Arrays.asList(supportedProductTypes));
+//    private static final String[] supportedProductTypes = {
+//            "MODIS_SWATH_Type_L1B",
+//    };
+//    private static final Set<String> supportedProductTypeSet = new HashSet<String>(Arrays.asList(supportedProductTypes));
 
     /**
      * Checks whether the given object is an acceptable input for this product reader and if so, the method checks if it
@@ -100,28 +64,26 @@ public class L2ProductReaderPlugIn implements ProductReaderPlugIn {
         try {
             ncfile = NetcdfFileOpener.open(file.getPath());
             if (ncfile != null) {
-                String titleattr = "title";
-                Attribute titleAttribute = ncfile.findGlobalAttributeIgnoreCase(titleattr);
+               Attribute instrumentName = ncfile.findGlobalAttribute("instrument");
+               Attribute processingLevel = ncfile.findGlobalAttribute("processing_level");
 
-                if (titleAttribute != null) {
-
-                    final String title = titleAttribute.getStringValue();
-                    if (title != null) {
-                        if (supportedProductTypeSet.contains(title.trim())) {
+                if (instrumentName != null) {
+                    if (processingLevel != null) {
+                        if (instrumentName.getStringValue().equals("VIIRS") && processingLevel.getStringValue().equals("L1B")) {
                             if (DEBUG) {
                                 System.out.println(file);
                             }
                             ncfile.close();
                             return DecodeQualification.INTENDED;
-                        } else {
+                        } 
+                    } else {
                             if (DEBUG) {
-                                System.out.println("# Unrecognized attribute Title=[" + title + "]: " + file);
+                                System.out.println("# Missing processing_level attribute: " + file);
                             }
                         }
-                    }
                 } else {
                     if (DEBUG) {
-                        System.out.println("# Missing attribute 'Title': " + file);
+                        System.out.println("# Missing instrument attribute': " + file);
                     }
                 }
             } else {
@@ -190,12 +152,9 @@ public class L2ProductReaderPlugIn implements ProductReaderPlugIn {
     public String[] getDefaultFileExtensions() {
         // todo: return regular expression to clean up the extensions.
         return new String[]{
-                DEFAULT_FILE_EXTENSION,
-                DEFAULT_FILE_EXTENSION_L2_GAC_OC,
-                DEFAULT_FILE_EXTENSION_L2_LAC_OC,
-                DEFAULT_FILE_EXTENSION_L2_LAC_SST,
-                DEFAULT_FILE_EXTENSION_L2_LAC_SST4,
-                DEFAULT_FILE_EXTENSION_L2_MLAC_OC
+                DEFAULT_FILE_EXTENSION_L1B_MOD,
+                DEFAULT_FILE_EXTENSION_L1B_IMG,
+                DEFAULT_FILE_EXTENSION_L1B_DNB
         };
     }
 

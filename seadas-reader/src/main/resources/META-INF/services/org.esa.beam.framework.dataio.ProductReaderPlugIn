@@ -9,4 +9,5 @@ gov.nasa.gsfc.seadas.dataio.AquariusProductReaderPlugIn
 gov.nasa.gsfc.seadas.dataio.ViirsProductReaderPlugIn
 gov.nasa.gsfc.seadas.dataio.L3ProductReaderPlugIn
 gov.nasa.gsfc.seadas.dataio.BrowseProductReaderPlugIn
+gov.nasa.gsfc.seadas.dataio.L1BViirsProductReaderPlugin
 
