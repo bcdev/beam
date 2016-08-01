@@ -28,7 +28,7 @@
 
     <name>BEAM Pixel Extraction Tool</name>
     <artifactId>beam-pixel-extraction</artifactId>
-    <version>5.0</version>
+    <version>5.0.1-SNAPSHOT</version>
 
     <dependencies>
         <dependency>
