@@ -20,6 +20,7 @@ import com.bc.ceres.binding.Converter;
 import com.bc.ceres.binding.ConverterRegistry;
 import com.bc.ceres.glevel.MultiLevelImage;
 import com.bc.jexp.ParseException;
+import com.bc.jexp.impl.Tokenizer;
 import org.esa.beam.framework.datamodel.Band;
 import org.esa.beam.framework.datamodel.CrsGeoCoding;
 import org.esa.beam.framework.datamodel.MetadataAttribute;
@@ -410,7 +411,7 @@ public class MosaicOp extends Operator {
             Band band = product.addBand(outputVariable.getName(), ProductData.TYPE_FLOAT32);
             band.setDescription(outputVariable.getExpression());
             final String countBandName = getCountBandName(outputVariable);
-            band.setValidPixelExpression(String.format("%s > 0", countBandName));
+            band.setValidPixelExpression(String.format("%s > 0", Tokenizer.createExternalName(countBandName)));
 
             Band countBand = product.addBand(countBandName, ProductData.TYPE_INT32);
             countBand.setDescription(String.format("Count of %s", outputVariable.getName()));

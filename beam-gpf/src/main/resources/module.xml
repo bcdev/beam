@@ -30,6 +30,8 @@
 
     <changelog>
         <![CDATA[
+         <b>Changes in 5.0.7</b><br/>
+            [BEAM-1750] Variables are not automatically quoted if needed<br/>
          <b>Changes in 5.0.6</b><br/>
             [BEAM-1771] BooleanExpressionConverter is located in UI package<br/>
          <b>Changes in 5.0.5</b><br/>

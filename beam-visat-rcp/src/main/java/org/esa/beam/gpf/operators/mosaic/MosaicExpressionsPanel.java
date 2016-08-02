@@ -18,6 +18,7 @@ package org.esa.beam.gpf.operators.mosaic;
 
 import com.bc.ceres.swing.TableLayout;
 import com.bc.ceres.swing.binding.BindingContext;
+import com.bc.jexp.impl.Tokenizer;
 import org.esa.beam.framework.datamodel.Band;
 import org.esa.beam.framework.datamodel.Product;
 import org.esa.beam.framework.ui.AppContext;
@@ -344,7 +345,7 @@ class MosaicExpressionsPanel extends JPanel {
                     final String[] availableBandNames = product.getBandNames();
                     final Band[] allBands = product.getBands();
                     final List dataVector = ((DefaultTableModel) variablesTable.getModel()).getDataVector();
-                    final List<Band> existingBands = new ArrayList<Band>(dataVector.size());
+                    final List<Band> existingBands = new ArrayList<>(dataVector.size());
                     for (Object aDataVector : dataVector) {
                         List row = (List) aDataVector;
                         final String name = (String) row.get(0);
@@ -367,7 +368,8 @@ class MosaicExpressionsPanel extends JPanel {
                         for (Band selectedBand : selectedBands) {
                             if (!existingBands.contains(selectedBand)) {
                                 final String name = selectedBand.getName();
-                                addRow(variablesTable, new Object[]{name, name});
+                                final String expression = Tokenizer.createExternalName(name);
+                                addRow(variablesTable, new Object[]{name, expression});
                             } else {
                                 existingBands.remove(selectedBand);
                             }
