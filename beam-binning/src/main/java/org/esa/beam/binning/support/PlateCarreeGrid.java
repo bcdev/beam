@@ -25,6 +25,7 @@ import com.vividsolutions.jts.simplify.DouglasPeuckerSimplifier;
 import org.esa.beam.binning.PlanetaryGrid;
 import org.esa.beam.framework.datamodel.Product;
 import org.esa.beam.gpf.operators.standard.reproject.ReprojectionOp;
+import org.esa.beam.jai.ImageManager;
 import org.esa.beam.util.ProductUtils;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 
@@ -151,6 +152,10 @@ public class PlateCarreeGrid implements PlanetaryGrid {
         repro.setParameter("pixelSizeX", pixelSize);
         repro.setParameter("pixelSizeY", pixelSize);
         repro.setParameter("crs", DefaultGeographicCRS.WGS84.toString());
+
+        Dimension tileSize = ImageManager.getPreferredTileSize(sourceProduct);
+        repro.setParameter("tileSizeX", tileSize.width);
+        repro.setParameter("tileSizeY", tileSize.height);
 
         int width = numCols;
         int height = numRows;
