@@ -41,13 +41,12 @@ public class FileBackedSpatialBinCollectorTest {
         DataOutputStream dos = new DataOutputStream(byteStream);
 
         dos.writeLong(23);
-        dos.writeInt(2);
         SpatialBin bin1 = createSpatialBin(23);
         bin1.write(dos);
+        dos.writeLong(23);
         SpatialBin bin2 = createSpatialBin(23);
         bin2.write(dos);
         dos.writeLong(1048);
-        dos.writeInt(1);
         SpatialBin bin3 = createSpatialBin(1048);
         bin3.write(dos);
 
@@ -68,15 +67,13 @@ public class FileBackedSpatialBinCollectorTest {
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(byteStream);
 
-        TreeMap<Long, List<SpatialBin>> map = new TreeMap<Long, List<SpatialBin>>();
         ArrayList<SpatialBin> binList = new ArrayList<SpatialBin>();
         binList.add(createSpatialBin(42));
         binList.add(createSpatialBin(42));
         binList.add(createSpatialBin(42));
         binList.add(createSpatialBin(42));
-        map.put(42L, binList);
 
-        FileBackedSpatialBinCollector.writeToStream(map, dos);
+        FileBackedSpatialBinCollector.writeToStream(binList, dos);
 
         ByteArrayInputStream bais = new ByteArrayInputStream(byteStream.toByteArray());
         TreeMap<Long, List<SpatialBin>> newMap = new TreeMap<Long, List<SpatialBin>>();
