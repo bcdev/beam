@@ -178,11 +178,13 @@ class FileBackedSpatialBinCollector implements SpatialBinCollector {
                 return file.isFile() && fileName.startsWith("bins-") && fileName.endsWith(".tmp");
             }
         });
+        if (files == null) {
+            return Collections.emptyList();
+        }
         Arrays.sort(files);
         List<File> fileList = new ArrayList<>(files.length);
         Collections.addAll(fileList, files);
         return fileList;
-
     }
 
     private static class FileBackedBinCollection implements SpatialBinCollection {

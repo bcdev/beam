@@ -29,6 +29,8 @@
 
     <changelog>
         <![CDATA[
+        <b>Changes in 5.0.9</b><br/>
+        [BEAM-1785] Binner is slowing down with every product<br/>
         <b>Changes in 5.0.6</b><br/>
         [BEAM-1764] - Binned Product reader makes errors in sampling to rectangular product image<br/>
         <b>Changes in 5.0.5</b><br/>
