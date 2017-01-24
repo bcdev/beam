@@ -41,6 +41,8 @@
 
     <changelog>
         <![CDATA[
+        <b>Changes in 5.0.6</b><br/>
+        [BEAM-1786] NPE thrown if tile data is requested and a BorderExtender used<br/>
         <b>Changes in 5.0.5</b><br/>
         [BEAM-1771] BooleanExpressionConverter is located in UI package<br/>
         [BEAM-1751] Write/Read GeoCodings using DimapPersitables<br/>

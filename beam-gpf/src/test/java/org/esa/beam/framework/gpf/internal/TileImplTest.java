@@ -16,13 +16,20 @@
 
 package org.esa.beam.framework.gpf.internal;
 
+import com.bc.ceres.glevel.MultiLevelImage;
 import org.esa.beam.framework.datamodel.Band;
 import org.esa.beam.framework.datamodel.Product;
 import org.esa.beam.framework.datamodel.ProductData;
+import org.esa.beam.framework.gpf.OperatorException;
 import org.esa.beam.framework.gpf.Tile;
+import org.esa.beam.jai.ResolutionLevel;
+import org.esa.beam.jai.VirtualBandOpImage;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import javax.media.jai.BorderExtenderConstant;
+import java.awt.Rectangle;
 import java.util.Arrays;
 
 import static org.junit.Assert.*;
@@ -136,7 +143,7 @@ public class TileImplTest {
         double scalingFactor = 2.5;
         band.setScalingFactor(scalingFactor);
 
-        Tile scaledTile = new TileImpl(band, band.getSourceImage().getData());
+        Tile scaledTile = createTile(band);
 
         int maxRawValue = Byte.MAX_VALUE;
         double geoPhysicalValueOutOfRawRange = (maxRawValue + 1) * scalingFactor;
@@ -198,6 +205,37 @@ public class TileImplTest {
     }
 
     @Test
+    public void testGetSamplesFloatWithNoDataAndBorderExtender() {
+
+        Product product = new Product("n", "t", 1000, 1000);
+        product.setPreferredTileSize(100, 100);
+        Band band = product.addBand("x", ProductData.TYPE_FLOAT32);
+        band.setScalingFactor(10.0);
+        band.setGeophysicalNoDataValue(5025);
+        band.setNoDataValueUsed(true);
+
+        band.setSourceImage(VirtualBandOpImage.create("Y * 1000 + X", band.getDataType(), Float.NaN, product, ResolutionLevel.MAXRES));
+
+        MultiLevelImage sourceImage = band.getSourceImage();
+        Rectangle tileBounds = sourceImage.getTile(0,0).getBounds();
+        tileBounds.grow(10,0);
+        BorderExtenderConstant nanExtender = new BorderExtenderConstant(new double[]{Float.NaN});
+        TileImpl tile = new TileImpl(band, sourceImage.getExtendedData(tileBounds, nanExtender));
+
+        try {
+            float[] samplesFloat = tile.getSamplesFloat();
+            assertEquals(120*100, samplesFloat.length);
+            assertEquals(Float.NaN, samplesFloat[2], 1.0e-6f); // NaN because of BorderExtender
+            assertEquals(5005, samplesFloat[10], 1.0e-6f);
+            assertEquals(Float.NaN, samplesFloat[12], 1.0e-6f); // NaN because of GeophysicalNoDataValue
+
+        } catch (OperatorException e) {
+            Assert.fail("OperatorException should not been thrown.");
+        }
+
+    }
+
+    @Test
     public void testGetSamplesDouble() {
         Tile tile;
         double[] samples;
@@ -255,15 +293,29 @@ public class TileImplTest {
     }
 
     static Tile createScaledTile(int type, double scalingFactor) {
-        return _createTile(type, scalingFactor, false, 0);
+        return createFloatingPointTile(type, scalingFactor, false, 0);
     }
 
     static Tile createScaledTileWithNaNs(int type, double scalingFactor, double noDataValue) {
-        return _createTile(type, scalingFactor, true, noDataValue);
+        return createFloatingPointTile(type, scalingFactor, true, noDataValue);
     }
 
-    private static Tile _createTile(int type, double scalingFactor,
-                                    boolean dataValueUsed, double noDataValue) {
+    private static Tile createFloatingPointTile(int type, double scalingFactor,
+                                                boolean dataValueUsed, double noDataValue) {
+
+        return createTile(_createFloatingPointBand(type, scalingFactor, dataValueUsed, noDataValue));
+    }
+
+    private static Tile createIntTile(int type, int i0, double scalingFactor) {
+
+        return createTile(_createIntegerBand(type, i0, scalingFactor));
+    }
+
+    private static TileImpl createTile(Band band) {
+        return new TileImpl(band, band.getSourceImage().getData());
+    }
+
+    private static Band _createFloatingPointBand(int type, double scalingFactor, boolean dataValueUsed, double noDataValue) {
         Product product = new Product("n", "t", W, H);
         Band band = product.addBand("x", type);
         band.setScalingFactor(scalingFactor);
@@ -275,11 +327,10 @@ public class TileImplTest {
             rasterData.setElemDoubleAt(i, (i + 1) + 0.1);
         }
         band.setRasterData(rasterData);
-
-        return new TileImpl(band, band.getSourceImage().getData());
+        return band;
     }
 
-    private static Tile createIntTile(int type, int i0, double scalingFactor) {
+    private static Band _createIntegerBand(int type, int i0, double scalingFactor) {
         Product product = new Product("n", "t", W, H);
         Band band = product.addBand("x", type);
         band.setScalingFactor(scalingFactor);
@@ -289,7 +340,6 @@ public class TileImplTest {
             rasterData.setElemDoubleAt(i, i0 + i);
         }
         band.setRasterData(rasterData);
-
-        return new TileImpl(band, band.getSourceImage().getData());
+        return band;
     }
 }
