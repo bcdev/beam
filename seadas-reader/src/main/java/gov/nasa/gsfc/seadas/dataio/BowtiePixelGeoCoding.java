@@ -154,7 +154,7 @@ public class BowtiePixelGeoCoding extends AbstractBowtieGeoCoding {
             if (Float.isNaN(p0) || p0 > 90.0 || p0 < -90.0 || Float.isNaN(p1) || p1 > 90.0 || p1 < -90.0) {
                 continue;
             }
-            if((p0 - p1) < 0.001) {
+            if((p0 - p1) < -0.001) {
                 start = i;
                 break;
             }
@@ -168,7 +168,7 @@ public class BowtiePixelGeoCoding extends AbstractBowtieGeoCoding {
                 if (Float.isNaN(p0) || p0 > 90.0 || p0 < -90.0 || Float.isNaN(p1) || p1 > 90.0 || p1 < -90.0) {
                     continue;
                 }
-                if((p0 - p1) < 0.001) {
+                if((p0 - p1) < -0.001) {
                     start = i;
                     break;
                 }
