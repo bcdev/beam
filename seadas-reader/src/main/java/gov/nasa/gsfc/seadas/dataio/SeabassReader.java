@@ -40,10 +40,15 @@ public class SeabassReader extends LineNumberReader {
     int latIndex = -1;
     int lonIndex = -1;
 
+
+    String headerLatStr = null;
+    String headerLonStr = null;
+
+
     /**
      * Create a reader for SeaBASS files.
      *
-     * @param in reader containing SeaBASS formatted text
+     * @param in        reader containing SeaBASS formatted text
      * @param geoCoding used to convert lat,lon to pixel,line
      */
     public SeabassReader(Reader in, GeoCoding geoCoding) {
@@ -66,7 +71,7 @@ public class SeabassReader extends LineNumberReader {
         int pointIndex = 0;
         while ((line = readLine()) != null) {
             line = line.trim();
-            if(line.isEmpty())
+            if (line.isEmpty())
                 continue;
             SimpleFeature feature = createFeature(featureType, pointIndex, line);
             if (feature != null) {
@@ -157,6 +162,12 @@ public class SeabassReader extends LineNumberReader {
                     }
                 } else if (key.equals("/fields")) {
                     fieldStr = value;
+                } else if (key.equals("/north_latitude")) {
+                    String[] tmp = value.split("\\[DEG\\]");
+                    headerLatStr = tmp[0].trim();
+                } else if (key.equals("/west_longitude")) {
+                    String[] tmp = value.split("\\[DEG\\]");
+                    headerLonStr = tmp[0].trim();
                 }
             } // key=value
         } // while line
@@ -188,20 +199,20 @@ public class SeabassReader extends LineNumberReader {
             index++;
         }
 
-        if (latIndex == -1) {
-            throw new IOException("lat needs to be in /fields");
-        }
-        if (lonIndex == -1) {
-            throw new IOException("lon needs to be in /fields");
-        }
+//        if (latIndex == -1) {
+//            throw new IOException("lat needs to be in /fields");
+//        }
+//        if (lonIndex == -1) {
+//            throw new IOException("lon needs to be in /fields");
+//        }
     }
 
     /**
      * create a feature from one line of text
      *
-     * @param type feature type describing a row of data
+     * @param type       feature type describing a row of data
      * @param pointIndex point number to assign
-     * @param line data to be read
+     * @param line       data to be read
      * @return the feature holding the data from the string
      * @throws IOException
      */
@@ -217,17 +228,45 @@ public class SeabassReader extends LineNumberReader {
 
         float lat;
         float lon;
-        try {
-            lat = Float.parseFloat(record[latIndex]);
-        } catch (Exception e) {
-            throw new IOException("lat is not a valid float on line " + getLineNumber(), e);
+
+        if (latIndex != -1) {
+            try {
+                lat = Float.parseFloat(record[latIndex]);
+            } catch (Exception e) {
+                throw new IOException("lat is not a valid float on line " + getLineNumber(), e);
+            }
+        } else {
+            if (headerLatStr != null) {
+                try {
+                    lat = Float.parseFloat(headerLatStr);
+                } catch (Exception e) {
+                    throw new IOException("lat is not a valid float in header " + getLineNumber(), e);
+                }
+            } else {
+                throw new IOException("lat not found in header ");
+            }
         }
 
-        try {
-            lon = Float.parseFloat(record[lonIndex]);
-        } catch (Exception e) {
-            throw new IOException("lon is not a valid float on line " + getLineNumber(), e);
+
+        if (lonIndex != -1) {
+            try {
+                lon = Float.parseFloat(record[lonIndex]);
+            } catch (Exception e) {
+                throw new IOException("lon is not a valid float on line " + getLineNumber(), e);
+            }
+        } else {
+            if (headerLonStr != null) {
+                try {
+                    lon = Float.parseFloat(headerLonStr);
+                } catch (Exception e) {
+                    throw new IOException("lon is not a valid float in header " + getLineNumber(), e);
+                }
+            } else {
+                throw new IOException("lon not found in header ");
+            }
         }
+
+
 
         PixelPos pixelPos = geoCoding.getPixelPos(new GeoPos(lat, lon), null);
         if (!pixelPos.isValid()) {

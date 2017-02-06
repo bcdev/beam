@@ -23,10 +23,18 @@ import java.util.List;
 
 
 public class RasterDataNodeNoDataTest extends TestCase {
+
+    private Product p;
+
+    @Override
+    public void setUp() throws Exception {
+        super.setUp();
+        p = new Product("p", "t", 10, 10);
+    }
+
     public void testValidPixelExpression() {
         double z = 0;
 
-        Product p = new Product("p", "t", 10, 10);
         Band floatBand = p.addBand("b", ProductData.TYPE_FLOAT32);
 
         assertEquals(null, floatBand.getValidMaskExpression());
@@ -83,8 +91,17 @@ public class RasterDataNodeNoDataTest extends TestCase {
         assertEquals("u.raw != 255.0", uintBand.getValidMaskExpression());
     }
 
+    public void testIsPixelValid() throws Exception {
+        Band b = p.addBand("b", ProductData.TYPE_FLOAT32);
+
+        assertTrue(b.isPixelValid(-10, -3));
+
+        b.setNoDataValue(12.34);
+        b.setNoDataValueUsed(true);
+        assertFalse(b.isPixelValid(-10, -3));
+    }
+
     public void testNodeDataChangedEventFired() {
-        Product p = new Product("p", "t", 10, 10);
         Band b = p.addBand("b", ProductData.TYPE_FLOAT32);
 
         assertEquals(false, b.isNoDataValueUsed());
@@ -120,7 +137,6 @@ public class RasterDataNodeNoDataTest extends TestCase {
 
 
     public void testSetNoDataValue() {
-        Product p = new Product("p", "t", 10, 10);
         final Band b = createBand(p, ProductData.TYPE_UINT16, 0.005, 4, false);
 
         ChangeDetector detector = new ChangeDetector();
@@ -139,7 +155,6 @@ public class RasterDataNodeNoDataTest extends TestCase {
     }
 
     public void testSetGeophysicalNoDataValue() {
-        Product p = new Product("p", "t", 10, 10);
         final Band b = createBand(p, ProductData.TYPE_UINT16, 0.005, 4, false);
         ChangeDetector detector = new ChangeDetector();
         p.addProductNodeListener(detector);
@@ -157,7 +172,6 @@ public class RasterDataNodeNoDataTest extends TestCase {
     }
 
     public void testSetGeophysicalNoDataValueWithLogScaling() {
-        Product p = new Product("p", "t", 10, 10);
         final Band b = createBand(p, ProductData.TYPE_UINT16, 2.3, -1.8, true);
 
         final int rawValue = 0;

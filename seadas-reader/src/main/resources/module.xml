@@ -1,14 +1,14 @@
 <module>
     <manifestVersion>1.0.0</manifestVersion>
     <symbolicName>seadas-reader</symbolicName>
-    <version>1.5.8</version>
+    <version>1.7.1</version>
     <name>NASA OBPG Ocean Color Product Reader</name>
     <description>A reader for Ocean Color Data Products supported the NASA Ocean Biology Processing Group</description>
 
     <vendor>NASA Ocean Biogeochemical Processing Group</vendor>
     <contactAddress>NASA GSFC, Greenbelt, Maryland, MD, USA</contactAddress>
     <copyright>(C) 2014 by NASA OBPG</copyright>
-    <url>http://oceancolor.gsfc.nasa.gov/</url>
+    <url>https://oceancolor.gsfc.nasa.gov/</url>
     <licenseUrl>http://www.gnu.org/licenses/gpl.html</licenseUrl>
     <funding>NASA GSFC</funding>
 

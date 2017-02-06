@@ -67,6 +67,7 @@ public class SeadasProductReader extends AbstractProductReader {
         VIIRS_SDR("VIIRS SDR"),
         VIIRS_EDR("VIIRS EDR"),
         VIIRS_GEO("VIIRS GEO"),
+        VIIRS_L1B("VIIRS L1B"),
         UNKNOWN("WHATUTALKINBOUTWILLIS");
 
 
@@ -155,6 +156,9 @@ public class SeadasProductReader extends AbstractProductReader {
                 case VIIRS_EDR:
                 case VIIRS_GEO:
                     seadasFileReader = new ViirsXDRFileReader(this);
+                    break;
+                case VIIRS_L1B:
+                    seadasFileReader = new L1BViirsFileReader(this);
                     break;
                 case UNKNOWN:
                     throw new IOException("Unrecognized product type");
@@ -260,7 +264,24 @@ public class SeadasProductReader extends AbstractProductReader {
         }
         return ProductType.UNKNOWN;
     }
+    private boolean checkHicoL1B() {
+        Attribute hicol1bName = ncfile.findGlobalAttribute("metadata_FGDC_Instrument_Information_Instrument_Name");
+        return hicol1bName != null;
+    }    
+    
+    private ProductType checkViirsL1B() {
+        Attribute instrumentName = ncfile.findGlobalAttribute("instrument");
+        Attribute processingLevel = ncfile.findGlobalAttribute("processing_level");
 
+        if (instrumentName != null) {
+            if (processingLevel != null) {
+                if (instrumentName.getStringValue().equals("VIIRS") && processingLevel.getStringValue().equals("L1B")) {
+                    return ProductType.VIIRS_L1B;
+                }
+            }
+        }
+        return ProductType.UNKNOWN;
+    }
     public ProductType findProductType() throws ProductIOException {
         Attribute titleAttr = ncfile.findGlobalAttributeIgnoreCase("Title");
         String title;
@@ -305,8 +326,9 @@ public class SeadasProductReader extends AbstractProductReader {
                 return ProductType.Level3_Bin;
             } else if (title.contains("GSM") && (tmp = checkMEaSUREs()) != ProductType.UNKNOWN) {
                 return tmp;
+            } else if (title.contains("VIIRS") && (tmp = checkViirsL1B()) != ProductType.UNKNOWN) {
+                return tmp;
             }
-
         } else if (checkModisL1B()) {
             return ProductType.Level1B_Modis;
         } else if (checkHicoL1B()) {
@@ -319,11 +341,6 @@ public class SeadasProductReader extends AbstractProductReader {
 
         throw new ProductIOException("Unrecognized product type");
 
-    }
-
-    private boolean checkHicoL1B() {
-        Attribute hicol1bName = ncfile.findGlobalAttribute("metadata_FGDC_Instrument_Information_Instrument_Name");
-        return hicol1bName != null;
     }
 
     public static File getInputFile(Object input) {

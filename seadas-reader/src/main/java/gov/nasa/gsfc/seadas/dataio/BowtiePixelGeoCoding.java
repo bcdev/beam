@@ -93,6 +93,14 @@ public class BowtiePixelGeoCoding extends AbstractBowtieGeoCoding {
         return _scanlineOffset;
     }
 
+    public Band getLatBand() {
+        return _latBand;
+    }
+
+    public Band getLonBand() {
+        return _lonBand;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -149,7 +157,12 @@ public class BowtiePixelGeoCoding extends AbstractBowtieGeoCoding {
 
         // look at first pixel in each line
         for(int i=1; i<_latBand.getSceneRasterHeight(); i++) {
-            if(_latBand.getPixelFloat(0, i-1) < _latBand.getPixelFloat(0, i)) {
+            float p0 = _latBand.getPixelFloat(0, i - 1);
+            float p1 = _latBand.getPixelFloat(0, i);
+            if (Float.isNaN(p0) || p0 > 90.0 || p0 < -90.0 || Float.isNaN(p1) || p1 > 90.0 || p1 < -90.0) {
+                continue;
+            }
+            if((p0 - p1) < -0.001) {
                 start = i;
                 break;
             }
@@ -158,7 +171,12 @@ public class BowtiePixelGeoCoding extends AbstractBowtieGeoCoding {
         if(start == -1) {
             int x = _latBand.getSceneRasterWidth() - 1;
             for(int i=1; i<_latBand.getSceneRasterHeight(); i++) {
-                if(_latBand.getPixelFloat(x, i-1) < _latBand.getPixelFloat(x, i)) {
+                float p0 = _latBand.getPixelFloat(x, i - 1);
+                float p1 = _latBand.getPixelFloat(x, i);
+                if (Float.isNaN(p0) || p0 > 90.0 || p0 < -90.0 || Float.isNaN(p1) || p1 > 90.0 || p1 < -90.0) {
+                    continue;
+                }
+                if((p0 - p1) < -0.001) {
                     start = i;
                     break;
                 }

@@ -37,7 +37,7 @@ public class L2ProductReaderPlugIn implements ProductReaderPlugIn {
     //
     private static final boolean DEBUG = false;
 
-    private static final String DEFAULT_FILE_EXTENSION = ".hdf";
+    private static final String DEFAULT_FILE_EXTENSION = ".nc";
 
     private static final String DEFAULT_FILE_EXTENSION_L2 = ".L2";
     private static final String DEFAULT_FILE_EXTENSION_L2_GAC = DEFAULT_FILE_EXTENSION_L2 + "_GAC";
@@ -70,6 +70,7 @@ public class L2ProductReaderPlugIn implements ProductReaderPlugIn {
             "HICO Level-2 Data",
             "GOCI Level-2 Data",
             "OLI Level-2 Data",
+            "OLCI Level-2 Data",
     };
     private static final Set<String> supportedProductTypeSet = new HashSet<String>(Arrays.asList(supportedProductTypes));
 

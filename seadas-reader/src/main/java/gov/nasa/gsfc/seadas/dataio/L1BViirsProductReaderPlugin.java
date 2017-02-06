@@ -1,20 +1,13 @@
 /*
- * Copyright (C) 2010 Brockmann Consult GmbH (info@brockmann-consult.de)
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, see http://www.gnu.org/licenses/
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
  */
 package gov.nasa.gsfc.seadas.dataio;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Locale;
 import org.esa.beam.dataio.netcdf.util.NetcdfFileOpener;
 import org.esa.beam.framework.dataio.DecodeQualification;
 import org.esa.beam.framework.dataio.ProductReader;
@@ -23,30 +16,27 @@ import org.esa.beam.util.io.BeamFileFilter;
 import ucar.nc2.Attribute;
 import ucar.nc2.NetcdfFile;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-
-public class L1BHicoProductReaderPlugIn implements ProductReaderPlugIn {
-
-    // Set to "true" to output debugging information.
+/**
+ *
+ * @author sean
+ */
+public class L1BViirsProductReaderPlugin implements ProductReaderPlugIn {
+        // Set to "true" to output debugging information.
     // Don't forget to setback to "false" in production code!
     //
     private static final boolean DEBUG = false;
 
-    private static final String DEFAULT_FILE_EXTENSION = ".h5";
+    private static final String DEFAULT_FILE_EXTENSION_L1B_MOD = ".L1B-M_SNPP.nc";
+    private static final String DEFAULT_FILE_EXTENSION_L1B_IMG = ".L1B-I_SNPP.nc";
+    private static final String DEFAULT_FILE_EXTENSION_L1B_DNB = ".L1B-D_SNPP.nc";
 
-    public static final String READER_DESCRIPTION = "HICO L1B Products";
-    public static final String FORMAT_NAME = "HICO-L1B";
+    public static final String READER_DESCRIPTION = "VIIRS L1B Products (NASA)";
+    public static final String FORMAT_NAME = "VIIRS-L1B";
 
-    private static final String[] supportedProductTypes = {
-            "HICO_L1B",
-    };
-    private static final Set<String> supportedProductTypeSet = new HashSet<String>(Arrays.asList(supportedProductTypes));
+//    private static final String[] supportedProductTypes = {
+//            "MODIS_SWATH_Type_L1B",
+//    };
+//    private static final Set<String> supportedProductTypeSet = new HashSet<String>(Arrays.asList(supportedProductTypes));
 
     /**
      * Checks whether the given object is an acceptable input for this product reader and if so, the method checks if it
@@ -74,25 +64,26 @@ public class L1BHicoProductReaderPlugIn implements ProductReaderPlugIn {
         try {
             ncfile = NetcdfFileOpener.open(file.getPath());
             if (ncfile != null) {
-                Attribute instrumentName = ncfile.findGlobalAttribute("metadata_FGDC_Instrument_Information_Instrument_Name");
-
-                //metadata/FGDC/Instrument_Information/Instrument_Name = "Hyperspectral Imager for Coastal Oceans"
+               Attribute instrumentName = ncfile.findGlobalAttribute("instrument");
+               Attribute processingLevel = ncfile.findGlobalAttribute("processing_level");
 
                 if (instrumentName != null) {
-                    if (instrumentName.toString().contains("Hyperspectral Imager for Coastal Oceans")) {
-                        if (DEBUG) {
-                            System.out.println(file);
-                        }
-                        ncfile.close();
-                        return DecodeQualification.INTENDED;
+                    if (processingLevel != null) {
+                        if (instrumentName.getStringValue().equals("VIIRS") && processingLevel.getStringValue().equals("L1B")) {
+                            if (DEBUG) {
+                                System.out.println(file);
+                            }
+                            ncfile.close();
+                            return DecodeQualification.INTENDED;
+                        } 
                     } else {
-                        if (DEBUG) {
-                            System.out.println("# Unrecognized instrument name=[" + instrumentName + "]: " + file);
+                            if (DEBUG) {
+                                System.out.println("# Missing processing_level attribute: " + file);
+                            }
                         }
-                    }
                 } else {
                     if (DEBUG) {
-                        System.out.println("# Missing Instrument_Name attribute': " + file);
+                        System.out.println("# Missing instrument attribute': " + file);
                     }
                 }
             } else {
@@ -161,7 +152,9 @@ public class L1BHicoProductReaderPlugIn implements ProductReaderPlugIn {
     public String[] getDefaultFileExtensions() {
         // todo: return regular expression to clean up the extensions.
         return new String[]{
-                DEFAULT_FILE_EXTENSION
+                DEFAULT_FILE_EXTENSION_L1B_MOD,
+                DEFAULT_FILE_EXTENSION_L1B_IMG,
+                DEFAULT_FILE_EXTENSION_L1B_DNB
         };
     }
 
@@ -188,5 +181,4 @@ public class L1BHicoProductReaderPlugIn implements ProductReaderPlugIn {
     public String[] getFormatNames() {
         return new String[]{FORMAT_NAME};
     }
-
 }

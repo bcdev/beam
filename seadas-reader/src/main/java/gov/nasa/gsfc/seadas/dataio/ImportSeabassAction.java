@@ -36,7 +36,7 @@ import java.io.Reader;
  *
  * @author Don Shea
  * @since SeaDAS 7.0
- * @see <a href="http://seabass.gsfc.nasa.gov/wiki/article.cgi?article=Data_Submission#Data%20Format">SeaBASS File Format Description</a>
+ * @see <a href="https://seabass.gsfc.nasa.gov/wiki/article.cgi?article=Data_Submission#Data%20Format">SeaBASS File Format Description</a>
  */
 public class ImportSeabassAction extends ExecCommand {
 
