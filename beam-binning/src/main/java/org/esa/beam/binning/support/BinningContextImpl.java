@@ -52,6 +52,12 @@ public class BinningContextImpl implements BinningContext {
         this(planetaryGrid, binManager, compositingType, superSampling, -1, dataPeriod, null);
     }
 
+    @Deprecated
+    public BinningContextImpl(PlanetaryGrid planetaryGrid, BinManager binManager, CompositingType compositingType,
+                              int superSampling, DataPeriod dataPeriod, Geometry region) {
+        this(planetaryGrid, binManager, compositingType, superSampling, -1, dataPeriod, region);
+    }
+
     public BinningContextImpl(PlanetaryGrid planetaryGrid, BinManager binManager, CompositingType compositingType,
                               int superSampling, int maxDistanceOnEarth, DataPeriod dataPeriod, Geometry region) {
         Assert.notNull(planetaryGrid, "planetaryGrid");
