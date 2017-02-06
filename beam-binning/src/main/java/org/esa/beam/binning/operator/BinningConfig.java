@@ -40,6 +40,9 @@ import java.lang.reflect.Constructor;
 @SuppressWarnings({"UnusedDeclaration"})
 public class BinningConfig {
 
+    private static final int MAX_EARTH_DISTANCE_DEFAULT = -1;
+    private static final int SUPER_SAMPLING_DEFAULT = 1;
+
     /**
      * Specifies the planetary grid used for the binning. It must be the fully qualified
      * name of a class implementing the {@link PlanetaryGrid} interface.
@@ -292,8 +295,8 @@ public class BinningConfig {
         return new BinningContextImpl(planetaryGridInst,
                                       binManager,
                                       compositingType,
-                                      getSuperSampling() != null ? getSuperSampling() : 1,
-                                      getMaxDistanceOnEarth() != null ? getMaxDistanceOnEarth() : 1,
+                                      getSuperSampling() != null ? getSuperSampling() : SUPER_SAMPLING_DEFAULT,
+                                      getMaxDistanceOnEarth() != null ? getMaxDistanceOnEarth() : MAX_EARTH_DISTANCE_DEFAULT,
                                       dataPeriod,
                                       region);
     }
