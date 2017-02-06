@@ -293,7 +293,7 @@ public class BinningConfig {
                                       binManager,
                                       compositingType,
                                       getSuperSampling() != null ? getSuperSampling() : 1,
-                                      maxDistanceOnEarth,
+                                      getMaxDistanceOnEarth() != null ? getMaxDistanceOnEarth() : 1,
                                       dataPeriod,
                                       region);
     }
