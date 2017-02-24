@@ -174,7 +174,7 @@ public class BowtieTiePointGeoCoding extends AbstractBowtieGeoCoding {
         if(start == -1) {       // did not find an overlap
             _scanlineOffset = 0;
         } else {
-            _scanlineOffset = (_scanlineHeight - start) % _scanlineHeight;
+            _scanlineOffset = start % _scanlineHeight;
         }
     }
 
