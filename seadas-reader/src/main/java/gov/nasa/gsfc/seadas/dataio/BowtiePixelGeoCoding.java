@@ -158,41 +158,46 @@ public class BowtiePixelGeoCoding extends AbstractBowtieGeoCoding {
      * where the lat overlaps the previous lat.  set _scanlineOffset
      */
     private void calculateScanlineOffset() {
-        int start = -1;
-
         // look at first pixel in each line
-        for(int i=1; i<_latBand.getSceneRasterHeight(); i++) {
-            float p0 = _latBand.getPixelFloat(0, i - 1);
-            float p1 = _latBand.getPixelFloat(0, i);
-            if (Float.isNaN(p0) || p0 > 90.0 || p0 < -90.0 || Float.isNaN(p1) || p1 > 90.0 || p1 < -90.0) {
-                continue;
-            }
-            if((p0 - p1) < -0.001) {
-                start = i;
-                break;
-            }
-        }
+        int start = findStart(0);
         // if not found try end of line
         if(start == -1) {
-            int x = _latBand.getSceneRasterWidth() - 1;
-            for(int i=1; i<_latBand.getSceneRasterHeight(); i++) {
-                float p0 = _latBand.getPixelFloat(x, i - 1);
-                float p1 = _latBand.getPixelFloat(x, i);
-                if (Float.isNaN(p0) || p0 > 90.0 || p0 < -90.0 || Float.isNaN(p1) || p1 > 90.0 || p1 < -90.0) {
-                    continue;
-                }
-                if((p0 - p1) < -0.001) {
-                    start = i;
-                    break;
-                }
-            }
+            start = findStart(_latBand.getSceneRasterWidth() - 1);
         }
 
         if(start == -1) {       // did not find an overlap
             _scanlineOffset = 0;
         } else {
-            _scanlineOffset = (_scanlineHeight - start) % _scanlineHeight;
+            _scanlineOffset = start % _scanlineHeight;
         }
+    }
+
+    private int findStart(int x) {
+        int increaseDecreaseCount = 0;
+
+        for(int i=1; i<_latBand.getSceneRasterHeight(); i++) {
+            float p0 = _latBand.getPixelFloat(x, i - 1);
+            float p1 = _latBand.getPixelFloat(x, i);
+            if (Float.isNaN(p0) || p0 > 90.0 || p0 < -90.0 || Float.isNaN(p1) || p1 > 90.0 || p1 < -90.0) {
+                continue;
+            }
+            int change = 0;
+            if((p0 - p1) < -0.001) {
+                // increase
+                change = +1;
+            } else if((p1 - p0) < -0.001) {
+                // decrease
+                change = -1;
+            }
+            if (increaseDecreaseCount > 1 && change == -1) {
+                return i;
+            } else if (increaseDecreaseCount < -1 && change == +1) {
+                return i;
+            } else {
+                increaseDecreaseCount += change;
+            }
+        }
+        return -1;
     }
 
     private void init() throws IOException {

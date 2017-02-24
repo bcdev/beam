@@ -164,25 +164,11 @@ public class BowtieTiePointGeoCoding extends AbstractBowtieGeoCoding {
      * where the lat overlaps the previous lat.  set _scanlineOffset
      */
     private void calculateScanlineOffset() {
-        int start = -1;
-        final float[] latPoints = _latGrid.getTiePoints();
-        int latWidth = _latGrid.getRasterWidth();
-
         // look at first pixel in each line
-        for(int i=1; i<_latGrid.getRasterHeight(); i++) {
-            if(latPoints[(i-1)*latWidth] < latPoints[i*latWidth]) {
-                start = (int)(i*_latGrid.getSubSamplingY());
-                break;
-            }
-        }
+        int start = findStart(0);
         // if not found try end of line
-        if(start == -1) {
-            for(int i=1; i<_latGrid.getRasterHeight(); i++) {
-                if(latPoints[i*latWidth-1] < latPoints[(i+1)*latWidth-1]) {
-                    start = (int)(i*_latGrid.getSubSamplingY());
-                    break;
-                }
-            }
+        if (start == -1) {
+            start = findStart(_latGrid.getRasterWidth() - 1);
         }
 
         if(start == -1) {       // did not find an overlap
@@ -190,7 +176,36 @@ public class BowtieTiePointGeoCoding extends AbstractBowtieGeoCoding {
         } else {
             _scanlineOffset = (_scanlineHeight - start) % _scanlineHeight;
         }
+    }
 
+    private int findStart(int x) {
+        int increaseDecreaseCount = 0;
+        final float[] latPoints = _latGrid.getTiePoints();
+        int latWidth = _latGrid.getRasterWidth();
+
+        for(int i=1; i<_latGrid.getRasterHeight(); i++) {
+            float p0 = latPoints[(i - 1) * latWidth + x];
+            float p1 = latPoints[i * latWidth + x];
+            if (Float.isNaN(p0) || p0 > 90.0 || p0 < -90.0 || Float.isNaN(p1) || p1 > 90.0 || p1 < -90.0) {
+                continue;
+            }
+            int change = 0;
+            if((p0 - p1) < -0.001) {
+                // increase
+                change = +1;
+            } else if((p1 - p0) < -0.001) {
+                // decrease
+                change = -1;
+            }
+            if (increaseDecreaseCount > 1 && change == -1) {
+                return (int)(i*_latGrid.getSubSamplingY());
+            } else if (increaseDecreaseCount < -1 && change == +1) {
+                return (int)(i*_latGrid.getSubSamplingY());
+            } else {
+                increaseDecreaseCount += change;
+            }
+        }
+        return -1;
     }
 
     private void init() throws IOException {
