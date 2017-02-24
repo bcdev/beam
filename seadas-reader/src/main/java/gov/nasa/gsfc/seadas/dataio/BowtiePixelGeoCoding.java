@@ -23,6 +23,11 @@ import org.esa.beam.util.ProductUtils;
 import org.esa.beam.util.math.IndexValidator;
 import org.esa.beam.util.math.Range;
 
+import javax.media.jai.Interpolation;
+import javax.media.jai.operator.CropDescriptor;
+import javax.media.jai.operator.ScaleDescriptor;
+import java.awt.*;
+import java.awt.image.RenderedImage;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -311,15 +316,15 @@ public class BowtiePixelGeoCoding extends AbstractBowtieGeoCoding {
     @Override
     public boolean transferGeoCoding(final Scene srcScene, final Scene destScene, final ProductSubsetDef subsetDef) {
 
-        BowtiePixelGeoCoding srcGeocoding = (BowtiePixelGeoCoding)srcScene.getGeoCoding();
+        BowtiePixelGeoCoding srcGeocoding = (BowtiePixelGeoCoding) srcScene.getGeoCoding();
         final String latBandName = srcGeocoding._latBand.getName();
         final String lonBandName = srcGeocoding._lonBand.getName();
 
-        ensureLatLonBands(destScene);
+        ensureLatLonBands(destScene, subsetDef);
         final Band targetLatBand = destScene.getProduct().getBand(latBandName);
         final Band targetLonBand = destScene.getProduct().getBand(lonBandName);
-        if(subsetDef != null) {
-            if(subsetDef.getSubSamplingY() != 1) {
+        if (subsetDef != null) {
+            if (subsetDef.getSubSamplingY() != 1) {
                 destScene.setGeoCoding(GeoCodingFactory.createPixelGeoCoding(targetLatBand, targetLonBand, null, 5));
                 return true;
             }
@@ -332,16 +337,60 @@ public class BowtiePixelGeoCoding extends AbstractBowtieGeoCoding {
         return false;
     }
 
-    private void ensureLatLonBands(Scene destScene) {
-         ensureBand(destScene, _latBand);
-         ensureBand(destScene, _lonBand);
-     }
+    private void ensureLatLonBands(Scene destScene, ProductSubsetDef subsetDef) {
+        ensureBand(destScene, _latBand, subsetDef);
+        ensureBand(destScene, _lonBand, subsetDef);
+    }
 
-     private static void ensureBand(Scene destScene, Band sourceBand) {
-         Band band = destScene.getProduct().getBand(sourceBand.getName());
-         if (band == null) {
-             ProductUtils.copyBand(sourceBand.getName(), sourceBand.getProduct(), destScene.getProduct(), true);
-          }
-      }
+    private static void ensureBand(Scene destScene, Band sourceBand, ProductSubsetDef subsetDef) {
+        Band band = destScene.getProduct().getBand(sourceBand.getName());
+        if (band == null) {
+            Band newBand = createSubset(sourceBand, destScene, subsetDef);
+            destScene.getProduct().addBand(newBand);
+        }
+    }
 
+    // copied from org.esa.beam.framework.datamodel.GeoCodingFactory.createSubset
+    static Band createSubset(Band sourceBand, Scene targetScene, ProductSubsetDef subsetDef) {
+        final Band targetBand = new Band(sourceBand.getName(),
+                                         sourceBand.getDataType(),
+                                         targetScene.getRasterWidth(),
+                                         targetScene.getRasterHeight());
+        ProductUtils.copyRasterDataNodeProperties(sourceBand, targetBand);
+        targetBand.setSourceImage(getSourceImage(subsetDef, sourceBand));
+        return targetBand;
+    }
+
+    private static RenderedImage getSourceImage(ProductSubsetDef subsetDef, Band band) {
+        RenderedImage sourceImage = band.getSourceImage();
+        if (subsetDef != null) {
+            final Rectangle region = subsetDef.getRegion();
+            if (region != null) {
+                float x = region.x;
+                float y = region.y;
+                float width = region.width;
+                float height = region.height;
+                sourceImage = CropDescriptor.create(sourceImage, x, y, width, height, null);
+            }
+            final int subSamplingX = subsetDef.getSubSamplingX();
+            final int subSamplingY = subsetDef.getSubSamplingY();
+            if (mustSubSample(subSamplingX, subSamplingY) || mustTranslate(region)) {
+                float scaleX = 1.0f / subSamplingX;
+                float scaleY = 1.0f / subSamplingY;
+                float transX = region != null ? -region.x : 0;
+                float transY = region != null ? -region.y : 0;
+                Interpolation interpolation = Interpolation.getInstance(Interpolation.INTERP_NEAREST);
+                sourceImage = ScaleDescriptor.create(sourceImage, scaleX, scaleY, transX, transY, interpolation, null);
+            }
+        }
+        return sourceImage;
+    }
+
+    private static boolean mustTranslate(Rectangle region) {
+        return (region != null && (region.x != 0 || region.y != 0));
+    }
+
+    private static boolean mustSubSample(int subSamplingX, int subSamplingY) {
+        return subSamplingX != 1 || subSamplingY != 1;
+    }
 }
