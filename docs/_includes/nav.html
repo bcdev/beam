@@ -1,0 +1,11 @@
+<div id="nav-wrapper">
+	<!-- Nav -->
+	<nav id="nav">
+		<ul>
+			{% assign current = page.url | downcase | split: '/' %}
+			<li {% if current[1] == 'index.html' %}class='current'{% endif %}><a href="/index.html">Home</a></li>
+			<li {% if current[1] == 'about.html' %}class='current'{% endif %}><a href="/about.html">About</a></li>
+			<li {% if current[1] == 'download.html' %}class='current'{% endif %}><a href="/download.html">Download</a></li>
+		</ul>
+	</nav>
+</div>
