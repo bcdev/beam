@@ -1,5 +1,5 @@
 ---
-title: Linear
+title: BEAM
 layout: default
 ---
 <!-- Main -->
@@ -10,81 +10,112 @@ layout: default
                 <h2>About BEAM</h2>
                 <span class="byline">The Earth Observation Toolbox and Development Platform</span>
             </header>
-            <p>BEAM is a platform facilitating a quick and easy development of great tools for the analysis and processing of Earth observation data.
-                It comes with an extensible module framework and the intuitive VISAT graphical user interface. Several tools are included to employ
+            <p>BEAM is a platform facilitating a quick and easy development of great tools for the analysis and
+                processing of Earth observation data.
+                It comes with an extensible module framework and the intuitive VISAT graphical user interface. Several
+                tools are included to employ
                 the power of BEAM from the command line or within scripts.
-                It's extensibility is well proven by diverse toolboxes and plugins, which have been built on top of BEAM. Some highlights are:
-                CHRIS-Box, a toolbox for the hyperspectral CHRIS sensor onboard the ESA Proba platform
-                Glob-Toolbox for the various ESA global projects
-                NEST (Next ESA SAR Toolbox), the successor of BEST
-                SMOS-Box, a toolbox for ESA's Soil Moisture and Ocean Salinity (SMOS) mission
-                In addition, numerous BEAM extensions are available as plugins.
+                It's extensibility is well proven by diverse toolboxes and plugins, which have been built on top of
+                BEAM. Some of the highlights are shown below. In addition, numerous BEAM extensions are available as
+                plugins.
             </p>
 
             <div class="row">
                 <section class="6u">
-                    <a href="#" class="image full"><img src="/assets/images/SMOS-Logo.png" alt=""></a>
+                    <a href="http://www.brockmann-consult.de/beam-wiki/display/SBOX/SMOS+Toolbox+for+BEAM"
+                       class="image full"><img src="{{ "/assets/images/SMOS-Logo.png" | relative_url}}" alt="SMOS Logo"></a>
                     <header>
                         <h2>SMOS-Box</h2>
                     </header>
-                    <p>The project SMOS Toolbox for BEAM (SMOS-Box) has been brought into life in order to support users of data acquired by ESA's
-                        Soil Moisture and Ocean Salinity (SMOS) mission.
-                        BEAM and the SMOS-Box are user tools which ESA/ESRIN is providing free of charge to the Earth Observation Community. The
-                        SMOS-Box software is developed by Brockmann Consult under ESA contract initiated by Steven Delwart (ESTEC) and coordinated by
-                        Peter Regner (ESRIN).</p>
+                    <p>The project SMOS Toolbox for BEAM (SMOS-Box) has been brought into life in order to support users
+                        of data acquired by ESA's Soil Moisture and Ocean Salinity (SMOS) mission.
+                        BEAM and the SMOS-Box are user tools which ESA/ESRIN is providing free of charge to the Earth
+                        Observation Community. The SMOS-Box software is developed by Brockmann Consult under ESA
+                        contract initiated by Steven Delwart (ESTEC) and coordinated by Peter Regner (ESRIN).</p>
                 </section>
                 <section class="6u">
-                    <a href="#" class="image full"><img src="/assets/images/GlobToolbox-Logo.png" alt=""></a>
+                    <a href="https://seadas.gsfc.nasa.gov/" class="image full"><img src="{{ "/assets/images/SeaDAS_Logo.png"
+                        | relative_url}}"
+                        alt="SeaDAS Logo"></a>
                     <header>
-                        <h2>GlobToolbox</h2>
+                        <h2>SeaDAS</h2>
                     </header>
-                    <p>The GlobToolbox project has the aim to migrate the existing ESA GlobToolbox 1.0 software to the BEAM platform.
-                        The BEAM GlobToolbox 2.0 provides functions for the visualisation of various large data products of the DUE "Glob"-series of
-                        projects, as well as for the generation, inspection and analysis of time series generated from these global data
-                        products. </p>
+                    <p>SeaDAS is a comprehensive software package for the processing, display, analysis, and quality
+                        control of ocean color data. While the primary focus of SeaDAS is ocean color data, it is
+                        applicable to many satellite-based earth science data analyses. Originally developed to support
+                        the SeaWiFS mission, it now supports most U.S. and international ocean color missions.
+                        The latest version (SeaDAS 7.4) is the result of a collaboration with the developers of ESA's
+                        BEAM software package. The core visualization package for SeaDAS 7 is based on the BEAM
+                        framework, with extensions that provide the functionality provided by previous versions of
+                        SeaDAS.
+                    </p>
                 </section>
             </div>
 
             <div class="row">
                 <section class="6u">
-                    <a href="#" class="image full"><img src="/assets/images/nest-Logo.png" alt=""></a>
-                    <header>
-                        <h2>Nest</h2>
-                    </header>
-                    <p>The Next ESA SAR Toolbox (NEST) is used for visualising, analysing and post-processing the large amount of data from ESA SAR
-                        missions, including heritage ERS-1 & 2, ENVISAT and future Sentinel-1. In addition, the handling of data acquired by missions
-                        like JERS-1, ALOS PALSAR, TerraSAR-X, Radarsat-1 & 2 and Cosmo-Skymed will be supported.
-
-                        NEST complements existing software packages and has been built on the BEAM Toolbox. It aims at replacing the  Basic Envisat
-                        SAR Toolbox (BEST) and undergoes development with periodic releases. An integrated data viewer and orthorectification and
-                        mosaicking of SAR images are new functions, which were not provided by BEST.</p>
-                </section>
-                <section class="6u">
-                    <a href="#" class="image full"><img src="/assets/images/Chris-Logo.png" alt=""></a>
+                    <a href="http://www.brockmann-consult.de/beam-wiki/display/CBOX/CHRIS+Proba+Toolbox+for+BEAM"
+                       class="image full"><img src="{{ "/assets/images/Chris-Logo.png" | relative_url}}"
+                        alt="CHRIS-Box Logo"></a>
                     <header>
                         <h2>Chris-Box</h2>
                     </header>
-                    <p>The project CHRIS/Proba Toolbox for BEAM (CHRIS-Box) has been brought into life in order to support users of data of the CHRIS
-                        sensor onboard of the ESA Proba platform.
-                        BEAM and the CHRIS-Box are user tools which ESA/ESRIN are providing free of charge to the Earth Observation Community. The
-                        CHRIS-Box software provides extensions for BEAM, which allow accomplishing the following tasks:<br>
-                        Noise Reduction, Cloud Screening, Atmospheric Correction, Geometric Correction, TOA Reflectance Computation, Feature
-                        Extraction
+                    <p>The project CHRIS/Proba Toolbox for BEAM (CHRIS-Box) has been brought into life in order to
+                        support users of data of the CHRIS sensor onboard of the ESA Proba platform. BEAM and the
+                        CHRIS-Box are user tools which ESA/ESRIN are providing free of charge to the Earth Observation
+                        Community. The CHRIS-Box software provides extensions for BEAM, which allow accomplishing the
+                        following tasks:<br>
+                        Noise Reduction, Cloud Screening, Atmospheric Correction, Geometric Correction, TOA Reflectance
+                        Computation, Feature Extraction
                     </p>
                 </section>
+                <section class="6u">
+                    <a href="https://earth.esa.int/web/nest/home" class="image full"><img src="{{ "/assets/images/nest-Logo.png"
+                        | relative_url}}" alt="Nest Logo"></a>
+                    <header>
+                        <h2>Nest</h2>
+                    </header>
+                    <p>The Next ESA SAR Toolbox (NEST) is used for visualising, analysing and post-processing the large
+                        amount of data from ESA SAR missions, including heritage ERS-1 & 2, ENVISAT and future
+                        Sentinel-1. In addition, the handling of data acquired by missions like JERS-1, ALOS PALSAR,
+                        TerraSAR-X, Radarsat-1 & 2 and Cosmo-Skymed will be supported.<br>
+                        NEST complements existing software packages and has been built on the BEAM Toolbox. It aims at
+                        replacing the  Basic Envisat SAR Toolbox (BEST) and undergoes development with periodic
+                        releases. An integrated data viewer and orthorectification and mosaicking of SAR images are new
+                        functions, which were not provided by BEST.</p>
+                </section>
             </div>
-
+            <div class="row">
+                <section class="6u">
+                    <a href="http://www.brockmann-consult.de/beam-wiki/display/GBOX/GlobToolbox+Wiki"
+                       class="image full"><img src="{{ "/assets/images/GlobToolbox-Logo.png" | relative_url}}"
+                        alt="GlobToolbox Logo"></a>
+                    <header>
+                        <h2>GlobToolbox</h2>
+                    </header>
+                    <p>The GlobToolbox project has the aim to migrate the existing ESA GlobToolbox 1.0 software to the
+                        BEAM platform. The BEAM GlobToolbox 2.0 provides functions for the visualisation of various
+                        large data products of the DUE "Glob"-series of projects, as well as for the generation,
+                        inspection and analysis of time series generated from these global data products. </p>
+                </section>
+            </div>
 
             <header>
                 <span class="byline">History of BEAM</span>
             </header>
-            <p>BEAM was initiated under ESA contract in 2002. Being the first ESA open-source project, BEAM has undergone more than 20 release cycles
-                and has evolved from a basic ENVISAT/MERIS toolbox to an accepted platform for the analysis and processing of Earth observation data
-                in general.
-                Since initiation more than 30 projects have been realised by Brockmann Consult, either alone or as corporate partner, which have made
-                use of BEAM and have essentially driven the BEAM evolution. Many third parties use BEAM internally.
-                Nowadays BEAM has a vital and growing user community, and has become an institution for many users and developers dealing with the
-                analysis and processing Earth observation data.
+            <p>BEAM was initiated under ESA contract in 2001. The first non-preview version was released on the 6th
+                of Decemeber 2002. Being the first ESA open-source project, BEAM has
+                undergone more than 20 release cycles and has evolved from a basic ENVISAT/MERIS toolbox to an well
+                accepted and mature platform for the analysis and processing of Earth observation data in general. Since
+                initiation more than 30 projects have been realised by Brockmann Consult, either alone or as corporate
+                partner, which have made use of BEAM and have essentially driven the BEAM evolution. Many third parties
+                use BEAM internally.
+                Nowadays BEAM has a vital and growing user community, and has become an institution for many users and
+                developers dealing with the analysis and processing Earth observation data.<br>
+                In 2014 the development of SNAP started. It was decided to join efforts and develop a common application
+                for the upcoming Sentinel satellites. Brockmann Consult, Array and C-S France formed the consortium to
+                create SNAP. Because of this effort the BEAM development has been concluded. But BEAM has a worthy
+                successor in SNAP.
             </p>
         </section>
     </div>

@@ -12,13 +12,13 @@ Released for free under the Creative Commons Attribution 3.0 license (templated.
 	<meta name="keywords" content="ESA BEAM Remote Sensing" />
 	<link href='http://fonts.googleapis.com/css?family=Roboto:400,100,300,700,500,900' rel='stylesheet' type='text/css'>
 	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
-	<script src="/assets/js/skel.min.js"></script>
-	<script src="/assets/js/skel-panels.min.js"></script>
-	<script src="/assets/js/init.js"></script>
+	<script src="{{ "/assets/js/skel.min.js" | relative_url }}"></script>
+	<script src="{{ "/assets/js/skel-panels.min.js" | relative_url }}"></script>
+	<script src="{{ "/assets/js/init.js" | relative_url }}"></script>
 	<noscript>
-		<link rel="stylesheet" href="/assets/css/skel-noscript.css" />
-		<link rel="stylesheet" href="/assets/css/style.css" />
-		<link rel="stylesheet" href="/assets/css/style-desktop.css" />
+		<link rel="stylesheet" href="{{ "/assets/css/skel-noscript.css" | relative_url }}" />
+		<link rel="stylesheet" href="{{ "/assets/css/style.css" | relative_url }}" />
+		<link rel="stylesheet" href="{{ "/assets/css/style-desktop.css" | relative_url }}" />
 	</noscript>
 </head>
 <body>
@@ -30,19 +30,19 @@ Released for free under the Creative Commons Attribution 3.0 license (templated.
 
 			<!-- Logo -->
 			<div id="logo">
-				<h1><a href="#">BEAM</a></h1>
+				<h1><a href="{{ absolute_url }}">BEAM</a></h1>
 				<span class="tag">Earth Observation Toolbox and Development Platform</span>
 			</div>
 		</div>
 	</div>
 	<!-- Header -->
 	{{ content }}
-	
+
 	<!-- Tweet -->
 	<div id="tweet">
 		<div class="container">
 			<section>
-				<blockquote>&ldquo;We are looking back on 12 years of pleasure and fun developing SNAP.&rdquo;</blockquote>
+				<blockquote>&ldquo;We are looking back on 12 years of pleasure and fun developing BEAM.&rdquo;</blockquote>
 			</section>
 		</div>
 	</div>

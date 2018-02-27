@@ -3,9 +3,9 @@
 	<nav id="nav">
 		<ul>
 			{% assign current = page.url | downcase | split: '/' %}
-			<li {% if current[1] == 'index.html' %}class='current'{% endif %}><a href="/index.html">Home</a></li>
-			<li {% if current[1] == 'about.html' %}class='current'{% endif %}><a href="/about.html">About</a></li>
-			<li {% if current[1] == 'download.html' %}class='current'{% endif %}><a href="/download.html">Download</a></li>
+			<li {% if current[1] == 'index.html' %}class='current'{% endif %}><a href="{{ "index.html" | absolute_url}}">Home</a></li>
+			<li {% if current[1] == 'about.html' %}class='current'{% endif %}><a href="{{ "about.html" | absolute_url}}">About</a></li>
+			<li {% if current[1] == 'download.html' %}class='current'{% endif %}><a href="{{ "download.html" | absolute_url}}">Download</a></li>
 		</ul>
 	</nav>
 </div>

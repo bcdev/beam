@@ -1,12 +1,15 @@
+---
+---
 /*
-	Linear by TEMPLATED
+    Linear by TEMPLATED
     templated.co @templatedco
     Released for free under the Creative Commons Attribution 3.0 license (templated.co/license)
 */
 
 skel.init({
-	prefix: '/assets/css/style',
-	resetCSS: true,
+    prefix: '{{site.baseurl}}/assets/css/style',
+
+    resetCSS: true,
 	boxModel: 'border',
 	grid: {
 		gutters: 50
