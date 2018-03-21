@@ -45,11 +45,12 @@ import ucar.nc2.Variable;
 
 import java.awt.Dimension;
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
 
 public class CfGeocodingPart extends ProfilePartIO {
 
+    private static final String SYSPROP_WRITE_Y_FLIPPED = "beam.netcdf.write.yFlipped";
+    
     private boolean geographicCRS;
     private boolean latLonVarsAddedByGeocoding;
 
@@ -117,7 +118,8 @@ public class CfGeocodingPart extends ProfilePartIO {
             }
             latLonVarsAddedByGeocoding = true;
         }
-        ctx.setProperty(Constants.Y_FLIPPED_PROPERTY_NAME, false);
+        boolean yFlipped = Boolean.getBoolean(SYSPROP_WRITE_Y_FLIPPED); // default is 'false'
+        ctx.setProperty(Constants.Y_FLIPPED_PROPERTY_NAME, yFlipped);
     }
 
     private boolean isLatLonPresent(NFileWriteable ncFile) {
@@ -139,6 +141,7 @@ public class CfGeocodingPart extends ProfilePartIO {
         NFileWriteable ncFile = ctx.getNetcdfFileWriteable();
         NVariable latVariable = ncFile.findVariable("lat");
         NVariable lonVariable = ncFile.findVariable("lon");
+        final boolean isYFlipped = (Boolean) ctx.getProperty(Constants.Y_FLIPPED_PROPERTY_NAME);
         if (geographicCRS) {
             final float[] lat = new float[h];
             final float[] lon = new float[w];
@@ -154,12 +157,15 @@ public class CfGeocodingPart extends ProfilePartIO {
                 geoCoding.getGeoPos(pixelPos, geoPos);
                 lon[x] = geoPos.getLon();
             }
-            latVariable.writeFully(Array.factory(lat));
+            Array latArray = Array.factory(lat);
+            if (isYFlipped) {
+                latArray = latArray.flip(0);
+            }
+            latVariable.writeFully(latArray);
             lonVariable.writeFully(Array.factory(lon));
         } else {
             final float[] lat = new float[w];
             final float[] lon = new float[w];
-            final boolean isYFlipped = (Boolean) ctx.getProperty(Constants.Y_FLIPPED_PROPERTY_NAME);
             for (int y = 0; y < h; y++) {
                 pixelPos.y = y + 0.5f;
                 for (int x = 0; x < w; x++) {

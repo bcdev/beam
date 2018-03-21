@@ -116,20 +116,29 @@ public class BeamGeocodingPart extends CfGeocodingPart {
             ctx.getNetcdfFileWriteable().addGlobalAttribute(TIEPOINT_COORDINATES, value);
         } else {
             if (geoCoding instanceof CrsGeoCoding) {
-                addWktAsVariable(ctx.getNetcdfFileWriteable(), geoCoding);
+                addWktAsVariable(ctx, geoCoding);
             }
         }
     }
 
-    private void addWktAsVariable(NFileWriteable ncFile, GeoCoding geoCoding) throws IOException {
+    private void addWktAsVariable(ProfileWriteContext ctx, GeoCoding geoCoding) throws IOException {
+        final NFileWriteable ncFile = ctx.getNetcdfFileWriteable();
         final CoordinateReferenceSystem crs = geoCoding.getMapCRS();
         final double[] matrix = new double[6];
         final MathTransform transform = geoCoding.getImageToMapTransform();
+
+        final Object object = ctx.getProperty(Constants.Y_FLIPPED_PROPERTY_NAME);
+        boolean isYFlipped = object instanceof Boolean && (Boolean) object;
+        System.out.println("isYFlipped = " + isYFlipped);
+        
         if (transform instanceof AffineTransform) {
             ((AffineTransform) transform).getMatrix(matrix);
         }
         final NVariable crsVariable = ncFile.addScalarVariable("crs", DataType.INT);
         crsVariable.addAttribute("wkt", crs.toWKT());
-        crsVariable.addAttribute("i2m", StringUtils.arrayToCsv(matrix));
+        if (!isYFlipped) {
+            // in case of a flipped product the i2m is wrong => don't write it
+            crsVariable.addAttribute("i2m", StringUtils.arrayToCsv(matrix));
+        }
     }
 }
