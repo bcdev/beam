@@ -135,7 +135,6 @@ public class TileImplTest {
     // Cropping is something that should be done in a user-specific way.
     //
     @Ignore
-    @Test
     public void testSetSamplePreventsOverflow() {
         Product product = new Product("n", "t", 1, 1);
         Band band = product.addBand("x", ProductData.TYPE_INT8);
